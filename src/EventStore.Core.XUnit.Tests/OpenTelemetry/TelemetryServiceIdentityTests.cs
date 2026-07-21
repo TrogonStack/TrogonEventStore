@@ -21,6 +21,13 @@ public class TelemetryServiceIdentityTests
 		dictionary.Should().Contain(AttributeNames.ServiceName, "eventstore");
 		dictionary.Should().Contain(AttributeNames.ServiceInstanceId, "test-node");
 		dictionary.Should().Contain(AttributeNames.ServiceVersion, VersionInfo.Version);
+		dictionary.Should().ContainKey(AttributeNames.ProcessCreationTime).WhoseValue.Should().BeOfType<string>();
+		dictionary.Should().Contain(AttributeNames.ProcessPid, Environment.ProcessId);
+		dictionary.Should().ContainKey(AttributeNames.ProcessExecutableName).WhoseValue.Should().BeOfType<string>();
+		dictionary.Should().Contain(AttributeNames.ProcessRuntimeName, ".NET");
+		dictionary.Should().Contain(AttributeNames.ProcessRuntimeVersion, Environment.Version.ToString());
+		dictionary.Should().Contain(AttributeNames.HostName, Environment.MachineName);
+		dictionary.Should().ContainKey(AttributeNames.HostArch).WhoseValue.Should().BeOfType<string>();
 		resource.Should().Contain(dictionary);
 	}
 

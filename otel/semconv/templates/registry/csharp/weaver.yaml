@@ -2,18 +2,80 @@ whitespace_control:
   trim_blocks: true
   lstrip_blocks: true
 
+params:
+  attributes: true
+  custom_attributes: false
+  metrics: true
+  official_metrics: false
+
 templates:
   - template: attribute-names.cs.j2
     filter: >
-      semconv_grouped_attributes
-      | map({
-          root_namespace: .root_namespace,
-          attributes: [.attributes[] | select(
-            .name == "service.name" or
-            .name == "service.instance.id" or
-            .name == "service.version"
-          )]
-        })
-      | map(select(.attributes | length > 0))
+      if $attributes then
+        semconv_grouped_attributes
+        | map({
+            root_namespace: .root_namespace,
+            attributes: [.attributes[] | select(
+              .name == "disk.io.direction" or
+              .name == "host.arch" or
+              .name == "host.name" or
+              .name == "process.creation.time" or
+              .name == "process.executable.name" or
+              .name == "process.pid" or
+              .name == "process.runtime.name" or
+              .name == "process.runtime.version" or
+              .name == "service.name" or
+              .name == "service.instance.id" or
+              .name == "service.version" or
+              .name == "system.filesystem.mountpoint" or
+              .name == "system.filesystem.state"
+            )]
+          })
+        | map(select(.attributes | length > 0))
+      else
+        empty
+      end
     application_mode: single
     file_name: AttributeNames.g.cs
+  - template: metric-names.cs.j2
+    filter: >
+      if $metrics then
+        semconv_grouped_metrics
+      else
+        empty
+      end
+    application_mode: single
+    file_name: MetricDefinitions.g.cs
+  - template: trogon-attribute-names.cs.j2
+    filter: >
+      if $custom_attributes then
+        semconv_grouped_attributes
+        | map({
+            root_namespace: .root_namespace,
+            attributes: [.attributes[] | select(.name | startswith("trogon.eventstore."))]
+          })
+        | map(select(.attributes | length > 0))
+      else
+        empty
+      end
+    application_mode: single
+    file_name: TrogonAttributeNames.g.cs
+  - template: open-telemetry-metric-definitions.cs.j2
+    filter: >
+      if $official_metrics then
+        semconv_grouped_metrics
+        | map({
+            root_namespace: .root_namespace,
+            metrics: [.metrics[] | select(
+              .metric_name == "process.uptime" or
+              .metric_name == "process.disk.io" or
+              .metric_name == "system.filesystem.usage" or
+              .metric_name == "system.filesystem.limit"
+            )]
+          })
+        | map(select(.metrics | length > 0))
+      else
+        empty
+      end
+    application_mode: single
+    file_name: OpenTelemetryMetricDefinitions.g.cs

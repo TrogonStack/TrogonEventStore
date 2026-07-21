@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using System.Threading.Tasks;
 using EventStore.Core.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -12,7 +13,11 @@ public class QueueBusyTrackerTests
 	{
 		using var meter = new Meter($"{typeof(QueueProcessingTrackerTests)}");
 		using var listener = new TestMeterListener<double>(meter);
-		var metric = new AverageMetric(meter, "the-metric", "seconds", label => new("queue", label));
+		var definition = MetricDefinitions.TrogonEventstoreQueueBusyTime;
+		var metric = new SummedCounterMetric(
+			meter,
+			definition,
+			label => new(TrogonAttributeNames.QueueName, label));
 		var sut = new QueueBusyTracker(metric, "the-queue");
 
 		sut.EnterBusy();
@@ -20,10 +25,10 @@ public class QueueBusyTrackerTests
 		sut.EnterIdle();
 		listener.Observe();
 
-		var measurement = Assert.Single(listener.RetrieveMeasurements("the-metric-seconds"));
+		var measurement = Assert.Single(listener.RetrieveMeasurements(definition.Name));
 		Assert.True(measurement.Value > 0.0001);
 		var tag = Assert.Single(measurement.Tags);
-		Assert.Equal("queue", tag.Key);
+		Assert.Equal(TrogonAttributeNames.QueueName, tag.Key);
 		Assert.Equal("the-queue", tag.Value);
 	}
 }

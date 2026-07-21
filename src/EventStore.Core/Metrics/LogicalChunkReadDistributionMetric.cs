@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics;
 
@@ -10,9 +11,17 @@ public class LogicalChunkReadDistributionMetric
 	private readonly IReadOnlyCheckpoint _writer;
 	private readonly int _chunkSize;
 
-	public LogicalChunkReadDistributionMetric(Meter meter, string name, IReadOnlyCheckpoint writer, int chunkSize)
+	public LogicalChunkReadDistributionMetric(
+		Meter meter,
+		MetricDefinition definition,
+		IReadOnlyCheckpoint writer,
+		int chunkSize)
 	{
-		_histogram = meter.CreateHistogram<long>(name);
+		definition.EnsureInstrumentKind(MetricInstrumentKind.Histogram);
+		_histogram = meter.CreateHistogram<long>(
+			definition.Name,
+			definition.Unit,
+			definition.Description);
 		_writer = writer;
 		_chunkSize = chunkSize;
 	}

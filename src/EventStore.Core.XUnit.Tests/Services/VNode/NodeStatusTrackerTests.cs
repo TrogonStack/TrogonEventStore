@@ -4,6 +4,7 @@ using System.Linq;
 using EventStore.Core.Metrics;
 using EventStore.Core.Services.VNode;
 using EventStore.Core.XUnit.Tests.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.TransactionLog.Services.VNode;
@@ -11,7 +12,6 @@ namespace EventStore.Core.TransactionLog.Services.VNode;
 public class NodeStatusTrackerTests : IDisposable
 {
 	private readonly TestMeterListener<long> _listener;
-	private readonly FakeClock _clock = new();
 	private readonly StatusMetric _metric;
 	private readonly NodeStatusTracker _sut;
 
@@ -21,8 +21,7 @@ public class NodeStatusTrackerTests : IDisposable
 		_listener = new TestMeterListener<long>(meter);
 		_metric = new StatusMetric(
 			meter,
-			"eventstore-statuses",
-			_clock);
+			MetricDefinitions.TrogonEventstoreComponentStatus);
 		_sut = new NodeStatusTracker(_metric);
 	}
 
@@ -34,100 +33,99 @@ public class NodeStatusTrackerTests : IDisposable
 	[Fact]
 	public void can_observe_state_change()
 	{
-		_clock.SecondsSinceEpoch = 500;
-		AssertMeasurements("Initializing", 500);
+		AssertMeasurements("Initializing");
 
 		_sut.OnStateChange(Data.VNodeState.PreReplica);
-		_clock.SecondsSinceEpoch = 501;
-		AssertMeasurements("PreReplica", 501);
+		AssertMeasurements("PreReplica");
 
 		_sut.OnStateChange(Data.VNodeState.Follower);
-		_clock.SecondsSinceEpoch = 502;
-		AssertMeasurements("Follower", 502);
+		AssertMeasurements("Follower");
+	}
+
+	[Fact]
+	public void previously_seen_states_are_reported_as_inactive()
+	{
+		_sut.OnStateChange(Data.VNodeState.PreReplica);
+		_listener.Observe();
+
+		var measurements = _listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreComponentStatus.Name);
+		Assert.Contains(
+			measurements,
+			measurement => measurement.Value == 0 &&
+				measurement.Tags.Any(tag =>
+					tag.Key == TrogonAttributeNames.ComponentStatus &&
+					tag.Value as string == "initializing"));
 	}
 
 	[Fact]
 	public void can_observe_initial()
 	{
-		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
 		_sut.OnStateChange(InaugurationManager.ManagerState.BecomingLeader);
-		AssertMeasurements("PreLeader - BecomingLeader", 500);
+		AssertMeasurements("PreLeader - BecomingLeader");
 
-		_clock.SecondsSinceEpoch = 502;
 		_sut.OnStateChange(InaugurationManager.ManagerState.Idle);
-		AssertMeasurements("PreLeader", 502);
+		AssertMeasurements("PreLeader");
 	}
 
 	[Fact]
 	public void can_observe_waiting_for_chaser()
 	{
-		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
-		AssertMeasurements("PreLeader", 500);
+		AssertMeasurements("PreLeader");
 
-		_clock.SecondsSinceEpoch = 502;
 		_sut.OnStateChange(InaugurationManager.ManagerState.WaitingForChaser);
-		AssertMeasurements("PreLeader - WaitingForChaser", 502);
+		AssertMeasurements("PreLeader - WaitingForChaser");
 	}
 
 	[Fact]
 	public void can_observe_writing_epoch()
 	{
-		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
-		AssertMeasurements("PreLeader", 500);
+		AssertMeasurements("PreLeader");
 
-		_clock.SecondsSinceEpoch = 502;
 		_sut.OnStateChange(InaugurationManager.ManagerState.WritingEpoch);
-		AssertMeasurements("PreLeader - WritingEpoch", 502);
+		AssertMeasurements("PreLeader - WritingEpoch");
 	}
 
 	[Fact]
 	public void can_observe_waiting_for_conditions()
 	{
-		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
-		AssertMeasurements("PreLeader", 500);
+		AssertMeasurements("PreLeader");
 
-		_clock.SecondsSinceEpoch = 502;
 		_sut.OnStateChange(InaugurationManager.ManagerState.WaitingForConditions);
-		AssertMeasurements("PreLeader - WaitingForConditions", 502);
+		AssertMeasurements("PreLeader - WaitingForConditions");
 	}
 
 	[Fact]
 	public void can_observe_becoming_leader()
 	{
-		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
-		AssertMeasurements("PreLeader", 500);
+		AssertMeasurements("PreLeader");
 
-		_clock.SecondsSinceEpoch = 502;
 		_sut.OnStateChange(InaugurationManager.ManagerState.BecomingLeader);
-		AssertMeasurements("PreLeader - BecomingLeader", 502);
+		AssertMeasurements("PreLeader - BecomingLeader");
 	}
 
-	void AssertMeasurements(string expectedStatus, int expectedValue)
+	void AssertMeasurements(string expectedStatus)
 	{
 		_listener.Observe();
 
+		var measurements = _listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreComponentStatus.Name);
+		var active = Assert.Single(measurements, measurement => measurement.Value == 1);
+		Assert.All(measurements.Where(measurement => measurement != active), measurement => Assert.Equal(0, measurement.Value));
 		Assert.Collection(
-			_listener.RetrieveMeasurements("eventstore-statuses"),
-			m =>
+			active.Tags.ToArray(),
+			t =>
 			{
-				Assert.Equal(expectedValue, m.Value);
-				Assert.Collection(
-					m.Tags.ToArray(),
-					t =>
-					{
-						Assert.Equal("name", t.Key);
-						Assert.Equal("Node", t.Value);
-					},
-					t =>
-					{
-						Assert.Equal("status", t.Key);
-						Assert.Equal(expectedStatus, t.Value);
-					});
+				Assert.Equal(TrogonAttributeNames.ComponentName, t.Key);
+				Assert.Equal("node", t.Value);
+			},
+			t =>
+			{
+				Assert.Equal(TrogonAttributeNames.ComponentStatus, t.Key);
+				Assert.Equal(expectedStatus.ToLowerInvariant(), t.Value);
 			});
 	}
 }

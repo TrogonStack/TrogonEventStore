@@ -20,6 +20,7 @@ using EventStore.Projections.Core.Services.Grpc;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TrogonEventStore.SemanticConventions;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core;
@@ -210,11 +211,33 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		var tracker = new ProjectionTracker();
 		_projectionTracker = tracker;
 
-		projectionMeter.CreateObservableCounter("eventstore-projection-events-processed-after-restart-total", tracker.ObserveEventsProcessed);
-		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-progress", tracker.ObserveProgress);
-		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-running", tracker.ObserveRunning);
-		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-status", tracker.ObserveStatus);
-		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-state-size", tracker.ObserveStateSize);
+		var eventsProcessed = MetricDefinitions.TrogonEventstoreProjectionEventProcessedCount;
+		projectionMeter.CreateObservableCounter(
+			eventsProcessed.Name,
+			tracker.ObserveEventsProcessed,
+			eventsProcessed.Unit,
+			eventsProcessed.Description);
+
+		var progress = MetricDefinitions.TrogonEventstoreProjectionProgress;
+		projectionMeter.CreateObservableGauge(
+			progress.Name,
+			tracker.ObserveProgress,
+			progress.Unit,
+			progress.Description);
+
+		var status = MetricDefinitions.TrogonEventstoreProjectionStatus;
+		projectionMeter.CreateObservableUpDownCounter(
+			status.Name,
+			tracker.ObserveStatus,
+			status.Unit,
+			status.Description);
+
+		var stateSize = MetricDefinitions.TrogonEventstoreProjectionStateSize;
+		projectionMeter.CreateObservableUpDownCounter(
+			stateSize.Name,
+			tracker.ObserveStateSize,
+			stateSize.Unit,
+			stateSize.Description);
 	}
 
 	public void ConfigureServices(IServiceCollection services, IConfiguration configuration) =>

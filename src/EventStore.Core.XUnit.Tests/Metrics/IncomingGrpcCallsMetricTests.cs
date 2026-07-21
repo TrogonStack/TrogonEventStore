@@ -1,8 +1,7 @@
-using System;
 using System.Diagnostics.Metrics;
 using System.Diagnostics.Tracing;
-using System.Linq;
 using EventStore.Core.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 using Conf = EventStore.Common.Configuration.MetricsConfiguration;
 
@@ -21,156 +20,84 @@ public class IncomingGrpcCallsMetricTests
 	}
 
 	[Fact]
-	public void can_collect()
+	public void reports_each_diagnostic_counter_without_overlapping_attributes()
 	{
 		using var testSource = new TestEventSource();
 		using var meter = new Meter($"{typeof(IncomingGrpcCallsMetricTests)}");
 		using var listener = new TestMeterListener<long>(meter);
-		using var sut = new IncomingGrpcCallsMetric(meter, "current", "totals", new[] {
-			Conf.IncomingGrpcCall.Current,
-			Conf.IncomingGrpcCall.Total,
-			Conf.IncomingGrpcCall.Failed,
-			Conf.IncomingGrpcCall.Unimplemented,
-			Conf.IncomingGrpcCall.DeadlineExceeded
-		});
+		using var sut = CreateMetric(
+			meter,
+			[
+				Conf.IncomingGrpcCall.Current,
+				Conf.IncomingGrpcCall.Total,
+				Conf.IncomingGrpcCall.Failed,
+				Conf.IncomingGrpcCall.Unimplemented,
+				Conf.IncomingGrpcCall.DeadlineExceeded,
+			]);
 
 		sut.EnableEvents(testSource, EventLevel.Verbose);
-
-		listener.Observe();
-		AssertMeasurements(listener, "current", AssertCurrentMeasurement(0));
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 0),
-			AssertMeasurement("failed", 0),
-			AssertMeasurement("unimplemented", 0),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallStart();
-		listener.Observe();
-		AssertMeasurements(listener, "current", AssertCurrentMeasurement(1));
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("failed", 0),
-			AssertMeasurement("unimplemented", 0),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallFailed();
-		listener.Observe();
-		AssertMeasurements(listener, "current", AssertCurrentMeasurement(1));
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("failed", 1),
-			AssertMeasurement("unimplemented", 0),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallUnimplemented();
-		listener.Observe();
-		AssertMeasurements(listener, "current", AssertCurrentMeasurement(1));
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("failed", 1),
-			AssertMeasurement("unimplemented", 1),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallDeadlineExceeded();
 		listener.Observe();
-		AssertMeasurements(listener, "current", AssertCurrentMeasurement(1));
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("failed", 1),
-			AssertMeasurement("unimplemented", 1),
-			AssertMeasurement("deadline-exceeded", 1));
+
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallActive, 1);
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallCount, 1);
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallFailureCount, 1);
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallUnimplementedCount, 1);
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallDeadlineExceededCount, 1);
 
 		testSource.CallStop();
 		listener.Observe();
-		AssertMeasurements(listener, "current", AssertCurrentMeasurement(0));
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("failed", 1),
-			AssertMeasurement("unimplemented", 1),
-			AssertMeasurement("deadline-exceeded", 1));
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallActive, 0);
 	}
 
 	[Fact]
-	public void can_collect_filtered()
+	public void publishes_only_configured_counters()
 	{
 		using var testSource = new TestEventSource();
 		using var meter = new Meter($"{typeof(IncomingGrpcCallsMetricTests)}");
 		using var listener = new TestMeterListener<long>(meter);
-		using var sut = new IncomingGrpcCallsMetric(meter, "current", "totals", new[] {
-			Conf.IncomingGrpcCall.Total,
-			Conf.IncomingGrpcCall.DeadlineExceeded
-		});
+		using var sut = CreateMetric(
+			meter,
+			[
+				Conf.IncomingGrpcCall.Total,
+				Conf.IncomingGrpcCall.DeadlineExceeded,
+			]);
 
 		sut.EnableEvents(testSource, EventLevel.Verbose);
-		listener.Observe();
-		AssertMeasurements(listener, "current");
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 0),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallStart();
-		listener.Observe();
-		AssertMeasurements(listener, "current");
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallFailed();
-		listener.Observe();
-		AssertMeasurements(listener, "current");
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallUnimplemented();
-		listener.Observe();
-		AssertMeasurements(listener, "current");
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("deadline-exceeded", 0));
-
 		testSource.CallDeadlineExceeded();
-		listener.Observe();
-		AssertMeasurements(listener, "current");
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("deadline-exceeded", 1));
-
 		testSource.CallStop();
 		listener.Observe();
-		AssertMeasurements(listener, "current");
-		AssertMeasurements(listener, "totals",
-			AssertMeasurement("total", 1),
-			AssertMeasurement("deadline-exceeded", 1));
+
+		Assert.Empty(listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreGrpcServerCallActive.Name));
+		Assert.Empty(listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreGrpcServerCallFailureCount.Name));
+		Assert.Empty(listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreGrpcServerCallUnimplementedCount.Name));
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallCount, 1);
+		AssertScalar(listener, MetricDefinitions.TrogonEventstoreGrpcServerCallDeadlineExceededCount, 1);
 	}
 
-	static Action<TestMeterListener<long>.TestMeasurement> AssertCurrentMeasurement(
-		long expectedValue) =>
+	private static IncomingGrpcCallsMetric CreateMetric(Meter meter, Conf.IncomingGrpcCall[] filter) =>
+		new(
+			meter,
+			MetricDefinitions.TrogonEventstoreGrpcServerCallActive,
+			MetricDefinitions.TrogonEventstoreGrpcServerCallCount,
+			MetricDefinitions.TrogonEventstoreGrpcServerCallFailureCount,
+			MetricDefinitions.TrogonEventstoreGrpcServerCallUnimplementedCount,
+			MetricDefinitions.TrogonEventstoreGrpcServerCallDeadlineExceededCount,
+			filter);
 
-		actualMeasurement =>
-		{
-			Assert.Equal(expectedValue, actualMeasurement.Value);
-			Assert.Empty(actualMeasurement.Tags);
-		};
-
-	static Action<TestMeterListener<long>.TestMeasurement> AssertMeasurement(
-		string expectedKind,
-		long expectedValue) =>
-
-		actualMeasurement =>
-		{
-			Assert.Equal(expectedValue, actualMeasurement.Value);
-			var tag = Assert.Single(actualMeasurement.Tags.ToArray());
-			Assert.Equal("kind", tag.Key);
-			Assert.Equal(expectedKind, tag.Value);
-		};
-
-	static void AssertMeasurements(
+	private static void AssertScalar(
 		TestMeterListener<long> listener,
-		string name,
-		params Action<TestMeterListener<long>.TestMeasurement>[] actions)
+		MetricDefinition definition,
+		long expectedValue)
 	{
-
-		Assert.Collection(listener.RetrieveMeasurements(name), actions);
+		var measurement = Assert.Single(listener.RetrieveMeasurements(definition.Name));
+		Assert.Equal(expectedValue, measurement.Value);
+		Assert.Empty(measurement.Tags);
 	}
 }

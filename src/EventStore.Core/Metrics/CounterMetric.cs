@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics
 {
@@ -8,14 +9,14 @@ namespace EventStore.Core.Metrics
 		private readonly List<CounterSubMetric> _subMetrics = new();
 		private readonly object _lock = new();
 
-		public CounterMetric(Meter meter, string name, string unit)
+		public CounterMetric(Meter meter, MetricDefinition definition)
 		{
-			if (!string.IsNullOrWhiteSpace(unit))
-			{
-				name = name + "-" + unit;
-			}
-
-			meter.CreateObservableCounter(name, Observe);
+			definition.EnsureInstrumentKind(MetricInstrumentKind.Counter);
+			meter.CreateObservableCounter(
+				definition.Name,
+				Observe,
+				definition.Unit,
+				definition.Description);
 		}
 
 		public void Add(CounterSubMetric subMetric)

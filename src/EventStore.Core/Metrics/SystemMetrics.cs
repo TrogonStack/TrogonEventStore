@@ -6,80 +6,156 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Runtime;
 using EventStore.Core.Util;
+using TrogonEventStore.SemanticConventions;
+
 using static EventStore.Common.Configuration.MetricsConfiguration;
 
 namespace EventStore.Core.Metrics;
 
-public class SystemMetrics(Meter meter, TimeSpan timeout, Dictionary<SystemTracker, bool> config)
+public class SystemMetrics
 {
-	public void CreateLoadAverageMetric(string metricName, Dictionary<SystemTracker, string> dimNames)
+	private readonly Meter _meter;
+	private readonly TimeSpan _timeout;
+	private readonly Dictionary<SystemTracker, bool> _config;
+
+	public SystemMetrics(Meter meter, TimeSpan timeout, Dictionary<SystemTracker, bool> config)
+	{
+		_meter = meter;
+		_timeout = timeout;
+		_config = config;
+	}
+
+	public void CreateLoadAverageMetric()
 	{
 		if (RuntimeInformation.IsWindows)
 		{
 			return;
 		}
 
-		var dims = new Dimensions<SystemTracker, double>(config, dimNames, tag => new("period", tag));
-
-		var getLoadAverages = Functions.Debounce(RuntimeStats.GetCpuLoadAverages, timeout);
-		dims.Register(SystemTracker.LoadAverage1m, () => getLoadAverages().OneMinute);
-		dims.Register(SystemTracker.LoadAverage5m, () => getLoadAverages().FiveMinutes);
-		dims.Register(SystemTracker.LoadAverage15m, () => getLoadAverages().FifteenMinutes);
-
-		if (dims.AnyRegistered())
-		{
-			meter.CreateObservableGauge(metricName, dims.GenObserve());
-		}
-	}
-
-	public void CreateCpuMetric(string name)
-	{
-		if (!config.TryGetValue(SystemTracker.Cpu, out var enabled) || !enabled)
+		var oneMinuteEnabled = IsEnabled(SystemTracker.LoadAverage1m);
+		var fiveMinutesEnabled = IsEnabled(SystemTracker.LoadAverage5m);
+		var fifteenMinutesEnabled = IsEnabled(SystemTracker.LoadAverage15m);
+		if (!oneMinuteEnabled && !fiveMinutesEnabled && !fifteenMinutesEnabled)
 		{
 			return;
 		}
 
-		meter.CreateObservableUpDownCounter(name, RuntimeStats.GetCpuUsage);
+		var getLoadAverages = Functions.Debounce(RuntimeStats.GetCpuLoadAverages, _timeout);
+		CreateObservableGauge(
+			MetricDefinitions.TrogonEventstoreSystemLoadAverage,
+			() => ObserveLoadAverage(
+				getLoadAverages(),
+				oneMinuteEnabled,
+				fiveMinutesEnabled,
+				fifteenMinutesEnabled));
 	}
 
-	public void CreateMemoryMetric(string metricName, Dictionary<SystemTracker, string> dimNames)
+	public void CreateFileSystemMetrics(string dbPath)
 	{
-		var dims = new Dimensions<SystemTracker, long>(config, dimNames, tag => new("kind", tag));
-
-		dims.Register(SystemTracker.FreeMem, RuntimeStats.GetFreeMemory);
-		dims.Register(SystemTracker.TotalMem, RuntimeStats.GetTotalMemory);
-
-		if (dims.AnyRegistered())
+		var usageEnabled = IsEnabled(SystemTracker.DriveUsedBytes);
+		var limitEnabled = IsEnabled(SystemTracker.DriveTotalBytes);
+		if (!usageEnabled && !limitEnabled)
 		{
-			meter.CreateObservableGauge($"{metricName}-bytes", dims.GenObserve());
+			return;
+		}
+
+		var getDriveInfo = Functions.Debounce(() => DriveStats.GetDriveInfo(dbPath), _timeout);
+		if (usageEnabled)
+		{
+			CreateObservableUpDownCounter(
+				OpenTelemetryMetricDefinitions.SystemFilesystemUsage,
+				() => ObserveFileSystemUsage(getDriveInfo()));
+		}
+
+		if (limitEnabled)
+		{
+			CreateObservableUpDownCounter(
+				OpenTelemetryMetricDefinitions.SystemFilesystemLimit,
+				() => ObserveFileSystemLimit(getDriveInfo()));
 		}
 	}
 
-	public void CreateDiskMetric(string metricName, string dbPath, Dictionary<SystemTracker, string> dimNames)
+	private static IEnumerable<Measurement<double>> ObserveLoadAverage(
+		(double OneMinute, double FiveMinutes, double FifteenMinutes) loadAverage,
+		bool oneMinuteEnabled,
+		bool fiveMinutesEnabled,
+		bool fifteenMinutesEnabled)
 	{
-		var dims = new Dimensions<SystemTracker, long>(config, dimNames, tag => new());
-
-		var getDriveInfo = Functions.Debounce(() => DriveStats.GetDriveInfo(dbPath), timeout);
-
-		dims.Register(SystemTracker.DriveUsedBytes, GenMeasure(info => info.UsedBytes));
-		dims.Register(SystemTracker.DriveTotalBytes, GenMeasure(info => info.TotalBytes));
-
-		if (dims.AnyRegistered())
+		if (oneMinuteEnabled)
 		{
-			meter.CreateObservableGauge($"{metricName}-bytes", dims.GenObserve());
+			yield return new(
+				loadAverage.OneMinute,
+				new KeyValuePair<string, object?>(TrogonAttributeNames.SystemLoadAveragePeriod, "1m"));
 		}
 
-		return;
-
-		Func<string, Measurement<long>> GenMeasure(Func<DriveData, long> func) => tag =>
+		if (fiveMinutesEnabled)
 		{
-			var info = getDriveInfo();
+			yield return new(
+				loadAverage.FiveMinutes,
+				new KeyValuePair<string, object?>(TrogonAttributeNames.SystemLoadAveragePeriod, "5m"));
+		}
 
-			return new(
-				func(info),
-				new("kind", tag),
-				new("disk", info.DiskName)
-			);
-		};
+		if (fifteenMinutesEnabled)
+		{
+			yield return new(
+				loadAverage.FifteenMinutes,
+				new KeyValuePair<string, object?>(TrogonAttributeNames.SystemLoadAveragePeriod, "15m"));
+		}
+	}
+
+	private static IEnumerable<Measurement<long>> ObserveFileSystemUsage(DriveData drive)
+	{
+		yield return new(
+			drive.UsedBytes,
+			new KeyValuePair<string, object?>(AttributeNames.SystemFilesystemState, "used"),
+			new KeyValuePair<string, object?>(AttributeNames.SystemFilesystemMountpoint, drive.DiskName));
+		yield return new(
+			drive.AvailableBytes,
+			new KeyValuePair<string, object?>(AttributeNames.SystemFilesystemState, "free"),
+			new KeyValuePair<string, object?>(AttributeNames.SystemFilesystemMountpoint, drive.DiskName));
+	}
+
+	private static IEnumerable<Measurement<long>> ObserveFileSystemLimit(DriveData drive)
+	{
+		yield return new(
+			drive.TotalBytes,
+			new KeyValuePair<string, object?>(AttributeNames.SystemFilesystemMountpoint, drive.DiskName));
+	}
+
+	private void CreateObservableGauge(
+		MetricDefinition definition,
+		Func<IEnumerable<Measurement<double>>> observe)
+	{
+		EnsureKind(definition, MetricInstrumentKind.Gauge);
+		_meter.CreateObservableGauge(
+			definition.Name,
+			observe,
+			definition.Unit,
+			definition.Description);
+	}
+
+	private void CreateObservableUpDownCounter(
+		MetricDefinition definition,
+		Func<IEnumerable<Measurement<long>>> observe)
+	{
+		EnsureKind(definition, MetricInstrumentKind.UpDownCounter);
+		_meter.CreateObservableUpDownCounter(
+			definition.Name,
+			observe,
+			definition.Unit,
+			definition.Description);
+	}
+
+	private bool IsEnabled(SystemTracker tracker) =>
+		_config.TryGetValue(tracker, out var enabled) && enabled;
+
+	private static void EnsureKind(MetricDefinition definition, MetricInstrumentKind expected)
+	{
+		if (definition.InstrumentKind != expected)
+		{
+			throw new ArgumentException(
+				$"Metric '{definition.Name}' requires a {expected} instrument.",
+				nameof(definition));
+		}
 	}
 }

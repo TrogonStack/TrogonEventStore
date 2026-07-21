@@ -1,0 +1,514 @@
+groups:
+  - id: registry.trogon.eventstore.metric.attributes
+    type: attribute_group
+    stability: development
+    brief: Attributes used by TrogonEventStore metrics.
+    attributes:
+      - id: trogon.eventstore.activity.name
+        type: string
+        stability: development
+        brief: Low-cardinality operation or activity name.
+        examples: [read, push_to_peer]
+      - id: trogon.eventstore.activity.outcome
+        type: string
+        stability: development
+        brief: Low-cardinality operation outcome.
+        examples: [success, error]
+      - id: trogon.eventstore.cache.name
+        type: string
+        stability: development
+        brief: Cache name.
+        examples: [chunk, stream_info]
+      - id: trogon.eventstore.cache.resource
+        type: string
+        stability: development
+        brief: Cache resource measurement.
+        examples: [size, capacity]
+      - id: trogon.eventstore.cache.result
+        type: string
+        stability: development
+        brief: Cache lookup result.
+        examples: [hit, miss]
+      - id: trogon.eventstore.checkpoint.name
+        type: string
+        stability: development
+        brief: Transaction log checkpoint name.
+        examples: [writer, chaser]
+      - id: trogon.eventstore.checkpoint.read_kind
+        type: string
+        stability: development
+        brief: Checkpoint read mode.
+        examples: [non_flushed]
+      - id: trogon.eventstore.component.name
+        type: string
+        stability: development
+        brief: Component name.
+        examples: [node, index]
+      - id: trogon.eventstore.component.status
+        type: string
+        stability: development
+        brief: Component status.
+        examples: [leader, ready]
+      - id: trogon.eventstore.measurement.window
+        type: string
+        stability: development
+        brief: Time window represented by a rolling measurement.
+        examples: [16-20s]
+      - id: trogon.eventstore.persistent_subscription.group
+        type: string
+        stability: development
+        brief: Persistent subscription group name.
+        examples: [billing]
+      - id: trogon.eventstore.persistent_subscription.reason
+        type: string
+        stability: development
+        brief: Persistent subscription operation reason.
+        examples: [client_nack, max_retries]
+      - id: trogon.eventstore.persistent_subscription.stream
+        type: string
+        stability: development
+        brief: Persistent subscription event source.
+        examples: [orders, "$all"]
+      - id: trogon.eventstore.projection.name
+        type: string
+        stability: development
+        brief: Projection name.
+        examples: [order_totals]
+      - id: trogon.eventstore.projection.status
+        type: string
+        stability: development
+        brief: Projection status.
+        examples: [running, faulted]
+      - id: trogon.eventstore.queue.message.type
+        type: string
+        stability: development
+        brief: Queue message type.
+        examples: [read_stream_events_forward]
+      - id: trogon.eventstore.queue.name
+        type: string
+        stability: development
+        brief: Queue name.
+        examples: [storage_reader]
+      - id: trogon.eventstore.storage.activity
+        type: string
+        stability: development
+        brief: Storage activity.
+        examples: [read, write]
+      - id: trogon.eventstore.storage.source
+        type: string
+        stability: development
+        brief: Source that served a storage read.
+        examples: [chunk_cache, file_system]
+      - id: trogon.eventstore.system.load_average.period
+        type: string
+        stability: development
+        brief: Load average sampling period.
+        examples: [1m, 5m, 15m]
+
+  - id: metric.trogon.eventstore.component.status
+    type: metric
+    stability: development
+    brief: Current component status represented as one-hot state series.
+    metric_name: trogon.eventstore.component.status
+    instrument: updowncounter
+    unit: "1"
+    attributes:
+      - ref: trogon.eventstore.component.name
+        requirement_level: required
+      - ref: trogon.eventstore.component.status
+        requirement_level: required
+  - id: metric.trogon.eventstore.grpc.server.call.duration
+    type: metric
+    stability: development
+    brief: Duration of configured gRPC server calls.
+    metric_name: trogon.eventstore.grpc.server.call.duration
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.activity.name
+        requirement_level: required
+      - ref: trogon.eventstore.activity.outcome
+        requirement_level: required
+  - id: metric.trogon.eventstore.gossip.exchange.duration
+    type: metric
+    stability: development
+    brief: Duration of gossip exchanges.
+    metric_name: trogon.eventstore.gossip.exchange.duration
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.activity.name
+        requirement_level: required
+      - ref: trogon.eventstore.activity.outcome
+        requirement_level: required
+  - id: metric.trogon.eventstore.gossip.message.processing.duration
+    type: metric
+    stability: development
+    brief: Duration of gossip message processing.
+    metric_name: trogon.eventstore.gossip.message.processing.duration
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.activity.name
+        requirement_level: required
+      - ref: trogon.eventstore.activity.outcome
+        requirement_level: required
+  - id: metric.trogon.eventstore.queue.message.wait.duration.max
+    type: metric
+    stability: development
+    brief: Maximum time a message waited in a queue during the measurement window.
+    metric_name: trogon.eventstore.queue.message.wait.duration.max
+    instrument: gauge
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.queue.name
+        requirement_level: required
+      - ref: trogon.eventstore.measurement.window
+        requirement_level: required
+  - id: metric.trogon.eventstore.queue.message.processing.duration
+    type: metric
+    stability: development
+    brief: Duration of queue message processing.
+    metric_name: trogon.eventstore.queue.message.processing.duration
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.queue.name
+        requirement_level: required
+      - ref: trogon.eventstore.queue.message.type
+        requirement_level: required
+  - id: metric.trogon.eventstore.queue.busy.time
+    type: metric
+    stability: development
+    brief: Total time a queue has spent processing messages.
+    metric_name: trogon.eventstore.queue.busy.time
+    instrument: counter
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.queue.name
+        requirement_level: required
+  - id: metric.trogon.eventstore.queue.message.count
+    type: metric
+    stability: development
+    brief: Number of messages waiting in a queue.
+    metric_name: trogon.eventstore.queue.message.count
+    instrument: updowncounter
+    unit: "{message}"
+    attributes:
+      - ref: trogon.eventstore.queue.name
+        requirement_level: required
+  - id: metric.trogon.eventstore.storage.io
+    type: metric
+    stability: development
+    brief: Bytes transferred by storage operations.
+    metric_name: trogon.eventstore.storage.io
+    instrument: counter
+    unit: By
+    attributes:
+      - ref: trogon.eventstore.storage.activity
+        requirement_level: required
+  - id: metric.trogon.eventstore.storage.event.count
+    type: metric
+    stability: development
+    brief: Number of events processed by storage operations.
+    metric_name: trogon.eventstore.storage.event.count
+    instrument: counter
+    unit: "{event}"
+    attributes:
+      - ref: trogon.eventstore.storage.activity
+        requirement_level: required
+  - id: metric.trogon.eventstore.storage.record.read.duration
+    type: metric
+    stability: development
+    brief: Duration of transaction file record reads.
+    metric_name: trogon.eventstore.storage.record.read.duration
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.storage.source
+        requirement_level: required
+  - id: metric.trogon.eventstore.cluster.election.count
+    type: metric
+    stability: development
+    brief: Number of cluster elections.
+    metric_name: trogon.eventstore.cluster.election.count
+    instrument: counter
+    unit: "{election}"
+  - id: metric.trogon.eventstore.grpc.server.call.active
+    type: metric
+    stability: development
+    brief: Number of active incoming gRPC calls.
+    metric_name: trogon.eventstore.grpc.server.call.active
+    instrument: updowncounter
+    unit: "{call}"
+  - id: metric.trogon.eventstore.grpc.server.call.count
+    type: metric
+    stability: development
+    brief: Number of incoming gRPC calls.
+    metric_name: trogon.eventstore.grpc.server.call.count
+    instrument: counter
+    unit: "{call}"
+  - id: metric.trogon.eventstore.grpc.server.call.failure.count
+    type: metric
+    stability: development
+    brief: Number of failed incoming gRPC calls.
+    metric_name: trogon.eventstore.grpc.server.call.failure.count
+    instrument: counter
+    unit: "{call}"
+  - id: metric.trogon.eventstore.grpc.server.call.unimplemented.count
+    type: metric
+    stability: development
+    brief: Number of unimplemented incoming gRPC calls.
+    metric_name: trogon.eventstore.grpc.server.call.unimplemented.count
+    instrument: counter
+    unit: "{call}"
+  - id: metric.trogon.eventstore.grpc.server.call.deadline_exceeded.count
+    type: metric
+    stability: development
+    brief: Number of incoming gRPC calls that exceeded their deadline.
+    metric_name: trogon.eventstore.grpc.server.call.deadline_exceeded.count
+    instrument: counter
+    unit: "{call}"
+  - id: metric.trogon.eventstore.cache.operation.count
+    type: metric
+    stability: development
+    brief: Number of cache lookups by result.
+    metric_name: trogon.eventstore.cache.operation.count
+    instrument: counter
+    unit: "{operation}"
+    attributes:
+      - ref: trogon.eventstore.cache.name
+        requirement_level: required
+      - ref: trogon.eventstore.cache.result
+        requirement_level: required
+  - id: metric.trogon.eventstore.cache.resource.size
+    type: metric
+    stability: development
+    brief: Cache resource size and capacity in bytes.
+    metric_name: trogon.eventstore.cache.resource.size
+    instrument: updowncounter
+    unit: By
+    attributes:
+      - ref: trogon.eventstore.cache.name
+        requirement_level: required
+      - ref: trogon.eventstore.cache.resource
+        requirement_level: required
+  - id: metric.trogon.eventstore.cache.resource.count
+    type: metric
+    stability: development
+    brief: Cache resource size, capacity, and count in entries.
+    metric_name: trogon.eventstore.cache.resource.count
+    instrument: updowncounter
+    unit: "{entry}"
+    attributes:
+      - ref: trogon.eventstore.cache.name
+        requirement_level: required
+      - ref: trogon.eventstore.cache.resource
+        requirement_level: required
+  - id: metric.trogon.eventstore.storage.chunk.read.distance
+    type: metric
+    stability: development
+    brief: Logical chunk distance between a read and the writer position.
+    metric_name: trogon.eventstore.storage.chunk.read.distance
+    instrument: histogram
+    unit: "{chunk}"
+  - id: metric.trogon.eventstore.persistent_subscription.connection.count
+    type: metric
+    stability: development
+    brief: Number of persistent subscription connections.
+    metric_name: trogon.eventstore.persistent_subscription.connection.count
+    instrument: updowncounter
+    unit: "{connection}"
+    attributes: &persistent_subscription_attributes
+      - ref: trogon.eventstore.persistent_subscription.stream
+        requirement_level: required
+      - ref: trogon.eventstore.persistent_subscription.group
+        requirement_level: required
+  - id: metric.trogon.eventstore.persistent_subscription.parked_message.count
+    type: metric
+    stability: development
+    brief: Number of parked persistent subscription messages.
+    metric_name: trogon.eventstore.persistent_subscription.parked_message.count
+    instrument: updowncounter
+    unit: "{message}"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.in_flight_message.count
+    type: metric
+    stability: development
+    brief: Number of in-flight persistent subscription messages.
+    metric_name: trogon.eventstore.persistent_subscription.in_flight_message.count
+    instrument: updowncounter
+    unit: "{message}"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.oldest_parked_message.age
+    type: metric
+    stability: development
+    brief: Age of the oldest parked persistent subscription message.
+    metric_name: trogon.eventstore.persistent_subscription.oldest_parked_message.age
+    instrument: gauge
+    unit: s
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.park_request.count
+    type: metric
+    stability: development
+    brief: Number of persistent subscription park requests.
+    metric_name: trogon.eventstore.persistent_subscription.park_request.count
+    instrument: counter
+    unit: "{request}"
+    attributes:
+      - ref: trogon.eventstore.persistent_subscription.stream
+        requirement_level: required
+      - ref: trogon.eventstore.persistent_subscription.group
+        requirement_level: required
+      - ref: trogon.eventstore.persistent_subscription.reason
+        requirement_level: required
+  - id: metric.trogon.eventstore.persistent_subscription.parked_message.replay.count
+    type: metric
+    stability: development
+    brief: Number of persistent subscription parked-message replays.
+    metric_name: trogon.eventstore.persistent_subscription.parked_message.replay.count
+    instrument: counter
+    unit: "{operation}"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.parked_message.truncate.count
+    type: metric
+    stability: development
+    brief: Number of persistent subscription parked-message truncations.
+    metric_name: trogon.eventstore.persistent_subscription.parked_message.truncate.count
+    instrument: counter
+    unit: "{operation}"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.item.processed.count
+    type: metric
+    stability: development
+    brief: Number of items processed by persistent subscriptions.
+    metric_name: trogon.eventstore.persistent_subscription.item.processed.count
+    instrument: counter
+    unit: "{item}"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.last_known.event.revision
+    type: metric
+    stability: development
+    brief: Last known stream revision for persistent subscriptions.
+    metric_name: trogon.eventstore.persistent_subscription.last_known.event.revision
+    instrument: gauge
+    unit: "1"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.last_known.commit.position
+    type: metric
+    stability: development
+    brief: Last known commit position for persistent subscriptions.
+    metric_name: trogon.eventstore.persistent_subscription.last_known.commit.position
+    instrument: gauge
+    unit: "1"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.checkpoint.event.revision
+    type: metric
+    stability: development
+    brief: Last checkpointed stream revision for persistent subscriptions.
+    metric_name: trogon.eventstore.persistent_subscription.checkpoint.event.revision
+    instrument: gauge
+    unit: "1"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.persistent_subscription.checkpoint.commit.position
+    type: metric
+    stability: development
+    brief: Last checkpointed commit position for persistent subscriptions.
+    metric_name: trogon.eventstore.persistent_subscription.checkpoint.commit.position
+    instrument: gauge
+    unit: "1"
+    attributes: *persistent_subscription_attributes
+  - id: metric.trogon.eventstore.checkpoint.position
+    type: metric
+    stability: development
+    brief: Transaction log checkpoint position.
+    metric_name: trogon.eventstore.checkpoint.position
+    instrument: gauge
+    unit: "1"
+    attributes:
+      - ref: trogon.eventstore.checkpoint.name
+        requirement_level: required
+      - ref: trogon.eventstore.checkpoint.read_kind
+        requirement_level: required
+  - id: metric.trogon.eventstore.writer.flush.size.max
+    type: metric
+    stability: development
+    brief: Maximum writer flush size during the measurement window.
+    metric_name: trogon.eventstore.writer.flush.size.max
+    instrument: gauge
+    unit: By
+    attributes:
+      - ref: trogon.eventstore.measurement.window
+        requirement_level: required
+  - id: metric.trogon.eventstore.writer.flush.duration.max
+    type: metric
+    stability: development
+    brief: Maximum writer flush duration during the measurement window.
+    metric_name: trogon.eventstore.writer.flush.duration.max
+    instrument: gauge
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.measurement.window
+        requirement_level: required
+  - id: metric.trogon.eventstore.system.load_average
+    type: metric
+    stability: development
+    brief: System load average.
+    metric_name: trogon.eventstore.system.load_average
+    instrument: gauge
+    unit: "1"
+    attributes:
+      - ref: trogon.eventstore.system.load_average.period
+        requirement_level: required
+  - id: metric.trogon.eventstore.process.disk.operation.count
+    type: metric
+    stability: development
+    brief: Number of disk operations performed by the process.
+    metric_name: trogon.eventstore.process.disk.operation.count
+    instrument: counter
+    unit: "{operation}"
+    attributes:
+      - ref: disk.io.direction
+        requirement_level: required
+  - id: metric.trogon.eventstore.projection.event.processed.count
+    type: metric
+    stability: development
+    brief: Number of events processed by a projection after restart.
+    metric_name: trogon.eventstore.projection.event.processed.count
+    instrument: counter
+    unit: "{event}"
+    attributes:
+      - ref: trogon.eventstore.projection.name
+        requirement_level: required
+  - id: metric.trogon.eventstore.projection.progress
+    type: metric
+    stability: development
+    brief: Fraction of projection processing completed.
+    metric_name: trogon.eventstore.projection.progress
+    instrument: gauge
+    unit: "1"
+    attributes:
+      - ref: trogon.eventstore.projection.name
+        requirement_level: required
+  - id: metric.trogon.eventstore.projection.status
+    type: metric
+    stability: development
+    brief: Projection state represented as one active status series.
+    metric_name: trogon.eventstore.projection.status
+    instrument: updowncounter
+    unit: "1"
+    attributes:
+      - ref: trogon.eventstore.projection.name
+        requirement_level: required
+      - ref: trogon.eventstore.projection.status
+        requirement_level: required
+  - id: metric.trogon.eventstore.projection.state.size
+    type: metric
+    stability: development
+    brief: Projection state size.
+    metric_name: trogon.eventstore.projection.state.size
+    instrument: updowncounter
+    unit: By
+    attributes:
+      - ref: trogon.eventstore.projection.name
+        requirement_level: required

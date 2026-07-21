@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EventStore.Core.Time;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics
 {
@@ -31,8 +32,8 @@ namespace EventStore.Core.Metrics
 		{
 			_metric?.Record(
 				_start,
-				new KeyValuePair<string, object>("activity", _name),
-				new KeyValuePair<string, object>("status", _failed ? "failed" : "successful"));
+				new KeyValuePair<string, object>(TrogonAttributeNames.ActivityName, _name),
+				new KeyValuePair<string, object>(TrogonAttributeNames.ActivityOutcome, _failed ? "error" : "success"));
 		}
 	}
 }

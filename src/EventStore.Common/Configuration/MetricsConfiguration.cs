@@ -87,19 +87,11 @@ public class MetricsConfiguration
 		Chunk,
 	}
 
-	public enum KestrelTracker
-	{
-		ConnectionCount = 1,
-	}
-
 	public enum SystemTracker
 	{
-		Cpu = 1,
-		LoadAverage1m,
+		LoadAverage1m = 1,
 		LoadAverage5m,
 		LoadAverage15m,
-		FreeMem,
-		TotalMem,
 		DriveTotalBytes,
 		DriveUsedBytes,
 	}
@@ -107,30 +99,10 @@ public class MetricsConfiguration
 	public enum ProcessTracker
 	{
 		UpTime = 1,
-		Cpu,
-		MemWorkingSet,
-		MemPagedBytes,
-		MemVirtualBytes,
-		ThreadCount,
-		ThreadPoolPendingWorkItemCount,
-		LockContentionCount,
-		ExceptionCount,
-		Gen0CollectionCount,
-		Gen1CollectionCount,
-		Gen2CollectionCount,
-		Gen0Size,
-		Gen1Size,
-		Gen2Size,
-		LohSize,
-		TimeInGc,
-		HeapSize,
-		HeapFragmentation,
-		TotalAllocatedBytes,
 		DiskReadBytes,
 		DiskReadOps,
 		DiskWrittenBytes,
 		DiskWrittenOps,
-		GcPauseDuration,
 	}
 
 	public enum QueueTracker
@@ -162,8 +134,6 @@ public class MetricsConfiguration
 	public Dictionary<GrpcMethod, string> GrpcMethods { get; set; } = new();
 
 	public Dictionary<GossipTracker, bool> Gossip { get; set; } = new();
-
-	public Dictionary<KestrelTracker, bool> Kestrel { get; set; } = new();
 
 	public Dictionary<SystemTracker, bool> System { get; set; } = new();
 

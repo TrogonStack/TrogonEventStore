@@ -4,8 +4,18 @@ namespace TrogonEventStore.SemanticConventions
 {
 	public static class AttributeNames
 	{
+		public const string DiskIoDirection = "disk.io.direction";
+		public const string HostArch = "host.arch";
+		public const string HostName = "host.name";
+		public const string ProcessCreationTime = "process.creation.time";
+		public const string ProcessExecutableName = "process.executable.name";
+		public const string ProcessPid = "process.pid";
+		public const string ProcessRuntimeName = "process.runtime.name";
+		public const string ProcessRuntimeVersion = "process.runtime.version";
 		public const string ServiceInstanceId = "service.instance.id";
 		public const string ServiceName = "service.name";
 		public const string ServiceVersion = "service.version";
+		public const string SystemFilesystemMountpoint = "system.filesystem.mountpoint";
+		public const string SystemFilesystemState = "system.filesystem.state";
 	}
 }

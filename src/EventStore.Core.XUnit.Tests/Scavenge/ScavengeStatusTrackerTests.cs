@@ -4,6 +4,7 @@ using System.Linq;
 using EventStore.Core.Metrics;
 using EventStore.Core.TransactionLog.Scavenging;
 using EventStore.Core.XUnit.Tests.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
@@ -11,7 +12,6 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 public class ScavengeStatusTrackerTests : IDisposable
 {
 	private readonly TestMeterListener<long> _listener;
-	private readonly FakeClock _clock = new();
 	private readonly StatusMetric _metric;
 	private readonly ScavengeStatusTracker _sut;
 
@@ -21,8 +21,7 @@ public class ScavengeStatusTrackerTests : IDisposable
 		_listener = new TestMeterListener<long>(meter);
 		_metric = new StatusMetric(
 			meter,
-			"eventstore-statuses",
-			_clock);
+			MetricDefinitions.TrogonEventstoreComponentStatus);
 		_sut = new ScavengeStatusTracker(_metric);
 	}
 
@@ -32,39 +31,43 @@ public class ScavengeStatusTrackerTests : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	[Fact]
-	public void can_observe_activity()
+	[Theory]
+	[InlineData("Accumulation")]
+	[InlineData("Calculation")]
+	[InlineData("Chunk execution")]
+	[InlineData("Chunk merging")]
+	[InlineData("Index execution")]
+	[InlineData("Cleaning")]
+	public void can_observe_activity(string activity)
 	{
-		_clock.SecondsSinceEpoch = 500;
-		AssertMeasurements("Idle", 500);
+		AssertMeasurements("Idle");
 
-		using (_sut.StartActivity("Accumulation"))
+		using (_sut.StartActivity(activity))
 		{
-			_clock.SecondsSinceEpoch = 501;
-			AssertMeasurements("Accumulation Phase", 501);
+			AssertMeasurements($"{activity} Phase");
 		}
 
-		_clock.SecondsSinceEpoch = 502;
-		AssertMeasurements("Idle", 502);
+		AssertMeasurements("Idle");
 	}
 
-	void AssertMeasurements(string expectedStatus, int expectedValue)
+	void AssertMeasurements(string expectedStatus)
 	{
 		_listener.Observe();
 
-		var measurement = Assert.Single(_listener.RetrieveMeasurements("eventstore-statuses"));
-		Assert.Equal(expectedValue, measurement.Value);
+		var measurements = _listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreComponentStatus.Name);
+		var measurement = Assert.Single(measurements, candidate => candidate.Value == 1);
+		Assert.All(measurements.Where(candidate => candidate != measurement), candidate => Assert.Equal(0, candidate.Value));
 		Assert.Collection(
 			measurement.Tags.ToArray(),
 			t =>
 			{
-				Assert.Equal("name", t.Key);
-				Assert.Equal("Scavenge", t.Value);
+				Assert.Equal(TrogonAttributeNames.ComponentName, t.Key);
+				Assert.Equal("scavenge", t.Value);
 			},
 			t =>
 			{
-				Assert.Equal("status", t.Key);
-				Assert.Equal(expectedStatus, t.Value);
+				Assert.Equal(TrogonAttributeNames.ComponentStatus, t.Key);
+				Assert.Equal(expectedStatus.ToLowerInvariant(), t.Value);
 			});
 	}
 }

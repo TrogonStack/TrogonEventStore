@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using TrogonEventStore.SemanticConventions;
 using ClientGossip = EventStore.Core.Services.Transport.Grpc.Gossip;
 using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
 using GrpcOperations = EventStore.Core.Services.Transport.Grpc.Operations;
@@ -304,7 +306,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddMeter(TelemetryMeterInstrumentation.GetNames(metricsConfiguration.Meters))
 			.AddView(i =>
 			{
-				if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName)
+				if (i.Name == MetricDefinitions.TrogonEventstoreStorageChunkReadDistance.Name)
 				{
 					// 20 buckets, 0, 1, 2, 4, 8, ...
 					return new ExplicitBucketHistogramConfiguration
@@ -316,26 +318,32 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 						]
 					};
 				}
-				else if (i.Name.StartsWith("eventstore-") &&
-						 i.Name.EndsWith("-latency-seconds"))
+				else if (i.Name == MetricDefinitions.TrogonEventstoreGrpcServerCallDuration.Name)
 				{
 					return new ExplicitBucketHistogramConfiguration
 					{
 						Boundaries =
 						[
-							0.001, //    1 ms
-							0.005, //    5 ms
-							0.01, //   10 ms
-							0.05, //   50 ms
-							0.1, //  100 ms
-							0.5, //  500 ms
-							1, // 1000 ms
-							5, // 5000 ms
+							0.005,
+							0.01,
+							0.025,
+							0.05,
+							0.075,
+							0.1,
+							0.25,
+							0.5,
+							0.75,
+							1,
+							2.5,
+							5,
+							7.5,
+							10,
 						]
 					};
 				}
-				else if (i.Name.StartsWith("eventstore-") &&
-						 i.Name.EndsWith("-seconds"))
+				else if (i is Histogram<double> &&
+						 i.Unit == "s" &&
+						 i.Meter.Name == TelemetryMeterInstrumentation.CoreName)
 				{
 					return new ExplicitBucketHistogramConfiguration
 					{

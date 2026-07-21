@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Core.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -11,12 +12,14 @@ public class MaxTrackerTests : IDisposable
 	private readonly TestMeterListener<long> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly MaxTracker<long> _sut;
+	private readonly MetricDefinition _definition =
+		MetricDefinitions.TrogonEventstoreWriterFlushSizeMax;
 
 	public MaxTrackerTests()
 	{
 		var meter = new Meter($"{typeof(MaxTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
-		var metric = new MaxMetric<long>(meter, "the-metric");
+		var metric = new MaxMetric<long>(meter, _definition);
 		_sut = new MaxTracker<long>(
 			metric: metric,
 			name: "the-tracker",
@@ -71,19 +74,19 @@ public class MaxTrackerTests : IDisposable
 	{
 		_listener.Observe();
 
-		var measurement = Assert.Single(_listener.RetrieveMeasurements("the-metric"));
+		var measurement = Assert.Single(_listener.RetrieveMeasurements(_definition.Name));
 		Assert.Equal(expectedValue, measurement.Value);
 		Assert.Collection(
 			measurement.Tags.ToArray(),
 			t =>
 			{
-				Assert.Equal("name", t.Key);
+				Assert.Equal(TrogonAttributeNames.QueueName, t.Key);
 				Assert.Equal("the-tracker", t.Value);
 			},
 			t =>
 			{
-				Assert.Equal("range", t.Key);
-				Assert.Equal("16-20 seconds", t.Value);
+				Assert.Equal(TrogonAttributeNames.MeasurementWindow, t.Key);
+				Assert.Equal("16-20s", t.Value);
 			});
 	}
 
@@ -93,16 +96,16 @@ public class MaxTrackerTests : IDisposable
 		using var meter = new Meter($"{typeof(MaxTrackerTests)}");
 		using var listener = new TestMeterListener<long>(meter);
 		var sut = new MaxTracker<long>(
-			metric: new MaxMetric<long>(meter, "the-metric"),
+			metric: new MaxMetric<long>(meter, _definition),
 			name: null,
 			expectedScrapeIntervalSeconds: 15);
 
 		listener.Observe();
 
-		var measurement = Assert.Single(listener.RetrieveMeasurements("the-metric"));
+		var measurement = Assert.Single(listener.RetrieveMeasurements(_definition.Name));
 		Assert.Equal(0, measurement.Value);
 		var tag = Assert.Single(measurement.Tags.ToArray());
-		Assert.Equal("range", tag.Key);
-		Assert.Equal("16-20 seconds", tag.Value);
+		Assert.Equal(TrogonAttributeNames.MeasurementWindow, tag.Key);
+		Assert.Equal("16-20s", tag.Value);
 	}
 }

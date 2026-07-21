@@ -4,6 +4,7 @@ using System.Linq;
 using EventStore.Core.Messages;
 using EventStore.Core.Metrics;
 using EventStore.Core.Services.PersistentSubscription;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -117,10 +118,10 @@ public class PersistentSubscriptionMetricsTests
 	{
 		var measurements = _sut.ObserveParkMessageRequests();
 		Assert.Collection(measurements,
-			AssertMeasurement("test", "testGroup", "client-nak", 1015),
-			AssertMeasurement("test", "testGroup", "max-retries", 1016),
-			AssertMeasurement("$all", "testGroup", "client-nak", 1018),
-			AssertMeasurement("$all", "testGroup", "max-retries", 1019));
+			AssertMeasurement("test", "testGroup", "client_nack", 1015),
+			AssertMeasurement("test", "testGroup", "max_retries", 1016),
+			AssertMeasurement("$all", "testGroup", "client_nack", 1018),
+			AssertMeasurement("$all", "testGroup", "max_retries", 1019));
 	}
 
 	[Fact]
@@ -208,12 +209,12 @@ public class PersistentSubscriptionMetricsTests
 				actualMeasurement.Tags.ToArray(),
 				tag =>
 				{
-					Assert.Equal("event_stream_id", tag.Key);
+					Assert.Equal(TrogonAttributeNames.PersistentSubscriptionStream, tag.Key);
 					Assert.Equal(sourceName, tag.Value);
 				},
 				tag =>
 				{
-					Assert.Equal("group_name", tag.Key);
+					Assert.Equal(TrogonAttributeNames.PersistentSubscriptionGroup, tag.Key);
 					Assert.Equal(groupName, tag.Value);
 				}
 			);
@@ -232,17 +233,17 @@ public class PersistentSubscriptionMetricsTests
 				actualMeasurement.Tags.ToArray(),
 				tag =>
 				{
-					Assert.Equal("event_stream_id", tag.Key);
+					Assert.Equal(TrogonAttributeNames.PersistentSubscriptionStream, tag.Key);
 					Assert.Equal(sourceName, tag.Value);
 				},
 				tag =>
 				{
-					Assert.Equal("group_name", tag.Key);
+					Assert.Equal(TrogonAttributeNames.PersistentSubscriptionGroup, tag.Key);
 					Assert.Equal(groupName, tag.Value);
 				},
 				tag =>
 				{
-					Assert.Equal("reason", tag.Key);
+					Assert.Equal(TrogonAttributeNames.PersistentSubscriptionReason, tag.Key);
 					Assert.Equal(reason, tag.Value);
 				}
 			);

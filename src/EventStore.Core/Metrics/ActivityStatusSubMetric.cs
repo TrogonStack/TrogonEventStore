@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace EventStore.Core.Metrics
 {
@@ -9,8 +10,8 @@ namespace EventStore.Core.Metrics
 	{
 		private const string Idle = "Idle";
 
-		public ActivityStatusSubMetric(string componentName, StatusMetric metric)
-			: base(componentName, Idle, metric)
+		public ActivityStatusSubMetric(string componentName, StatusMetric metric, params string[] activities)
+			: base(componentName, Idle, metric, activities.Prepend(Idle))
 		{
 		}
 

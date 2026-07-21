@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
-using EventStore.Core.Time;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics
 {
@@ -9,15 +9,15 @@ namespace EventStore.Core.Metrics
 	public class StatusMetric
 	{
 		private readonly List<StatusSubMetric> _subMetrics = new();
-		private readonly IClock _clock;
 
-		public StatusMetric(Meter meter, string name, IClock clock = null)
+		public StatusMetric(Meter meter, MetricDefinition definition)
 		{
-			_clock = clock ?? Clock.Instance;
-
-			// The submetrics only go up, so we use a counter
-			// Observable because the value is the current time in seconds
-			meter.CreateObservableCounter(name, Observe);
+			definition.EnsureInstrumentKind(MetricInstrumentKind.UpDownCounter);
+			meter.CreateObservableUpDownCounter(
+				definition.Name,
+				Observe,
+				definition.Unit,
+				definition.Description);
 		}
 
 		public void Add(StatusSubMetric subMetric)
@@ -30,12 +30,14 @@ namespace EventStore.Core.Metrics
 
 		private IEnumerable<Measurement<long>> Observe()
 		{
-			var secondsSinceEpoch = _clock.SecondsSinceEpoch;
 			lock (_subMetrics)
 			{
 				foreach (var instance in _subMetrics)
 				{
-					yield return instance.Observe(secondsSinceEpoch);
+					foreach (var measurement in instance.Observe())
+					{
+						yield return measurement;
+					}
 				}
 			}
 		}

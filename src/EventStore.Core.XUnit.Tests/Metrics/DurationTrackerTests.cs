@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.Metrics;
 using EventStore.Core.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -10,12 +11,14 @@ public class DurationTrackerTests : IDisposable
 	private readonly TestMeterListener<double> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly DurationTracker _sut;
+	private readonly MetricDefinition _definition =
+		MetricDefinitions.TrogonEventstoreGossipExchangeDuration;
 
 	public DurationTrackerTests()
 	{
 		var meter = new Meter($"{typeof(DurationTrackerTests)}");
 		_listener = new TestMeterListener<double>(meter);
-		var durationMetric = new DurationMetric(meter, "the-histogram", _clock);
+		var durationMetric = new DurationMetric(meter, _definition, _clock);
 		_sut = new DurationTracker(durationMetric, "the-duration");
 	}
 
@@ -33,7 +36,7 @@ public class DurationTrackerTests : IDisposable
 			_clock.SecondsSinceEpoch = 501;
 		}
 
-		AssertMeasurements("successful", 1);
+		AssertMeasurements("success", 1);
 	}
 
 	[Fact]
@@ -46,7 +49,7 @@ public class DurationTrackerTests : IDisposable
 			duration.SetException(new Exception("failed"));
 		}
 
-		AssertMeasurements("failed", 1);
+		AssertMeasurements("error", 1);
 	}
 
 	void AssertMeasurements(
@@ -55,7 +58,7 @@ public class DurationTrackerTests : IDisposable
 	{
 
 		Assert.Collection(
-			_listener.RetrieveMeasurements("the-histogram-seconds"),
+			_listener.RetrieveMeasurements(_definition.Name),
 			m =>
 			{
 				Assert.Equal(expectedValue, m.Value);
@@ -63,12 +66,12 @@ public class DurationTrackerTests : IDisposable
 					m.Tags,
 					t =>
 					{
-						Assert.Equal("activity", t.Key);
+						Assert.Equal(TrogonAttributeNames.ActivityName, t.Key);
 						Assert.Equal("the-duration", t.Value);
 					},
 					t =>
 					{
-						Assert.Equal("status", t.Key);
+						Assert.Equal(TrogonAttributeNames.ActivityOutcome, t.Key);
 						Assert.Equal(expectedStatus, t.Value);
 					});
 			});

@@ -6,9 +6,12 @@ set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/../../../.." && pwd)
 output=${1:-"$root/src/TrogonEventStore.SemanticConventions/Generated"}
 registry_version=$(sed -n '1p' "$root/otel/semconv/registry-version")
-registry="https://github.com/open-telemetry/semantic-conventions@${registry_version}[model]"
+registry="$root/otel/semconv/registry"
+official_registry="https://github.com/open-telemetry/semantic-conventions@${registry_version}[model]"
 staging=$(mktemp -d)
 trap 'rm -rf "$staging"' EXIT HUP INT TERM
+
+grep -Fqx "    registry_path: $official_registry" "$registry/manifest.yaml"
 
 weaver registry check \
 	--future \
@@ -17,7 +20,18 @@ weaver registry check \
 weaver registry generate csharp "$staging" \
 	--future \
 	--registry "$registry" \
-	--templates "$root/otel/semconv/templates"
+	--templates "$root/otel/semconv/templates" \
+	-D attributes=false \
+	-D custom_attributes=true \
+	-D official_metrics=false
+
+weaver registry generate csharp "$staging" \
+	--future \
+	--registry "$official_registry" \
+	--templates "$root/otel/semconv/templates" \
+	-D custom_attributes=false \
+	-D metrics=false \
+	-D official_metrics=true
 
 set -- "$staging"/*.g.cs
 [ -e "$1" ] || exit 1

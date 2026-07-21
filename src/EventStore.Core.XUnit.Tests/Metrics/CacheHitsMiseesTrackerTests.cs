@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using DotNext.Runtime.CompilerServices;
 using EventStore.Core.Metrics;
 using EventStore.Core.Tests;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 using static EventStore.Common.Configuration.MetricsConfiguration;
@@ -30,7 +31,11 @@ public sealed class CacheHitsMissesTrackerTests : IDisposable
 
 		var listener = new TestMeterListener<long>(meter);
 		_disposables.RegisterForDispose(listener);
-		var metric = new CacheHitsMissesMetric(meter, enabledCaches, "the-metric", new() {
+		var metric = new CacheHitsMissesMetric(
+			meter,
+			enabledCaches,
+			MetricDefinitions.TrogonEventstoreCacheOperationCount,
+			new() {
 			{ Cache.StreamInfo, "stream-info" },
 			{ Cache.Chunk, "chunk" },
 		});
@@ -45,10 +50,10 @@ public sealed class CacheHitsMissesTrackerTests : IDisposable
 		sut.Register(Cache.Chunk, () => 1, () => 2);
 		sut.Register(Cache.StreamInfo, () => 3, () => 4);
 		AssertMeasurements(listener,
-			AssertMeasurement("chunk", "hits", 1),
-			AssertMeasurement("chunk", "misses", 2),
-			AssertMeasurement("stream-info", "hits", 3),
-			AssertMeasurement("stream-info", "misses", 4));
+			AssertMeasurement("chunk", "hit", 1),
+			AssertMeasurement("chunk", "miss", 2),
+			AssertMeasurement("stream-info", "hit", 3),
+			AssertMeasurement("stream-info", "miss", 4));
 	}
 
 	[Fact]
@@ -58,8 +63,8 @@ public sealed class CacheHitsMissesTrackerTests : IDisposable
 		sut.Register(Cache.Chunk, () => 1, () => 2);
 		sut.Register(Cache.StreamInfo, () => 3, () => 4);
 		AssertMeasurements(listener,
-			AssertMeasurement("stream-info", "hits", 3),
-			AssertMeasurement("stream-info", "misses", 4));
+			AssertMeasurement("stream-info", "hit", 3),
+			AssertMeasurement("stream-info", "miss", 4));
 	}
 
 	[Fact]
@@ -68,8 +73,8 @@ public sealed class CacheHitsMissesTrackerTests : IDisposable
 		var (sut, listener) = GenSut(new[] { Cache.Chunk, Cache.StreamInfo });
 		sut.Register(Cache.Chunk, () => 1, () => 2);
 		AssertMeasurements(listener,
-			AssertMeasurement("chunk", "hits", 1),
-			AssertMeasurement("chunk", "misses", 2));
+			AssertMeasurement("chunk", "hit", 1),
+			AssertMeasurement("chunk", "miss", 2));
 	}
 
 	static Action<TestMeterListener<long>.TestMeasurement> AssertMeasurement(
@@ -84,12 +89,12 @@ public sealed class CacheHitsMissesTrackerTests : IDisposable
 				actualMeasurement.Tags.ToArray(),
 				tag =>
 				{
-					Assert.Equal("cache", tag.Key);
+					Assert.Equal(TrogonAttributeNames.CacheName, tag.Key);
 					Assert.Equal(cacheName, tag.Value);
 				},
 				tag =>
 				{
-					Assert.Equal("kind", tag.Key);
+					Assert.Equal(TrogonAttributeNames.CacheResult, tag.Key);
 					Assert.Equal(kind, tag.Value);
 				});
 		};
@@ -100,6 +105,8 @@ public sealed class CacheHitsMissesTrackerTests : IDisposable
 	{
 
 		listener.Observe();
-		Assert.Collection(listener.RetrieveMeasurements("the-metric"), actions);
+		Assert.Collection(
+			listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreCacheOperationCount.Name),
+			actions);
 	}
 }

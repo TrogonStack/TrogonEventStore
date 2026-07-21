@@ -6,6 +6,7 @@ using EventStore.Core.Index;
 using EventStore.Core.Metrics;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.XUnit.Tests.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Index;
@@ -20,8 +21,9 @@ public class IndexTrackerTests : IDisposable
 		var meter = new Meter($"{typeof(IndexTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 
-		var eventMetric = new CounterMetric(meter, "eventstore-io", "events");
-		_sut = new IndexTracker(new CounterSubMetric(eventMetric, new[] { new KeyValuePair<string, object>("activity", "written") }));
+		var eventMetric = new CounterMetric(meter, MetricDefinitions.TrogonEventstoreStorageEventCount);
+		_sut = new IndexTracker(new CounterSubMetric(eventMetric,
+			new[] { new KeyValuePair<string, object>(TrogonAttributeNames.StorageActivity, "write") }));
 	}
 
 	public void Dispose()
@@ -53,14 +55,14 @@ public class IndexTrackerTests : IDisposable
 	private void AssertMeasurements(long expectedEventsWritten)
 	{
 		Assert.Collection(
-			_listener.RetrieveMeasurements("eventstore-io-events"),
+			_listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreStorageEventCount.Name),
 			m =>
 			{
 				Assert.Equal(expectedEventsWritten, m.Value);
 				Assert.Collection(m.Tags.ToArray(), t =>
 				{
-					Assert.Equal("activity", t.Key);
-					Assert.Equal("written", t.Value);
+					Assert.Equal(TrogonAttributeNames.StorageActivity, t.Key);
+					Assert.Equal("write", t.Value);
 				});
 			});
 	}

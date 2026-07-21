@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Core.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -11,12 +12,14 @@ public class DurationMaxTrackerTests : IDisposable
 	private readonly TestMeterListener<double> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly DurationMaxTracker _sut;
+	private readonly MetricDefinition _definition =
+		MetricDefinitions.TrogonEventstoreQueueMessageWaitDurationMax;
 
 	public DurationMaxTrackerTests()
 	{
 		var meter = new Meter($"{typeof(DurationMaxTrackerTests)}");
 		_listener = new TestMeterListener<double>(meter);
-		var metric = new DurationMaxMetric(meter, "the-metric");
+		var metric = new DurationMaxMetric(meter, _definition);
 		_sut = new DurationMaxTracker(
 			metric: metric,
 			name: "the-tracker",
@@ -173,7 +176,7 @@ public class DurationMaxTrackerTests : IDisposable
 		_listener.Observe();
 
 		Assert.Collection(
-			_listener.RetrieveMeasurements("the-metric-seconds"),
+			_listener.RetrieveMeasurements(_definition.Name),
 			m =>
 			{
 				Assert.Equal(expectedValue, m.Value);
@@ -181,13 +184,13 @@ public class DurationMaxTrackerTests : IDisposable
 					m.Tags.ToArray(),
 					t =>
 					{
-						Assert.Equal("name", t.Key);
+						Assert.Equal(TrogonAttributeNames.QueueName, t.Key);
 						Assert.Equal("the-tracker", t.Value);
 					},
 					t =>
 					{
-						Assert.Equal("range", t.Key);
-						Assert.Equal("16-20 seconds", t.Value);
+						Assert.Equal(TrogonAttributeNames.MeasurementWindow, t.Key);
+						Assert.Equal("16-20s", t.Value);
 					});
 			});
 	}
@@ -198,14 +201,14 @@ public class DurationMaxTrackerTests : IDisposable
 		using var meter = new Meter($"{typeof(DurationMaxTrackerTests)}");
 		using var listener = new TestMeterListener<double>(meter);
 		var sut = new DurationMaxTracker(
-			metric: new DurationMaxMetric(meter, "the-metric"),
+			metric: new DurationMaxMetric(meter, _definition),
 			name: null,
 			expectedScrapeIntervalSeconds: 15);
 
 		listener.Observe();
 
 		Assert.Collection(
-			listener.RetrieveMeasurements("the-metric-seconds"),
+			listener.RetrieveMeasurements(_definition.Name),
 			m =>
 			{
 				Assert.Equal(0, m.Value);
@@ -213,8 +216,8 @@ public class DurationMaxTrackerTests : IDisposable
 					m.Tags.ToArray(),
 					t =>
 					{
-						Assert.Equal("range", t.Key);
-						Assert.Equal("16-20 seconds", t.Value);
+						Assert.Equal(TrogonAttributeNames.MeasurementWindow, t.Key);
+						Assert.Equal("16-20s", t.Value);
 					});
 			});
 	}

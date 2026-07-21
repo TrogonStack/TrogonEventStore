@@ -1,69 +1,112 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+using System.Linq;
 using System.Runtime;
 using EventStore.Common.Configuration;
 using EventStore.Core.Metrics;
-using FluentAssertions;
-using Microsoft.Extensions.Diagnostics.Metrics.Testing;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
 public class SystemMetricsTests : IDisposable
 {
-	private readonly TestMeterListener<float> _floatListener;
+	private readonly Meter _meter;
+	private readonly MeterListener _instrumentListener;
+	private readonly List<Instrument> _instruments = new();
 	private readonly TestMeterListener<double> _doubleListener;
 	private readonly TestMeterListener<long> _longListener;
-	private readonly FakeClock _clock = new();
-	private readonly SystemMetrics _sut;
-	private readonly Meter _meter;
+
 	public SystemMetricsTests()
 	{
-		_meter = new Meter($"{typeof(ProcessMetricsTests)}");
-		_floatListener = new TestMeterListener<float>(_meter);
+		_meter = new Meter(typeof(SystemMetricsTests).FullName!);
+		_instrumentListener = new MeterListener
+		{
+			InstrumentPublished = (instrument, _) =>
+			{
+				if (instrument.Meter == _meter)
+				{
+					_instruments.Add(instrument);
+				}
+			},
+		};
+		_instrumentListener.Start();
 		_doubleListener = new TestMeterListener<double>(_meter);
 		_longListener = new TestMeterListener<long>(_meter);
 
-		var config = new Dictionary<MetricsConfiguration.SystemTracker, bool>();
-
-		foreach (var value in Enum.GetValues<MetricsConfiguration.SystemTracker>())
+		var config = new Dictionary<MetricsConfiguration.SystemTracker, bool>
 		{
-			config[value] = true;
-		}
-		_sut = new SystemMetrics(_meter, TimeSpan.FromSeconds(42), config);
-		_sut.CreateLoadAverageMetric("eventstore-sys-load-avg", new() {
-			{ MetricsConfiguration.SystemTracker.LoadAverage1m, "1m" },
-			{ MetricsConfiguration.SystemTracker.LoadAverage5m, "5m" },
-			{ MetricsConfiguration.SystemTracker.LoadAverage15m, "15m" },
-		});
+			[MetricsConfiguration.SystemTracker.LoadAverage1m] = true,
+			[MetricsConfiguration.SystemTracker.LoadAverage5m] = true,
+			[MetricsConfiguration.SystemTracker.LoadAverage15m] = true,
+			[MetricsConfiguration.SystemTracker.DriveUsedBytes] = true,
+			[MetricsConfiguration.SystemTracker.DriveTotalBytes] = true,
+		};
 
-		_sut.CreateCpuMetric("eventstore-sys-cpu");
+		var sut = new SystemMetrics(_meter, TimeSpan.Zero, config);
+		sut.CreateLoadAverageMetric();
+		sut.CreateFileSystemMetrics(".");
 
-		_sut.CreateMemoryMetric("eventstore-sys-mem", new() {
-			{ MetricsConfiguration.SystemTracker.FreeMem, "free" },
-			{ MetricsConfiguration.SystemTracker.TotalMem, "total" },
-		});
-
-		_sut.CreateDiskMetric("eventstore-sys-disk", ".", new() {
-			{ MetricsConfiguration.SystemTracker.DriveTotalBytes, "total" },
-			{ MetricsConfiguration.SystemTracker.DriveUsedBytes, "used" },
-		});
-
-		_floatListener.Observe();
 		_doubleListener.Observe();
 		_longListener.Observe();
 	}
 
 	public void Dispose()
 	{
-		_floatListener.Dispose();
+		_instrumentListener.Dispose();
 		_doubleListener.Dispose();
 		_longListener.Dispose();
+		_meter.Dispose();
 	}
 
 	[Fact]
-	public void can_collect_sys_load_avg()
+	public void publishes_the_system_metric_contract()
+	{
+		var instruments = _instruments.OrderBy(instrument => instrument.Name).ToArray();
+		if (RuntimeInformation.IsWindows)
+		{
+			Assert.Collection(
+				instruments,
+				instrument => AssertInstrument<ObservableUpDownCounter<long>>(
+					instrument,
+					OpenTelemetryMetricDefinitions.SystemFilesystemLimit),
+				instrument => AssertInstrument<ObservableUpDownCounter<long>>(
+					instrument,
+					OpenTelemetryMetricDefinitions.SystemFilesystemUsage));
+			return;
+		}
+
+		Assert.Collection(
+			instruments,
+			instrument => AssertInstrument<ObservableUpDownCounter<long>>(
+				instrument,
+				OpenTelemetryMetricDefinitions.SystemFilesystemLimit),
+			instrument => AssertInstrument<ObservableUpDownCounter<long>>(
+				instrument,
+				OpenTelemetryMetricDefinitions.SystemFilesystemUsage),
+			instrument => AssertInstrument<ObservableGauge<double>>(
+				instrument,
+				MetricDefinitions.TrogonEventstoreSystemLoadAverage));
+	}
+
+	[Fact]
+	public void exposes_only_the_retained_system_trackers()
+	{
+		Assert.Equal(
+			new[]
+			{
+				MetricsConfiguration.SystemTracker.LoadAverage1m,
+				MetricsConfiguration.SystemTracker.LoadAverage5m,
+				MetricsConfiguration.SystemTracker.LoadAverage15m,
+				MetricsConfiguration.SystemTracker.DriveTotalBytes,
+				MetricsConfiguration.SystemTracker.DriveUsedBytes,
+			},
+			Enum.GetValues<MetricsConfiguration.SystemTracker>());
+	}
+
+	[Fact]
+	public void load_average_has_the_required_period_attribute()
 	{
 		if (RuntimeInformation.IsWindows)
 		{
@@ -71,137 +114,82 @@ public class SystemMetricsTests : IDisposable
 		}
 
 		Assert.Collection(
-			_doubleListener.RetrieveMeasurements("eventstore-sys-load-avg"),
-			m =>
-			{
-				Assert.True(m.Value > 0);
-				Assert.Collection(
-					m.Tags,
-					tag =>
-					{
-						Assert.Equal("period", tag.Key);
-						Assert.Equal("1m", tag.Value);
-					});
-			},
-			m =>
-			{
-				Assert.True(m.Value > 0);
-				Assert.Collection(
-					m.Tags,
-					tag =>
-					{
-						Assert.Equal("period", tag.Key);
-						Assert.Equal("5m", tag.Value);
-					});
-			},
-			m =>
-			{
-				Assert.True(m.Value > 0);
-				Assert.Collection(
-					m.Tags,
-					tag =>
-					{
-						Assert.Equal("period", tag.Key);
-						Assert.Equal("15m", tag.Value);
-					});
-			});
+			_doubleListener.RetrieveMeasurements(Key(MetricDefinitions.TrogonEventstoreSystemLoadAverage)),
+			measurement => AssertPeriod(measurement, "1m"),
+			measurement => AssertPeriod(measurement, "5m"),
+			measurement => AssertPeriod(measurement, "15m"));
 	}
 
 	[Fact]
-	public void can_collect_sys_cpu()
+	public void filesystem_usage_has_state_and_mountpoint_attributes()
 	{
 		Assert.Collection(
-			_doubleListener.RetrieveMeasurements("eventstore-sys-cpu"),
-			m =>
-			{
-				Assert.True(m.Value >= 0);
-				Assert.Empty(m.Tags);
-			});
+			_longListener.RetrieveMeasurements(Key(OpenTelemetryMetricDefinitions.SystemFilesystemUsage)),
+			measurement => AssertFileSystemUsage(measurement, "used"),
+			measurement => AssertFileSystemUsage(measurement, "free"));
 	}
 
 	[Fact]
-	public void can_collect_sys_cpu_using_metrics_collector()
+	public void filesystem_usage_states_sum_to_limit()
 	{
-		// Arrange
-		using var collector = new MetricCollector<double>(
-			null, _meter.Name, "eventstore-sys-cpu"
-		);
+		var usage = _longListener
+			.RetrieveMeasurements(Key(OpenTelemetryMetricDefinitions.SystemFilesystemUsage))
+			.Sum(measurement => measurement.Value);
+		var limit = Assert.Single(
+			_longListener.RetrieveMeasurements(Key(OpenTelemetryMetricDefinitions.SystemFilesystemLimit)));
 
-		// Act
-		collector.RecordObservableInstruments();
-
-		// Assert
-		collector.LastMeasurement.Should().NotBeNull();
-		collector.LastMeasurement!.Value.Should().BeGreaterThanOrEqualTo(0);
+		Assert.Equal(limit.Value, usage);
 	}
 
-
-
 	[Fact]
-	public void can_collect_sys_mem()
+	public void filesystem_limit_has_mountpoint_attribute()
 	{
+		var measurement = Assert.Single(
+			_longListener.RetrieveMeasurements(Key(OpenTelemetryMetricDefinitions.SystemFilesystemLimit)));
+
+		Assert.True(measurement.Value > 0);
+		var tag = Assert.Single(measurement.Tags);
+		AssertNonEmptyTag(tag, AttributeNames.SystemFilesystemMountpoint);
+	}
+
+	private static void AssertPeriod(TestMeterListener<double>.TestMeasurement measurement, string period)
+	{
+		Assert.True(measurement.Value >= 0);
+		var tag = Assert.Single(measurement.Tags);
+		AssertTag(tag, TrogonAttributeNames.SystemLoadAveragePeriod, period);
+	}
+
+	private static void AssertFileSystemUsage(
+		TestMeterListener<long>.TestMeasurement measurement,
+		string state)
+	{
+		Assert.True(measurement.Value >= 0);
 		Assert.Collection(
-			_longListener.RetrieveMeasurements("eventstore-sys-mem-bytes"),
-			m =>
-			{
-				Assert.True(m.Value > 0);
-				Assert.Collection(
-					m.Tags,
-					tag =>
-					{
-						Assert.Equal("kind", tag.Key);
-						Assert.Equal("free", tag.Value);
-					});
-			},
-			m =>
-			{
-				Assert.True(m.Value > 0);
-				Assert.Collection(
-					m.Tags,
-					tag =>
-					{
-						Assert.Equal("kind", tag.Key);
-						Assert.Equal("total", tag.Value);
-					});
-			});
+			measurement.Tags,
+			tag => AssertTag(tag, AttributeNames.SystemFilesystemState, state),
+			tag => AssertNonEmptyTag(tag, AttributeNames.SystemFilesystemMountpoint));
 	}
 
-	[Fact]
-	public void can_collect_sys_disk()
+	private static void AssertNonEmptyTag(KeyValuePair<string, object> tag, string name)
 	{
-		Assert.Collection(
-			_longListener.RetrieveMeasurements("eventstore-sys-disk-bytes"),
-			m =>
-			{
-				Assert.True(m.Value >= 0);
-				Assert.Collection(
-					m.Tags,
-					tag =>
-					{
-						Assert.Equal("kind", tag.Key);
-						Assert.Equal("used", tag.Value);
-					},
-					tag =>
-					{
-						Assert.Equal("disk", tag.Key);
-						Assert.NotNull(tag.Value);
-					});
-			},
-			m =>
-			{
-				Assert.True(m.Value >= 0);
-				Assert.Collection(
-					m.Tags,
-					tag =>
-					{
-						Assert.Equal("kind", tag.Key);
-						Assert.Equal("total", tag.Value);
-					},
-					tag =>
-					{
-						Assert.Equal("disk", tag.Key);
-						Assert.NotNull(tag.Value);
-					});
-			});
+		Assert.Equal(name, tag.Key);
+		Assert.False(string.IsNullOrWhiteSpace(Assert.IsType<string>(tag.Value)));
 	}
+
+	private static void AssertTag(KeyValuePair<string, object> tag, string name, string value)
+	{
+		Assert.Equal(name, tag.Key);
+		Assert.Equal(value, tag.Value);
+	}
+
+	private static void AssertInstrument<TInstrument>(Instrument instrument, MetricDefinition definition)
+		where TInstrument : Instrument
+	{
+		Assert.IsType<TInstrument>(instrument);
+		Assert.Equal(definition.Name, instrument.Name);
+		Assert.Equal(definition.Unit, instrument.Unit);
+		Assert.Equal(definition.Description, instrument.Description);
+	}
+
+	private static string Key(MetricDefinition definition) => definition.Name;
 }

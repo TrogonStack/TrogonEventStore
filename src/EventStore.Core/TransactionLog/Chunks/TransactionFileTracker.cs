@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using EventStore.Core.Metrics;
 using EventStore.Core.Time;
 using EventStore.Core.TransactionLog.LogRecords;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
@@ -31,7 +32,12 @@ public class TFChunkTracker : ITransactionFileTracker
 		_readDistribution.Record(record);
 		_readDurationMetric.Record(
 			start,
-			new KeyValuePair<string, object>("source", source));
+			new KeyValuePair<string, object>(TrogonAttributeNames.StorageSource, source switch
+			{
+				ITransactionFileTracker.Source.ChunkCache => "chunk_cache",
+				ITransactionFileTracker.Source.FileSystem => "file_system",
+				_ => "unknown",
+			}));
 
 		if (record is not PrepareLogRecord prepare)
 		{

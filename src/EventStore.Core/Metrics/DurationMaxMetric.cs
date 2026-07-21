@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics;
 
@@ -7,11 +8,16 @@ public class DurationMaxMetric
 {
 	private readonly List<DurationMaxTracker> _trackers = new();
 
-	public DurationMaxMetric(Meter meter, string name)
+	public DurationMaxMetric(Meter meter, MetricDefinition definition)
 	{
+		definition.EnsureInstrumentKind(MetricInstrumentKind.Gauge);
 		// gauge rather than updowncounter because the dimensions wont make sense to sum,
 		// because they are maxes and not necessarily from the same moment
-		meter.CreateObservableGauge(name + "-seconds", Observe);
+		meter.CreateObservableGauge(
+			definition.Name,
+			Observe,
+			definition.Unit,
+			definition.Description);
 	}
 
 	public void Add(DurationMaxTracker tracker)

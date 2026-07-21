@@ -18,7 +18,14 @@ namespace EventStore.Core.Index
 
 		public IndexStatusTracker(StatusMetric metric)
 		{
-			_metric = new("Index", metric);
+			_metric = new(
+				"Index",
+				metric,
+				"Opening",
+				"Rebuilding",
+				"Initializing",
+				"Merging",
+				"Scavenging");
 		}
 
 		public IDisposable StartOpening() => _metric.StartActivity("Opening");

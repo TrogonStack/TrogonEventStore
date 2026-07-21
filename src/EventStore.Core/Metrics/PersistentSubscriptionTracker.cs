@@ -4,6 +4,7 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Common.Utils;
 using EventStore.Core.Messages;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics;
 
@@ -19,63 +20,63 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
 	public IEnumerable<Measurement<long>> ObserveConnectionsCount() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.Connections.Count, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName)]));
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)]));
 
 	public IEnumerable<Measurement<long>> ObserveParkedMessages() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.ParkedMessageCount, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName)
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 			]));
 
 	public IEnumerable<Measurement<long>> ObserveParkMessageRequests() =>
 		_currentStats.SelectMany<MonitoringMessage.PersistentSubscriptionInfo, Measurement<long>>(x => [
 			new(x.ParkedDueToClientNak, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName),
-				new("reason", "client-nak")
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName),
+				new(TrogonAttributeNames.PersistentSubscriptionReason, "client_nack")
 			]),
 			new(x.ParkedDueToMaxRetries, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName),
-				new("reason", "max-retries")
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName),
+				new(TrogonAttributeNames.PersistentSubscriptionReason, "max_retries")
 			])
 		]);
 
 	public IEnumerable<Measurement<long>> ObserveParkedMessageReplays() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.ParkedMessageReplays, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName)
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 			]));
 
 	public IEnumerable<Measurement<long>> ObserveParkedMessageTruncates() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.ParkedMessageTruncates, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName)
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 			]));
 
 	public IEnumerable<Measurement<long>> ObserveInFlightMessages() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.TotalInFlightMessages, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName)
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 			]));
 
 	public IEnumerable<Measurement<long>> ObserveOldestParkedMessage() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.OldestParkedMessage, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName)
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 			]));
 
 	public IEnumerable<Measurement<long>> ObserveItemsProcessed() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.TotalItems, [
-				new("event_stream_id", x.EventSource),
-				new("group_name", x.GroupName)
+				new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+				new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 			]));
 
 	public IEnumerable<Measurement<long>> ObserveLastKnownEvent() =>
@@ -87,8 +88,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
 					? lastEventPos
 					: 0;
 				return new Measurement<long>(measurement, [
-					new("event_stream_id", x.EventSource),
-					new("group_name", x.GroupName)
+					new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+					new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 				]);
 			});
 
@@ -99,8 +100,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
 			{
 				var (eventCommitPosition, _) = EventPositionParser.ParseCommitPreparePosition(x.LastKnownEventPosition);
 				return new Measurement<long>(eventCommitPosition, [
-					new("event_stream_id", x.EventSource),
-					new("group_name", x.GroupName)
+					new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+					new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 				]);
 			});
 
@@ -113,8 +114,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
 					? lastEventPos
 					: 0;
 				return new Measurement<long>(measurement, [
-					new("event_stream_id", x.EventSource),
-					new("group_name", x.GroupName)
+					new(TrogonAttributeNames.PersistentSubscriptionStream, x.EventSource),
+					new(TrogonAttributeNames.PersistentSubscriptionGroup, x.GroupName)
 				]);
 			});
 
@@ -125,8 +126,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
 			{
 				var (checkpointedCommitPosition, _) = EventPositionParser.ParseCommitPreparePosition(statistics.LastCheckpointedEventPosition);
 				return new Measurement<long>(checkpointedCommitPosition, [
-					new("event_stream_id", statistics.EventSource),
-					new("group_name", statistics.GroupName)
+					new(TrogonAttributeNames.PersistentSubscriptionStream, statistics.EventSource),
+					new(TrogonAttributeNames.PersistentSubscriptionGroup, statistics.GroupName)
 				]);
 			});
 }
