@@ -18,6 +18,7 @@ namespace EventStore.Core.TransactionLog.Scavenging
 				"Scavenge",
 				metric,
 				"Accumulation Phase",
+				"Calculation Phase",
 				"Chunk execution Phase",
 				"Chunk merging Phase",
 				"Index execution Phase",

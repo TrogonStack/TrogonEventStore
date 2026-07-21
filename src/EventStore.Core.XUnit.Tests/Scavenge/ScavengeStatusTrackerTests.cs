@@ -31,14 +31,20 @@ public class ScavengeStatusTrackerTests : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	[Fact]
-	public void can_observe_activity()
+	[Theory]
+	[InlineData("Accumulation")]
+	[InlineData("Calculation")]
+	[InlineData("Chunk execution")]
+	[InlineData("Chunk merging")]
+	[InlineData("Index execution")]
+	[InlineData("Cleaning")]
+	public void can_observe_activity(string activity)
 	{
 		AssertMeasurements("Idle");
 
-		using (_sut.StartActivity("Accumulation"))
+		using (_sut.StartActivity(activity))
 		{
-			AssertMeasurements("Accumulation Phase");
+			AssertMeasurements($"{activity} Phase");
 		}
 
 		AssertMeasurements("Idle");
