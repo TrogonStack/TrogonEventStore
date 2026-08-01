@@ -36,7 +36,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install repository tools
-        uses: jdx/mise-action@v4.2.1
+        uses: jdx/mise-action@v4.2.3
         with:
           cache: false
       - name: Verify semantic conventions
@@ -51,7 +51,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install net10.0
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Set up .NET NuGet authentication
@@ -93,7 +93,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
       - name: Install net10.0
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Set up .NET NuGet authentication
