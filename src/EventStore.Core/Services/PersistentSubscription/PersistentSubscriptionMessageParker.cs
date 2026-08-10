@@ -78,10 +78,13 @@ namespace EventStore.Core.Services.PersistentSubscription
 		private void WriteStateCompleted(Action<ResolvedEvent, OperationResult> completed, ResolvedEvent ev,
 			ClientMessage.WriteEventsCompleted msg, DateTime parkedMessageAdded)
 		{
-			_lastParkedEventNumber = msg.LastEventNumber;
-			if (_oldestParkedMessage == null)
+			if (msg.Result == OperationResult.Success)
 			{
-				_oldestParkedMessage = parkedMessageAdded.ToUniversalTime();
+				_lastParkedEventNumber = msg.LastEventNumber;
+				if (_oldestParkedMessage == null)
+				{
+					_oldestParkedMessage = parkedMessageAdded.ToUniversalTime();
+				}
 			}
 
 			completed?.Invoke(ev, msg.Result);

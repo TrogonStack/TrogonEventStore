@@ -277,6 +277,38 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class given_a_park_write_fails_after_a_message_was_parked<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
+		private PersistentSubscriptionMessageParker _messageParker;
+		private OperationResult _result;
+		private DateTime? _oldestParkedMessage;
+
+		protected override void Given()
+		{
+			base.Given();
+			_messageParker = new PersistentSubscriptionMessageParker(Guid.NewGuid().ToString(), _ioDispatcher);
+			NoOtherStreams();
+			AllWritesQueueUp();
+
+			_messageParker.BeginParkMessage(CreateResolvedEvent(0, 0), "testing", (_, __) => { });
+			OneWriteCompletes();
+			_oldestParkedMessage = _messageParker.GetOldestParkedMessage;
+		}
+
+		[Test]
+		public void should_preserve_the_existing_parked_message_state()
+		{
+			_messageParker.BeginParkMessage(CreateResolvedEvent(1, 100), "testing", (_, result) => _result = result);
+
+			CompleteWriteWithResult(OperationResult.CommitTimeout);
+
+			Assert.AreEqual(OperationResult.CommitTimeout, _result);
+			Assert.AreEqual(1, _messageParker.ParkedMessageCount);
+			Assert.AreEqual(_oldestParkedMessage, _messageParker.GetOldestParkedMessage);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class given_messages_are_parked_and_then_replayed<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
