@@ -14,6 +14,45 @@ public class HashListMemTableTests : MemTableTestsFixture
 		: base(() => new HashListMemTable(PTableVersions.IndexV2, maxSize: 20))
 	{
 	}
+
+	[Test]
+	public void ordered_iteration_does_not_allocate_a_key_view_for_each_stream()
+	{
+		const int streamCount = 1_024;
+		var warmupTable = CreateTable(streamCount: 2);
+		_ = MeasureOrderedIterationAllocations(warmupTable);
+
+		var table = CreateTable(streamCount);
+		var firstIteration = MeasureOrderedIterationAllocations(table);
+		var repeatedIteration = MeasureOrderedIterationAllocations(table);
+
+		Assert.That(firstIteration - repeatedIteration, Is.LessThanOrEqualTo(streamCount * IntPtr.Size));
+	}
+
+	private static HashListMemTable CreateTable(int streamCount)
+	{
+		var table = new HashListMemTable(PTableVersions.IndexV2, maxSize: streamCount);
+		for (var stream = 0; stream < streamCount; stream++)
+		{
+			table.Add((ulong)stream, version: 0, position: stream);
+		}
+
+		return table;
+	}
+
+	private static long MeasureOrderedIterationAllocations(HashListMemTable table)
+	{
+		var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+		var count = 0;
+		foreach (var _ in table.IterateAllInOrder())
+		{
+			count++;
+		}
+		var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+		GC.KeepAlive(count);
+		return allocated;
+	}
 }
 
 [TestFixture]
