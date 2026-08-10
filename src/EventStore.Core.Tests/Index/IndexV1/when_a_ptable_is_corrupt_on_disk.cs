@@ -58,4 +58,15 @@ public class when_a_ptable_is_corrupt_on_disk : SpecificationWithDirectory
 		var exc = Assert.Throws<CorruptIndexException>(() => PTable.FromFile(_copiedfilename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, 16, false));
 		Assert.IsInstanceOf<HashValidationException>(exc.InnerException);
 	}
+
+	[Test]
+	public void failed_open_releases_the_file_handle()
+	{
+		Assert.Throws<CorruptIndexException>(() => PTable.FromFile(_copiedfilename, 1, 1, 16, false));
+
+		Assert.DoesNotThrow(() =>
+		{
+			using var stream = new FileStream(_copiedfilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+		});
+	}
 }

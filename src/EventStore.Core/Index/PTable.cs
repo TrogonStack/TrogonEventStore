@@ -11,11 +11,9 @@ using EventStore.Common.Utils;
 using EventStore.Core.DataStructures;
 using EventStore.Core.DataStructures.ProbabilisticFilter;
 using EventStore.Core.Exceptions;
-using EventStore.Core.TransactionLog.Unbuffered;
 using ILogger = Serilog.ILogger;
 using MD5 = EventStore.Core.Hashing.MD5;
 using Range = EventStore.Core.Data.Range;
-using RuntimeInformation = System.Runtime.RuntimeInformation;
 
 namespace EventStore.Core.Index;
 
@@ -355,19 +353,8 @@ public partial class PTable : ISearchTable, IDisposable
 			Log.Debug("Disabling Verification of PTable");
 		}
 
-		WorkItem workItem = null;
-
-		Stream stream;
-		if (RuntimeInformation.IsUnix)
-		{
-			workItem = GetWorkItem();
-			stream = workItem.Stream;
-		}
-		else
-		{
-			stream = UnbufferedFileStream.Create(_filename, FileMode.Open, FileAccess.Read, FileShare.Read,
-				4096, 4096, false, 4096);
-		}
+		var workItem = GetWorkItem();
+		var stream = workItem.Stream;
 
 		UnmanagedMemoryAppendOnlyList<Midpoint> midpoints = null;
 
@@ -539,17 +526,7 @@ public partial class PTable : ISearchTable, IDisposable
 		}
 		finally
 		{
-			if (RuntimeInformation.IsUnix)
-			{
-				if (workItem != null)
-				{
-					ReturnWorkItem(workItem);
-				}
-			}
-			else
-			{
-				stream?.Dispose();
-			}
+			ReturnWorkItem(workItem);
 		}
 	}
 
