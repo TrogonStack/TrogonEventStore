@@ -14,6 +14,7 @@ public class HashListMemTable : IMemTable
 {
 	private static readonly IComparer<Entry> MemTableComparer = new EventNumberComparer();
 	private static readonly IComparer<Entry> LogPosComparer = new LogPositionComparer();
+	private static readonly IComparer<ulong> DescendingStreamHashComparer = new ReverseComparer<ulong>();
 	private static readonly TimeSpan DefaultLockTimeout = TimeSpan.FromMilliseconds(10_000);
 
 	public long Count
@@ -128,7 +129,7 @@ public class HashListMemTable : IMemTable
 					return false;
 				}
 
-				var key = list.Keys[endIdx];
+				var key = list.GetKeyAtIndex(endIdx);
 				if (key.EvNum == number)
 				{
 					position = key.LogPos;
@@ -158,7 +159,7 @@ public class HashListMemTable : IMemTable
 
 			try
 			{
-				var latest = list.Keys[list.Count - 1];
+				var latest = list.GetKeyAtIndex(list.Count - 1);
 				entry = new IndexEntry(hash, latest.EvNum, latest.LogPos);
 				return true;
 			}
@@ -203,7 +204,7 @@ public class HashListMemTable : IMemTable
 				return null;
 			}
 
-			var latestBeforePosition = list.Keys[endIdx];
+			var latestBeforePosition = list.GetKeyAtIndex(endIdx);
 			return new(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
 		}
 		catch (SearchStoppedException)
@@ -219,7 +220,7 @@ public class HashListMemTable : IMemTable
 				return null;
 			}
 
-			var latestBeforePosition = list.Keys[maxIdx];
+			var latestBeforePosition = list.GetKeyAtIndex(maxIdx);
 			return new(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
 		}
 		finally
@@ -242,7 +243,7 @@ public class HashListMemTable : IMemTable
 
 			try
 			{
-				var oldest = list.Keys[0];
+				var oldest = list.GetKeyAtIndex(0);
 				entry = new IndexEntry(hash, oldest.EvNum, oldest.LogPos);
 				return true;
 			}
@@ -282,7 +283,7 @@ public class HashListMemTable : IMemTable
 					return false;
 				}
 
-				var e = list.Keys[endIdx];
+				var e = list.GetKeyAtIndex(endIdx);
 				entry = new IndexEntry(hash, e.EvNum, e.LogPos);
 				return true;
 			}
@@ -322,7 +323,7 @@ public class HashListMemTable : IMemTable
 					return false;
 				}
 
-				var e = list.Keys[endIdx];
+				var e = list.GetKeyAtIndex(endIdx);
 				entry = new IndexEntry(hash, e.EvNum, e.LogPos);
 				return true;
 			}
@@ -340,14 +341,14 @@ public class HashListMemTable : IMemTable
 		//Log.Trace("Sorting array in HashListMemTable.IterateAllInOrder...");
 
 		var keys = _hash.Keys.ToArray();
-		Array.Sort(keys, new ReverseComparer<ulong>());
+		Array.Sort(keys, DescendingStreamHashComparer);
 
 		foreach (var key in keys)
 		{
 			var list = _hash[key];
 			for (int i = list.Count - 1; i >= 0; --i)
 			{
-				var x = list.Keys[i];
+				var x = list.GetKeyAtIndex(i);
 				yield return new IndexEntry(key, x.EvNum, x.LogPos);
 			}
 		}
@@ -377,7 +378,7 @@ public class HashListMemTable : IMemTable
 				var endIdx = list.UpperBound(new Entry(endNumber, long.MaxValue));
 				for (int i = endIdx; i >= 0; i--)
 				{
-					var key = list.Keys[i];
+					var key = list.GetKeyAtIndex(i);
 					if (key.EvNum < startNumber || ret.Count == limit)
 					{
 						break;
@@ -458,6 +459,6 @@ public class ReverseComparer<T> : IComparer<T> where T : IComparable
 {
 	public int Compare(T x, T y)
 	{
-		return -x.CompareTo(y);
+		return Comparer<T>.Default.Compare(y, x);
 	}
 }
