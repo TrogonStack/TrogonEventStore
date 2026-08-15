@@ -92,6 +92,11 @@ public sealed class ArchiveStorageReaderMetrics(
 		{
 			throw;
 		}
+		catch (ChunkDeletedException)
+		{
+			RecordUnsuccessfulRead(operation, started);
+			throw;
+		}
 		catch
 		{
 			metrics.RecordFailure(operation);

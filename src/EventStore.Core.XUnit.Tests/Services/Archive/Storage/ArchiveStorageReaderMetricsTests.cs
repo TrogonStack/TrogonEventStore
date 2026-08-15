@@ -64,6 +64,7 @@ public class ArchiveStorageReaderMetricsTests
 	}
 
 	[Theory]
+	[InlineData(ArchiveOperation.ReadMetadata)]
 	[InlineData(ArchiveOperation.ReadFull)]
 	[InlineData(ArchiveOperation.ReadRange)]
 	public async Task missing_chunks_record_an_unsuccessful_read_without_a_storage_failure(ArchiveOperation operation)
@@ -193,6 +194,8 @@ public class ArchiveStorageReaderMetricsTests
 		public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct) =>
 			cancel
 				? ValueTask.FromException<long>(new OperationCanceledException())
+				: deleted
+					? ValueTask.FromException<long>(new ChunkDeletedException())
 				: fail ? ValueTask.FromException<long>(new InvalidOperationException()) : ValueTask.FromResult(1L);
 
 		public ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct) =>
