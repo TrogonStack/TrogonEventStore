@@ -252,7 +252,24 @@ jobs:
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker compose build
+          docker compose run --rm cert-gen
+          docker compose run --rm --entrypoint sh cert-gen -c '
+            test -z "$(find /certs/ca -mindepth 1 -maxdepth 1 ! -name ca.crt -print -quit)"
+            test "$(stat -c %a /certs/ca/ca.crt)" = 644
+            for certificate in /certs/node*/node.crt; do
+              test "$(stat -c %a "$certificate")" = 644
+            done
+            for private_key in /certs/node*/node.key; do
+              test "$(stat -c %a "$private_key")" = 600
+            done
+          '
+          docker compose run --rm --entrypoint sh cert-gen -c 'sha256sum /certs/ca/ca.crt /certs/node*/node.crt /certs/node*/node.key' > /tmp/certificate-fingerprints.before
+          docker compose run --rm cert-gen
+          docker compose run --rm --entrypoint sh cert-gen -c 'sha256sum /certs/ca/ca.crt /certs/node*/node.crt /certs/node*/node.key' > /tmp/certificate-fingerprints.after
+          diff --unified /tmp/certificate-fingerprints.before /tmp/certificate-fingerprints.after
           docker compose up --detach
           printf 'Waiting for cluster'
-          timeout 60 bash -c -- 'until curl --output /dev/null --silent --insecure --fail https://localhost:2113/-/readiness; do printf '.'; sleep 2; done'
+          for port in 2111 2112 2113; do
+            timeout 60 bash -c -- "until curl --output /dev/null --silent --fail --cacert certs/ca/ca.crt https://localhost:$port/-/readiness; do printf '.'; sleep 2; done"
+          done
           docker compose down
