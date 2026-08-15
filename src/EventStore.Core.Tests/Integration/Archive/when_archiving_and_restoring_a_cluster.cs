@@ -69,13 +69,19 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 		};
 	}
 
-	protected override void BeforeNodesStart()
+	[OneTimeSetUp]
+	public override async Task TestFixtureSetUp()
 	{
 		if (!_archiveOptions.Enabled)
 		{
 			Assert.Ignore("The archive integration endpoint is not configured.");
 		}
 
+		await base.TestFixtureSetUp();
+	}
+
+	protected override void BeforeNodesStart()
+	{
 		_s3Client = new AmazonS3Client(
 			_archiveOptions.S3.AccessKeyId,
 			_archiveOptions.S3.SecretAccessKey,
@@ -126,19 +132,11 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 	{
 		var payload = new byte[256 * 1024];
 		new Random(1729).NextBytes(payload);
-		var leader = GetLeader();
 		var archiver = _nodes[ArchiverNodeIndex];
-		AssertEx.IsOrBecomesTrue(
-			() => _nodes.Any(node =>
-				node.DebugIndex != ArchiverNodeIndex && node.NodeState == VNodeState.Follower),
-			GateTimeout,
-			$"A voting follower did not become ready. States={string.Join(", ", _nodes.Select(node => node.NodeState))}");
-		_restoredNodeIndex = Array.FindIndex(_nodes,
-			node => node.NodeState == VNodeState.Follower && node.DebugIndex != ArchiverNodeIndex);
-		Assert.That(_restoredNodeIndex, Is.GreaterThanOrEqualTo(0));
 
 		for (var iteration = 0; iteration < SoakIterations; iteration++)
 		{
+			var leader = await ReconnectToLeader();
 			for (var eventNumber = 0; eventNumber < EventsPerIteration; eventNumber++)
 			{
 				await _conn.AppendToStreamAsync(
@@ -166,16 +164,42 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 				(await leader.Db.Manager.GetChunk(coldChunkNumber).TryReadFirst(CancellationToken.None)).Success,
 				Is.True);
 
+			_restoredNodeIndex = GetVotingFollowerIndex();
 			await RestoreNode(_restoredNodeIndex, coldChunkNumber);
 			_completedIterations++;
 		}
+	}
+
+	private async Task<MiniClusterNode<TLogFormat, TStreamId>> ReconnectToLeader()
+	{
+		var leader = GetLeader();
+		_conn?.Close();
+		_conn = EventStoreConnection.Create(
+			ConnectionSettings.Create().DisableServerCertificateValidation(),
+			leader.ExternalTcpEndPoint);
+		await _conn.ConnectAsync();
+		return leader;
+	}
+
+	private int GetVotingFollowerIndex()
+	{
+		AssertEx.IsOrBecomesTrue(
+			() => _nodes.Any(node =>
+				node.DebugIndex != ArchiverNodeIndex && node.NodeState == VNodeState.Follower),
+			GateTimeout,
+			$"A voting follower did not become ready. States={string.Join(", ", _nodes.Select(node => node.NodeState))}");
+
+		var followerIndex = Array.FindIndex(_nodes,
+			node => node.DebugIndex != ArchiverNodeIndex && node.NodeState == VNodeState.Follower);
+		Assert.That(followerIndex, Is.GreaterThanOrEqualTo(0));
+		return followerIndex;
 	}
 
 	private static async Task StartScavenge(MiniClusterNode<TLogFormat, TStreamId> leader)
 	{
 		var scavengeStarted = new TaskCompletionSource<Message>(TaskCreationOptions.RunContinuationsAsynchronously);
 		leader.Node.MainQueue.Publish(new ClientMessage.ScavengeDatabase(
-			new CallbackEnvelope(scavengeStarted.SetResult),
+			new CallbackEnvelope(message => scavengeStarted.TrySetResult(message)),
 			Guid.NewGuid(),
 			SystemAccounts.System,
 			startFromChunk: 0,
@@ -215,9 +239,17 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 	private async Task WaitForArchiveCheckpoint(long minimum)
 	{
 		using var timeout = new CancellationTokenSource(GateTimeout);
-		while (await _archiveReader.GetCheckpoint(timeout.Token) < minimum)
+		var checkpoint = 0L;
+		try
 		{
-			await Task.Delay(100, timeout.Token);
+			while ((checkpoint = await _archiveReader.GetCheckpoint(timeout.Token)) < minimum)
+			{
+				await Task.Delay(100, timeout.Token);
+			}
+		}
+		catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+		{
+			Assert.Fail($"The archive checkpoint stalled at {checkpoint}; expected at least {minimum}.");
 		}
 	}
 
@@ -231,7 +263,7 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 		}
 
 		var objects = await _s3Client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = _bucket });
-		foreach (var item in objects.S3Objects)
+		foreach (var item in objects.S3Objects ?? [])
 		{
 			await _s3Client.DeleteObjectAsync(_bucket, item.Key);
 		}

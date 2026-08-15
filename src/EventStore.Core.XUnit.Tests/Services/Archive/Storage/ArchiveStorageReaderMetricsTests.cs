@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage;
+using EventStore.Core.Services.Archive.Storage.Exceptions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Storage;
@@ -44,6 +45,38 @@ public class ArchiveStorageReaderMetricsTests
 
 		Assert.Equal(ArchiveOperation.ReadFull, Assert.Single(metrics.Failures));
 		Assert.False(Assert.Single(metrics.Reads).Succeeded);
+	}
+
+	[Fact]
+	public async Task an_empty_read_does_not_hide_a_later_stream_failure()
+	{
+		var metrics = new RecordingArchiveMetrics();
+		var sut = new ArchiveStorageReaderMetrics(new StubReader(emptyThenFails: true), metrics);
+		await using var stream = await sut.GetChunk("chunk", CancellationToken.None);
+
+		Assert.Equal(0, await stream.ReadAsync(Memory<byte>.Empty));
+		Assert.Empty(metrics.Reads);
+
+		await Assert.ThrowsAsync<IOException>(async () =>
+			await stream.ReadExactlyAsync(new byte[1], CancellationToken.None));
+		Assert.Equal(ArchiveOperation.ReadFull, Assert.Single(metrics.Failures));
+		Assert.False(Assert.Single(metrics.Reads).Succeeded);
+	}
+
+	[Theory]
+	[InlineData(ArchiveOperation.ReadFull)]
+	[InlineData(ArchiveOperation.ReadRange)]
+	public async Task missing_chunks_record_an_unsuccessful_read_without_a_storage_failure(ArchiveOperation operation)
+	{
+		var metrics = new RecordingArchiveMetrics();
+		var sut = new ArchiveStorageReaderMetrics(new StubReader(deleted: true), metrics);
+
+		await Assert.ThrowsAsync<ChunkDeletedException>(() => Invoke(sut, operation));
+
+		Assert.Empty(metrics.Failures);
+		var read = Assert.Single(metrics.Reads);
+		Assert.Equal(operation, read.Operation);
+		Assert.False(read.Succeeded);
 	}
 
 	[Theory]
@@ -149,7 +182,9 @@ public class ArchiveStorageReaderMetricsTests
 		bool streamFails = false,
 		bool cancel = false,
 		bool streamCancels = false,
-		bool disposeCancels = false) : IArchiveStorageReader
+		bool disposeCancels = false,
+		bool emptyThenFails = false,
+		bool deleted = false) : IArchiveStorageReader
 	{
 		public IArchiveChunkNamer ChunkNamer { get; } = new StubChunkNamer();
 
@@ -166,6 +201,8 @@ public class ArchiveStorageReaderMetricsTests
 		public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct) =>
 			cancel
 				? ValueTask.FromException<Stream>(new OperationCanceledException())
+				: deleted
+					? ValueTask.FromException<Stream>(new ChunkDeletedException())
 				: fail
 				? ValueTask.FromException<Stream>(new InvalidOperationException())
 				: ValueTask.FromResult<Stream>(
@@ -173,7 +210,9 @@ public class ArchiveStorageReaderMetricsTests
 						? new FailingReadStream()
 						: streamCancels
 							? new CanceledReadStream()
-							: disposeCancels ? new CanceledDisposeStream() : new MemoryStream([1]));
+							: disposeCancels
+								? new CanceledDisposeStream()
+								: emptyThenFails ? new EmptyThenFailingReadStream() : new MemoryStream([1]));
 
 		public async IAsyncEnumerable<string> ListChunks([EnumeratorCancellation] CancellationToken ct)
 		{
@@ -209,19 +248,14 @@ public class ArchiveStorageReaderMetricsTests
 		protected override void Dispose(bool disposing) => throw new OperationCanceledException();
 	}
 
-	private sealed class RecordingArchiveMetrics : IArchiveMetrics
+	private sealed class EmptyThenFailingReadStream : MemoryStream
 	{
-		public List<ArchiveOperation> Failures { get; } = [];
-		public List<(ArchiveOperation Operation, TimeSpan Duration, bool Succeeded)> Reads { get; } = [];
-
-		public void SetReplicationPosition(long position) { }
-		public void SetCheckpoint(long position) { }
-		public void SetUncommittedChunks(int count) { }
-		public void SetQueuedChunks(int count) { }
-		public void SetActiveChunks(int count) { }
-		public void RecordRetry(ArchiveOperation operation) { }
-		public void RecordFailure(ArchiveOperation operation) => Failures.Add(operation);
-		public void RecordRead(ArchiveOperation operation, TimeSpan duration, bool succeeded) =>
-			Reads.Add((operation, duration, succeeded));
+		public override ValueTask<int> ReadAsync(
+			Memory<byte> buffer,
+			CancellationToken cancellationToken = default) =>
+			buffer.IsEmpty
+				? ValueTask.FromResult(0)
+				: ValueTask.FromException<int>(new IOException("remote read failed"));
 	}
+
 }

@@ -31,7 +31,7 @@ internal sealed class ArchiveReadStream(
 		try
 		{
 			var read = inner.Read(buffer, offset, count);
-			RecordEndOfStream(read);
+			RecordEndOfStream(read, count);
 			return read;
 		}
 		catch (OperationCanceledException)
@@ -51,7 +51,7 @@ internal sealed class ArchiveReadStream(
 		try
 		{
 			var read = inner.Read(buffer);
-			RecordEndOfStream(read);
+			RecordEndOfStream(read, buffer.Length);
 			return read;
 		}
 		catch (OperationCanceledException)
@@ -71,7 +71,7 @@ internal sealed class ArchiveReadStream(
 		try
 		{
 			var read = await inner.ReadAsync(buffer, cancellationToken);
-			RecordEndOfStream(read);
+			RecordEndOfStream(read, buffer.Length);
 			return read;
 		}
 		catch (OperationCanceledException)
@@ -95,7 +95,7 @@ internal sealed class ArchiveReadStream(
 		try
 		{
 			var read = await inner.ReadAsync(buffer, offset, count, cancellationToken);
-			RecordEndOfStream(read);
+			RecordEndOfStream(read, count);
 			return read;
 		}
 		catch (OperationCanceledException)
@@ -190,9 +190,9 @@ internal sealed class ArchiveReadStream(
 		}
 	}
 
-	private void RecordEndOfStream(int bytesRead)
+	private void RecordEndOfStream(int bytesRead, int requestedBytes)
 	{
-		if (bytesRead == 0)
+		if (bytesRead == 0 && requestedBytes > 0)
 		{
 			RecordSuccess();
 		}

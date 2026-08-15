@@ -188,7 +188,10 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	public override async Task TestFixtureTearDown()
 	{
 		_conn?.Close();
-		await Task.WhenAll(_nodes.Select(x => x.Shutdown()));
+		if (_nodes is not null)
+		{
+			await Task.WhenAll(_nodes.Where(node => node is not null).Select(node => node.Shutdown()));
+		}
 
 		MiniNodeLogging.Clear();
 

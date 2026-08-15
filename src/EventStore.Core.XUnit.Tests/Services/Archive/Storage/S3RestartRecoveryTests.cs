@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Runtime;
@@ -71,10 +72,11 @@ public class S3RestartRecoveryTests
 		using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 		var stopwatch = Stopwatch.StartNew();
 
-		await Assert.ThrowsAnyAsync<Exception>(async () =>
+		await Assert.ThrowsAsync<HttpRequestException>(async () =>
 			await reader.GetCheckpoint(timeout.Token));
 
-		Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
+		Assert.False(timeout.IsCancellationRequested);
+		Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5),
 			$"Storage unavailability was not detected within the bounded interval: {stopwatch.Elapsed}");
 	}
 

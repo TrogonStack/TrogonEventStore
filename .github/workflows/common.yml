@@ -124,6 +124,12 @@ jobs:
   archive-storage-contract:
     runs-on: ubuntu-latest
     name: Archive Storage Contract
+    env:
+      EVENTSTORE_S3_TEST_ENDPOINT: http://localhost:9000
+      EVENTSTORE_S3_TEST_REGION: us-east-1
+      EVENTSTORE_S3_TEST_ACCESS_KEY: archive-contract
+      EVENTSTORE_S3_TEST_SECRET_KEY: archive-contract-secret-key
+      EVENTSTORE_S3_RECOVERY_BUCKET: archive-recovery-${{ github.run_id }}-${{ github.run_attempt }}
     services:
       rustfs:
         image: rustfs/rustfs:1.0.0-beta.11@sha256:84ce557a0245a06a9aae5516f55ee0f007fca78d41df356f419306fdc0cb168c
@@ -140,23 +146,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Install net10.0
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Set up .NET NuGet authentication
+        env:
+          NUGET_GITHUB_ACTOR: ${{ github.actor }}
+          NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
             --name "github" \
-            --username "${{ github.actor }}" \
-            --password "${{ secrets.GITHUB_TOKEN }}" \
+            --username "$NUGET_GITHUB_ACTOR" \
+            --password "$NUGET_GITHUB_TOKEN" \
             --store-password-in-clear-text
       - name: Run archive storage contract tests
-        env:
-          EVENTSTORE_S3_TEST_ENDPOINT: http://localhost:9000
-          EVENTSTORE_S3_TEST_REGION: us-east-1
-          EVENTSTORE_S3_TEST_ACCESS_KEY: archive-contract
-          EVENTSTORE_S3_TEST_SECRET_KEY: archive-contract-secret-key
         run: |
           dotnet test \
             --configuration Release \
@@ -170,11 +176,6 @@ jobs:
       - name: Seed archive restart recovery data
         id: seed_archive_recovery
         env:
-          EVENTSTORE_S3_TEST_ENDPOINT: http://localhost:9000
-          EVENTSTORE_S3_TEST_REGION: us-east-1
-          EVENTSTORE_S3_TEST_ACCESS_KEY: archive-contract
-          EVENTSTORE_S3_TEST_SECRET_KEY: archive-contract-secret-key
-          EVENTSTORE_S3_RECOVERY_BUCKET: archive-recovery-${{ github.run_id }}-${{ github.run_attempt }}
           EVENTSTORE_S3_RECOVERY_PHASE: seed
         run: |
           dotnet test \
@@ -187,17 +188,14 @@ jobs:
             src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
 
       - name: Stop RustFS without removing its data
+        env:
+          RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
         run: |
-          timeout 20 docker stop --timeout 10 "${{ job.services.rustfs.id }}"
-          test "$(docker inspect --format '{{.State.Status}}' "${{ job.services.rustfs.id }}")" = "exited"
+          timeout 20 docker stop --timeout 10 "$RUSTFS_CONTAINER_ID"
+          test "$(docker inspect --format '{{.State.Status}}' "$RUSTFS_CONTAINER_ID")" = "exited"
 
       - name: Assert archive storage is unavailable
         env:
-          EVENTSTORE_S3_TEST_ENDPOINT: http://localhost:9000
-          EVENTSTORE_S3_TEST_REGION: us-east-1
-          EVENTSTORE_S3_TEST_ACCESS_KEY: archive-contract
-          EVENTSTORE_S3_TEST_SECRET_KEY: archive-contract-secret-key
-          EVENTSTORE_S3_RECOVERY_BUCKET: archive-recovery-${{ github.run_id }}-${{ github.run_attempt }}
           EVENTSTORE_S3_RECOVERY_PHASE: unavailable
         run: |
           timeout 20 dotnet test \
@@ -212,14 +210,10 @@ jobs:
       - name: Restart RustFS and verify archive recovery
         if: ${{ always() && steps.seed_archive_recovery.outcome == 'success' }}
         env:
-          EVENTSTORE_S3_TEST_ENDPOINT: http://localhost:9000
-          EVENTSTORE_S3_TEST_REGION: us-east-1
-          EVENTSTORE_S3_TEST_ACCESS_KEY: archive-contract
-          EVENTSTORE_S3_TEST_SECRET_KEY: archive-contract-secret-key
-          EVENTSTORE_S3_RECOVERY_BUCKET: archive-recovery-${{ github.run_id }}-${{ github.run_attempt }}
           EVENTSTORE_S3_RECOVERY_PHASE: verify-cleanup
+          RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
         run: |
-          docker start "${{ job.services.rustfs.id }}"
+          docker start "$RUSTFS_CONTAINER_ID"
           timeout 30 bash -c -- 'until curl --output /dev/null --silent --fail http://localhost:9000/health; do sleep 1; done'
           dotnet test \
             --configuration Release \
@@ -231,11 +225,6 @@ jobs:
             src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
 
       - name: Run archive cluster restore gate
-        env:
-          EVENTSTORE_S3_TEST_ENDPOINT: http://localhost:9000
-          EVENTSTORE_S3_TEST_REGION: us-east-1
-          EVENTSTORE_S3_TEST_ACCESS_KEY: archive-contract
-          EVENTSTORE_S3_TEST_SECRET_KEY: archive-contract-secret-key
         run: |
           dotnet test \
             --configuration Release \

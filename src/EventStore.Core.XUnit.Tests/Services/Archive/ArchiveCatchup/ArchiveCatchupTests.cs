@@ -45,7 +45,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		Action onGetCheckpoint = null,
 		Func<string, Stream> getChunk = null,
 		TimeSpan? retryInterval = null,
-		int chunkSize = ChunkSize)
+		int chunkSize = ChunkSize,
+		Action<string> deleteTempFile = null)
 	{
 		dbCheckpoint ??= 0L;
 		archiveCheckpoint ??= 0L;
@@ -78,7 +79,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 			fileNamingStrategy: new CustomNamingStrategy(),
 			archiveStorageFactory: archive,
 			metrics: metrics,
-			retryInterval: retryInterval ?? TimeSpan.Zero
+			retryInterval: retryInterval ?? TimeSpan.Zero,
+			deleteTempFile: deleteTempFile
 		);
 
 		return new Sut
@@ -123,6 +125,7 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 			chunkSize: preallocationSize);
 		var receivedLength = sut.Archive.CreateChunkBytes(chunkFile).Length;
 		Assert.True(receivedLength < preallocationSize);
+		Assert.Equal(receivedLength, await sut.Archive.GetChunkLength(chunkFile, CancellationToken.None));
 
 		await sut.Catchup.Run();
 
@@ -263,13 +266,15 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 	public async Task records_checkpoint_failure_before_retrying()
 	{
 		using var cts = new CancellationTokenSource();
-		var sut = CreateSut(onGetCheckpoint: () =>
-		{
-			cts.Cancel();
-			throw new InvalidOperationException("checkpoint unavailable");
-		});
+		var sut = CreateSut(
+			retryInterval: TimeSpan.FromMinutes(1),
+			onGetCheckpoint: () =>
+			{
+				cts.Cancel();
+				throw new InvalidOperationException("checkpoint unavailable");
+			});
 
-		await Assert.ThrowsAsync<TaskCanceledException>(() => sut.Catchup.Run(cts.Token));
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sut.Catchup.Run(cts.Token));
 
 		Assert.Equal([ArchiveOperation.CatchUpCheckpoint], sut.Metrics.Failures);
 		Assert.Equal([ArchiveOperation.CatchUpCheckpoint], sut.Metrics.Retries);
@@ -347,6 +352,44 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 	}
 
 	[Fact]
+	public async Task cleans_up_before_backoff_and_ignores_cleanup_failures()
+	{
+		FakeArchiveStorage archive = null;
+		var returnCorruptChunk = true;
+		var cleanupAttempted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		using var cancellation = new CancellationTokenSource();
+		var sut = CreateSut(
+			archiveCheckpoint: ChunkSize,
+			retryInterval: TimeSpan.FromMinutes(1),
+			getChunk: chunkFile =>
+			{
+				var bytes = archive.CreateChunkBytes(chunkFile);
+				if (returnCorruptChunk)
+				{
+					bytes[ChunkHeader.Size] ^= byte.MaxValue;
+				}
+				return new MemoryStream(bytes);
+			},
+			deleteTempFile: _ =>
+			{
+				cleanupAttempted.TrySetResult();
+				throw new IOException("cleanup failed");
+			});
+		archive = sut.Archive;
+
+		var firstRun = sut.Catchup.Run(cancellation.Token);
+		await cleanupAttempted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		cancellation.Cancel();
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => firstRun);
+		Assert.Equal(0, sut.WriterCheckpoint.Read());
+
+		returnCorruptChunk = false;
+		await sut.Catchup.Run();
+
+		Assert.Equal(ChunkSize, sut.WriterCheckpoint.Read());
+	}
+
+	[Fact]
 	public async Task backs_off_when_a_listed_chunk_remains_missing()
 	{
 		var attempts = 0;
@@ -418,19 +461,4 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 			.Select(Path.GetFileName)
 			.Order();
 	}
-}
-
-internal sealed class RecordingArchiveMetrics : IArchiveMetrics
-{
-	public List<ArchiveOperation> Failures { get; } = [];
-	public List<ArchiveOperation> Retries { get; } = [];
-
-	public void SetReplicationPosition(long position) { }
-	public void SetCheckpoint(long position) { }
-	public void SetUncommittedChunks(int count) { }
-	public void SetQueuedChunks(int count) { }
-	public void SetActiveChunks(int count) { }
-	public void RecordRetry(ArchiveOperation operation) => Retries.Add(operation);
-	public void RecordFailure(ArchiveOperation operation) => Failures.Add(operation);
-	public void RecordRead(ArchiveOperation operation, TimeSpan duration, bool succeeded) { }
 }

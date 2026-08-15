@@ -81,7 +81,7 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 			new()
 			{
 				StorageType = storageType,
-				S3 = CreateS3Options(),
+				S3 = storageType == StorageType.S3 ? CreateS3Options() : new(),
 			},
 			chunkNamer,
 			archiveMetrics);

@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Services.Archive.Naming;
+using EventStore.Core.Services.Archive.Storage.Exceptions;
 
 namespace EventStore.Core.Services.Archive.Storage;
 
@@ -34,6 +35,11 @@ public sealed class ArchiveStorageReaderMetrics(
 		{
 			throw;
 		}
+		catch (ChunkDeletedException)
+		{
+			RecordUnsuccessfulRead(ArchiveOperation.ReadRange, started);
+			throw;
+		}
 		catch
 		{
 			RecordFailedRead(ArchiveOperation.ReadRange, started);
@@ -51,6 +57,11 @@ public sealed class ArchiveStorageReaderMetrics(
 		}
 		catch (OperationCanceledException)
 		{
+			throw;
+		}
+		catch (ChunkDeletedException)
+		{
+			RecordUnsuccessfulRead(ArchiveOperation.ReadFull, started);
 			throw;
 		}
 		catch
@@ -92,6 +103,11 @@ public sealed class ArchiveStorageReaderMetrics(
 	private void RecordFailedRead(ArchiveOperation operation, long started)
 	{
 		metrics.RecordFailure(operation);
+		RecordUnsuccessfulRead(operation, started);
+	}
+
+	private void RecordUnsuccessfulRead(ArchiveOperation operation, long started)
+	{
 		metrics.RecordRead(operation, Stopwatch.GetElapsedTime(started), succeeded: false);
 	}
 }

@@ -36,6 +36,7 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 	private readonly IArchiveMetrics _metrics;
 	private readonly Func<TransformType, IChunkTransformFactory> _getTransformFactory;
 	private readonly TimeSpan _retryInterval;
+	private readonly Action<string> _deleteTempFile;
 
 	private static readonly ILogger Log = Serilog.Log.ForContext<ArchiveCatchup>();
 	private static readonly TimeSpan DefaultRetryInterval = TimeSpan.FromMinutes(1);
@@ -50,7 +51,8 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		IArchiveStorageFactory archiveStorageFactory,
 		IArchiveMetrics metrics = null,
 		Func<TransformType, IChunkTransformFactory> getTransformFactory = null,
-		TimeSpan? retryInterval = null)
+		TimeSpan? retryInterval = null,
+		Action<string> deleteTempFile = null)
 	{
 		_dbPath = dbPath;
 		_writerCheckpoint = writerCheckpoint;
@@ -62,6 +64,7 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		_metrics = metrics ?? IArchiveMetrics.NoOp;
 		_getTransformFactory = getTransformFactory ?? DbTransformManager.Default.GetFactoryForExistingChunk;
 		_retryInterval = retryInterval ?? DefaultRetryInterval;
+		_deleteTempFile = deleteTempFile ?? File.Delete;
 	}
 
 	public async Task Run(CancellationToken ct = default)
@@ -246,6 +249,7 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		}
 		catch (ChunkDeletedException)
 		{
+			DeleteTempFile(ref tempPath);
 			_metrics.RecordFailure(ArchiveOperation.CatchUpChunk);
 			_metrics.RecordRetry(ArchiveOperation.CatchUpChunk);
 			Log.Warning(
@@ -260,6 +264,7 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		}
 		catch (Exception ex)
 		{
+			DeleteTempFile(ref tempPath);
 			_metrics.RecordFailure(ArchiveOperation.CatchUpChunk);
 			_metrics.RecordRetry(ArchiveOperation.CatchUpChunk);
 			Log.Error(ex, "Failed to fetch {chunk} from the archive. Retrying in {interval}", chunkFile, _retryInterval);
@@ -268,10 +273,26 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		}
 		finally
 		{
-			if (tempPath is not null)
-			{
-				File.Delete(tempPath);
-			}
+			DeleteTempFile(ref tempPath);
+		}
+	}
+
+	private void DeleteTempFile(ref string tempPath)
+	{
+		var path = tempPath;
+		tempPath = null;
+		if (path is null)
+		{
+			return;
+		}
+
+		try
+		{
+			_deleteTempFile(path);
+		}
+		catch (Exception ex)
+		{
+			Log.Warning(ex, "Failed to delete temporary archive file {tempFile}", Path.GetFileName(path));
 		}
 	}
 

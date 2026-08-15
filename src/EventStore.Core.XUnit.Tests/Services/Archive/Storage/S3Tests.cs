@@ -65,11 +65,8 @@ public class S3MetricsTests : ArchiveStorageTestsBase<S3MetricsTests>
 		Assert.Contains(durations, measurement => HasTags(measurement, "read-range", "success"));
 		Assert.Contains(durations, measurement => HasTags(measurement, "read-full", "error"));
 
-		var failure = Assert.Single(failureListener.RetrieveMeasurements(
+		Assert.Empty(failureListener.RetrieveMeasurements(
 			MetricDefinitions.TrogonEventstoreArchiveFailureCount.Name));
-		Assert.Equal(1, failure.Value);
-		Assert.Contains(failure.Tags, tag =>
-			tag.Key == TrogonAttributeNames.ActivityName && (string)tag.Value == "read-full");
 	}
 
 	private static bool HasTags(
