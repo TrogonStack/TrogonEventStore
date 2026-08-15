@@ -323,6 +323,8 @@ If multiple matching root certificates are found, then the root certificate with
 
 Use your platform certificate tooling, public CA, or private CA process to create certificates that match your deployment. The built-in development mode can generate a certificate for one secure node on localhost, but it is not a cluster PKI bootstrap mechanism.
 
+The repository Docker Compose configuration uses a small OpenSSL-based bootstrap helper for disposable local clusters. It creates a private CA for the persisted local certificate set, but does not retain the CA private key in the directory mounted into the nodes. It is not a production PKI.
+
 For a multi-node deployment, provision:
 
 - A trusted CA certificate available to every node and client.
@@ -336,6 +338,23 @@ Authentication (`1.3.6.1.5.5.7.3.2`). Certificates without an Extended Key Usage
 compatibility.
 
 Keep CA private keys outside the node and client environments. Install only the CA certificate, node certificate, and node private key required by each machine.
+
+#### Production certificate management
+
+TrogonEventStore does not integrate directly with a certificate authority or secret store. It loads the node certificate, private key, intermediate chain, and trusted roots from the configured files. Use the certificate lifecycle system already operated by your platform to issue and deliver those files.
+
+For Kubernetes, issue a separate certificate for every StatefulSet pod or stable node identity. Use [cert-manager](https://cert-manager.io/) with an approved issuer, or a Secrets Store CSI provider, and mount the certificate, private key, and trusted roots as read-only volumes. Do not mount certificate files using `subPath`, because Kubernetes does not propagate Secret updates to those mounts. Limit access to the TrogonEventStore service account.
+
+Common provider patterns include:
+
+- **Vault PKI:** use a constrained Vault PKI role through cert-manager's Vault issuer or an authenticated Vault Agent. Permit only the DNS names, IP addresses, usages, and lifetimes required by the cluster.
+- **AWS:** use [AWS Private CA Connector for Kubernetes](https://docs.aws.amazon.com/privateca/latest/userguide/PcaKubernetes.html) with cert-manager. Request both Server Authentication and Client Authentication usages for node certificates.
+- **Azure:** use [Azure Key Vault with the Secrets Store CSI driver](https://learn.microsoft.com/azure/aks/csi-secrets-store-driver). Retrieve a certificate as a secret when the node needs its private key; Key Vault key or certificate objects alone do not provide the complete private-key material to the file-based loader.
+- **Google Cloud:** issue node certificates from Certificate Authority Service and deliver the PEM files through a Kubernetes Secret or [Secret Manager CSI](https://cloud.google.com/secret-manager/docs/secret-manager-managed-csi-component).
+
+Managed load-balancer certificates do not replace node-to-node certificate authentication. The current file-based loader also cannot use a non-exportable private key held only by an HSM or cloud key service.
+
+Certificate renewal updates the mounted files but does not by itself activate them in the running process. After the files change, reload each node using `Operations.ReloadConfig`, the Admin UI, or `SIGHUP` on Linux. If the platform cannot invoke reload safely, restart nodes one at a time. See [Certificate update upon expiry](operations.md#certificate-update-upon-expiry).
 
 ::: warning
 Keep certificate private keys readable only by the account running TrogonEventStore. Restrictive permissions

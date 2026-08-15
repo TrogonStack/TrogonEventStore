@@ -507,6 +507,10 @@ As of version 23.10.0, it is possible to do a rolling update with new certificat
 
 The next step is to replace the outdated certificates with the newly generated certificates.
 
+Replace each node certificate and its private key as one versioned unit. Do not expose a new certificate with an old key, or a new key with an old certificate. Kubernetes Secret and CSI projections can take time to update, so confirm that all mounted files contain the expected version before reloading the node. Certificate files mounted with `subPath` do not receive Secret updates.
+
+When rotating the CA, establish overlapping trust before changing node certificates. Add both the old and new trusted roots to every node and client. Reload or restart every process, or verify that a client dynamically reloads its trust bundle, before issuing or activating any node certificate from the new CA. Then issue and activate node certificates from the new CA one node at a time. Remove the old root only after all node and client traffic has been verified against the new chain.
+
 If you are using symlinks, then you can update the symlink to point it to the new certificates.
 
 #### Linux OS
@@ -530,6 +534,8 @@ In the above example we have the links in a folder at path `/home/ubuntu/links`.
 You can reload the certificate configuration without restarting the node by calling the gRPC
 `Operations.ReloadConfig` method with the credentials of an `admin` or `ops` user. You can also
 reload the configuration from the _Operations_ page of the Admin UI.
+
+Automated certificate renewal is not complete until the running node loads the new files. If your certificate controller cannot call `Operations.ReloadConfig` safely, perform a rolling restart one node at a time. Verify successful certificate-loading logs, readiness, and cluster membership before continuing to the next node.
 
 #### Linux OS
 

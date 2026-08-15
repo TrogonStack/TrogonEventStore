@@ -67,7 +67,9 @@ container.
 
 Before running a durable node or cluster:
 
-- Provide node certificates explicitly.
+- Choose an approved PKI or issuer and follow the [production certificate management](security.md#production-certificate-management) guidance.
+- Issue a separate node certificate with the required SAN, common-name, and key-usage policy for each node.
+- Mount node certificates, private keys, and trusted roots read-only, and automate renewal plus explicit reload or rolling restart.
 - Decide whether clients use TLS and configure the connection strings
   accordingly.
 - Configure authentication methods in [Security](security.md).
