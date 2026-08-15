@@ -415,7 +415,7 @@ public partial record ClusterVNodeOptions
 					 "or accept writes from clients.")]
 		public bool ReadOnlyReplica { get; init; } = false;
 
-		[Description("Sets this node as an Archiver node. Requires ReadOnlyReplica to be true. Experimental.")]
+		[Description("Sets this node as an Archiver node. Requires ReadOnlyReplica to be true.")]
 		public bool Archiver { get; init; } = false;
 
 		[Description("Allow more nodes than the cluster size to join the cluster as clones. " +

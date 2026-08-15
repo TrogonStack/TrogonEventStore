@@ -3,6 +3,9 @@
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(RunS3Tests)' == 'true'">
+		<DefineConstants>$(DefineConstants);RUN_S3_TESTS</DefineConstants>
+	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="GitHubActionsTestLogger" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />

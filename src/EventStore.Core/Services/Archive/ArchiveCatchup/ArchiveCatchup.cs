@@ -7,7 +7,10 @@ using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.Services.Archive.Storage.Exceptions;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
+using EventStore.Core.Transforms;
+using EventStore.Plugins.Transforms;
 using Serilog;
 
 namespace EventStore.Core.Services.Archive.ArchiveCatchup;
@@ -30,9 +33,12 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 	private readonly int _chunkSize;
 	private readonly IVersionedFileNamingStrategy _fileNamingStrategy;
 	private readonly IArchiveStorageReader _archiveReader;
+	private readonly IArchiveMetrics _metrics;
+	private readonly Func<TransformType, IChunkTransformFactory> _getTransformFactory;
+	private readonly TimeSpan _retryInterval;
 
 	private static readonly ILogger Log = Serilog.Log.ForContext<ArchiveCatchup>();
-	private static readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(1);
+	private static readonly TimeSpan DefaultRetryInterval = TimeSpan.FromMinutes(1);
 
 	public ArchiveCatchup(
 		string dbPath,
@@ -41,7 +47,10 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		ICheckpoint epochCheckpoint,
 		int chunkSize,
 		IVersionedFileNamingStrategy fileNamingStrategy,
-		IArchiveStorageFactory archiveStorageFactory)
+		IArchiveStorageFactory archiveStorageFactory,
+		IArchiveMetrics metrics = null,
+		Func<TransformType, IChunkTransformFactory> getTransformFactory = null,
+		TimeSpan? retryInterval = null)
 	{
 		_dbPath = dbPath;
 		_writerCheckpoint = writerCheckpoint;
@@ -50,6 +59,9 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		_chunkSize = chunkSize;
 		_fileNamingStrategy = fileNamingStrategy;
 		_archiveReader = archiveStorageFactory.CreateReader();
+		_metrics = metrics ?? IArchiveMetrics.NoOp;
+		_getTransformFactory = getTransformFactory ?? DbTransformManager.Default.GetFactoryForExistingChunk;
+		_retryInterval = retryInterval ?? DefaultRetryInterval;
 	}
 
 	public async Task Run(CancellationToken ct = default)
@@ -156,8 +168,10 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 			}
 			catch (Exception ex)
 			{
-				Log.Error(ex, "Failed to get archive checkpoint. Retrying in: {interval}", RetryInterval);
-				await Task.Delay(RetryInterval, ct);
+				_metrics.RecordFailure(ArchiveOperation.CatchUpCheckpoint);
+				_metrics.RecordRetry(ArchiveOperation.CatchUpCheckpoint);
+				Log.Error(ex, "Failed to get archive checkpoint. Retrying in: {interval}", _retryInterval);
+				await Task.Delay(_retryInterval, ct);
 			}
 		} while (true);
 	}
@@ -183,11 +197,12 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 
 	private async Task<bool> FetchChunk(string chunkFile, string destinationPath, CancellationToken ct)
 	{
+		string tempPath = null;
 		try
 		{
 			Log.Information("Fetching {chunk} from the archive", chunkFile);
 
-			var tempPath = Path.Combine(_dbPath, Guid.NewGuid() + ".archive.tmp");
+			tempPath = Path.Combine(_dbPath, Guid.NewGuid() + ".archive.tmp");
 
 			await using (var inputStream = await _archiveReader.GetChunk(chunkFile, ct))
 			{
@@ -203,7 +218,18 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 					});
 
 				await inputStream.CopyToAsync(outputStream, ct);
+				outputStream.SetLength(outputStream.Position);
 			}
+
+			using (await TFChunk.FromCompletedFile(
+				new ChunkLocalFileSystem(_fileNamingStrategy),
+				tempPath,
+				verifyHash: true,
+				unbufferedRead: false,
+				tracker: new TFChunkTracker.NoOp(),
+				getTransformFactory: _getTransformFactory,
+				token: ct))
+			{ }
 
 			if (File.Exists(destinationPath))
 			{
@@ -214,14 +240,18 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 			}
 
 			File.Move(tempPath, destinationPath);
+			tempPath = null;
 
 			return true;
 		}
 		catch (ChunkDeletedException)
 		{
+			_metrics.RecordFailure(ArchiveOperation.CatchUpChunk);
+			_metrics.RecordRetry(ArchiveOperation.CatchUpChunk);
 			Log.Warning(
-				"Failed to fetch {chunk} from the archive as it was deleted. This can happen if the archive is being scavenged.",
-				chunkFile);
+				"Failed to fetch {chunk} from the archive as it was deleted. This can happen if the archive is being scavenged. Retrying in {interval}.",
+				chunkFile, _retryInterval);
+			await Task.Delay(_retryInterval, ct);
 			return false;
 		}
 		catch (OperationCanceledException)
@@ -230,9 +260,18 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		}
 		catch (Exception ex)
 		{
-			Log.Error(ex, "Failed to fetch {chunk} from the archive. Retrying in {interval}", chunkFile, RetryInterval);
-			await Task.Delay(RetryInterval, ct);
+			_metrics.RecordFailure(ArchiveOperation.CatchUpChunk);
+			_metrics.RecordRetry(ArchiveOperation.CatchUpChunk);
+			Log.Error(ex, "Failed to fetch {chunk} from the archive. Retrying in {interval}", chunkFile, _retryInterval);
+			await Task.Delay(_retryInterval, ct);
 			return false;
+		}
+		finally
+		{
+			if (tempPath is not null)
+			{
+				File.Delete(tempPath);
+			}
 		}
 	}
 

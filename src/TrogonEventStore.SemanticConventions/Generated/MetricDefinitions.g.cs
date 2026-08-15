@@ -7,6 +7,31 @@ namespace TrogonEventStore.SemanticConventions
 {
 	public static class MetricDefinitions
 	{
+		public static MetricDefinition TrogonEventstoreArchiveCheckpointLag { get; } = new MetricDefinition(
+			"trogon.eventstore.archive.checkpoint.lag",
+			"By",
+			"Replicated transaction log bytes not yet covered by the archive checkpoint.",
+			MetricInstrumentKind.Gauge);
+		public static MetricDefinition TrogonEventstoreArchiveChunkPendingCount { get; } = new MetricDefinition(
+			"trogon.eventstore.archive.chunk.pending.count",
+			"{chunk}",
+			"Number of archive chunks waiting for or undergoing persistence.",
+			MetricInstrumentKind.UpDownCounter);
+		public static MetricDefinition TrogonEventstoreArchiveFailureCount { get; } = new MetricDefinition(
+			"trogon.eventstore.archive.failure.count",
+			"{failure}",
+			"Number of failed archive operations.",
+			MetricInstrumentKind.Counter);
+		public static MetricDefinition TrogonEventstoreArchiveReadDuration { get; } = new MetricDefinition(
+			"trogon.eventstore.archive.read.duration",
+			"s",
+			"Duration of remote archive read requests.",
+			MetricInstrumentKind.Histogram);
+		public static MetricDefinition TrogonEventstoreArchiveRetryCount { get; } = new MetricDefinition(
+			"trogon.eventstore.archive.retry.count",
+			"{retry}",
+			"Number of retries initiated by archive operations.",
+			MetricInstrumentKind.Counter);
 		public static MetricDefinition TrogonEventstoreCacheOperationCount { get; } = new MetricDefinition(
 			"trogon.eventstore.cache.operation.count",
 			"{operation}",
@@ -220,6 +245,11 @@ namespace TrogonEventStore.SemanticConventions
 
 		public static IReadOnlyList<MetricDefinition> All { get; } = Array.AsReadOnly(new[]
 		{
+			TrogonEventstoreArchiveCheckpointLag,
+			TrogonEventstoreArchiveChunkPendingCount,
+			TrogonEventstoreArchiveFailureCount,
+			TrogonEventstoreArchiveReadDuration,
+			TrogonEventstoreArchiveRetryCount,
 			TrogonEventstoreCacheOperationCount,
 			TrogonEventstoreCacheResourceCount,
 			TrogonEventstoreCacheResourceSize,

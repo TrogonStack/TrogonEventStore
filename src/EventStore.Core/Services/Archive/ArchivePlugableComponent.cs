@@ -5,6 +5,7 @@ using EventStore.Core.Services.Archive.Archiver.Unmerger;
 using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
+using EventStore.Core.Transforms;
 using EventStore.Plugins;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -69,6 +70,7 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
 		}
 
 		var standardComponents = serviceProvider.GetRequiredService<StandardComponents>();
+		var transformManager = serviceProvider.GetRequiredService<DbTransformManager>();
 		newStartupTasks.Add(new ArchiveCatchup.ArchiveCatchup(
 			dbPath: standardComponents.DbConfig.Path,
 			writerCheckpoint: standardComponents.DbConfig.WriterCheckpoint,
@@ -76,7 +78,9 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
 			epochCheckpoint: standardComponents.DbConfig.EpochCheckpoint,
 			chunkSize: standardComponents.DbConfig.ChunkSize,
 			serviceProvider.GetRequiredService<IVersionedFileNamingStrategy>(),
-			serviceProvider.GetRequiredService<IArchiveStorageFactory>()));
+			serviceProvider.GetRequiredService<IArchiveStorageFactory>(),
+			serviceProvider.GetRequiredService<IArchiveMetrics>(),
+			transformManager.GetFactoryForExistingChunk));
 
 		return newStartupTasks;
 	}

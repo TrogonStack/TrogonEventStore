@@ -138,9 +138,10 @@ Reads for chunks no longer stored locally issue object-storage requests. Their l
 on the S3 service and network. When read concurrency is limited, slower archive reads may cause other reads to
 wait.
 
-There are currently no dedicated archive queue-depth or archive-checkpoint metrics. The
-`eventstore-logical-chunk-read-distribution` metric measures how far reads are from the log tail when event-read
-metrics are enabled.
+Monitor `trogon.eventstore.archive.checkpoint.lag` and
+`trogon.eventstore.archive.chunk.pending.count` to detect an archiver falling behind. Retry and failure counters
+identify storage or recovery problems by operation, while `trogon.eventstore.archive.read.duration` reports the
+latency and outcome of remote reads. See [Metrics](diagnostics/metrics.md#archive) for the complete definitions.
 
 Archive storage supplements backups; it does not replace them. Only completed, committed chunks through the
 archive checkpoint are uploaded. Keep normal database and index backups. During startup, an archive-enabled

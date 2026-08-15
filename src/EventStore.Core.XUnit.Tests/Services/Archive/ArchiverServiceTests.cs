@@ -8,6 +8,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
+using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Archiver;
 using EventStore.Core.Services.Archive.Archiver.Unmerger;
 using EventStore.Core.Services.Archive.Naming;
@@ -25,15 +26,36 @@ public class ArchiverServiceTests
 		TimeSpan? chunkStorageDelay = null,
 		TimeSpan? checkpointStorageDelay = null,
 		string[] existingChunks = null,
-		long? existingCheckpoint = null)
+		long? existingCheckpoint = null,
+		IArchiveMetrics metrics = null)
 	{
 		var archive = new FakeArchiveStorage(
 			chunkStorageDelay ?? TimeSpan.Zero,
 			checkpointStorageDelay ?? TimeSpan.Zero,
 			existingChunks ?? Array.Empty<string>(),
 			existingCheckpoint ?? 0L);
-		var service = new ArchiverService(new FakeSubscriber(), archive, new FakeUnmerger(), new FakeArchiveChunkNamer());
+		var service = new ArchiverService(
+			new FakeSubscriber(), archive, new FakeUnmerger(), new FakeArchiveChunkNamer(), metrics);
 		return (service, archive);
+	}
+
+	[Fact]
+	public async Task reports_archive_backlog_and_checkpoint_lag_inputs()
+	{
+		var metrics = new ArchiverRecordingMetrics();
+		var (sut, archive) = CreateSut(metrics: metrics);
+		var chunkInfo = GetChunkInfo(0, 0);
+
+		sut.Handle(new SystemMessage.ChunkCompleted(chunkInfo));
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
+
+		await WaitFor(archive, numStores: 1, numCheckpoints: 1);
+
+		Assert.Equal(chunkInfo.ChunkEndPosition, metrics.ReplicationPosition);
+		Assert.Equal(chunkInfo.ChunkEndPosition, metrics.Checkpoint);
+		Assert.Equal(1, metrics.MaxUncommittedChunks);
+		Assert.Equal(1, metrics.MaxQueuedChunks);
+		Assert.Equal(1, metrics.MaxActiveChunks);
 	}
 
 	private static ChunkInfo GetChunkInfo(int chunkStartNumber, int chunkEndNumber, bool complete = true, bool remote = false)
@@ -490,5 +512,44 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	public IAsyncEnumerable<string> ListChunks(CancellationToken ct)
 	{
 		return _existingChunks.ToAsyncEnumerable();
+	}
+}
+
+internal sealed class ArchiverRecordingMetrics : IArchiveMetrics
+{
+	private long _replicationPosition;
+	private long _checkpoint;
+	private int _maxUncommittedChunks;
+	private int _maxQueuedChunks;
+	private int _maxActiveChunks;
+
+	public long ReplicationPosition => Interlocked.Read(ref _replicationPosition);
+	public long Checkpoint => Interlocked.Read(ref _checkpoint);
+	public int MaxUncommittedChunks => Volatile.Read(ref _maxUncommittedChunks);
+	public int MaxQueuedChunks => Volatile.Read(ref _maxQueuedChunks);
+	public int MaxActiveChunks => Volatile.Read(ref _maxActiveChunks);
+
+	public void SetReplicationPosition(long position) => Interlocked.Exchange(ref _replicationPosition, position);
+	public void SetCheckpoint(long position) => Interlocked.Exchange(ref _checkpoint, position);
+	public void SetUncommittedChunks(int count) => UpdateMax(ref _maxUncommittedChunks, count);
+	public void SetQueuedChunks(int count) => UpdateMax(ref _maxQueuedChunks, count);
+	public void SetActiveChunks(int count) => UpdateMax(ref _maxActiveChunks, count);
+	public void RecordRetry(ArchiveOperation operation) { }
+	public void RecordFailure(ArchiveOperation operation) { }
+	public void RecordRead(ArchiveOperation operation, TimeSpan duration, bool succeeded) { }
+
+	private static void UpdateMax(ref int target, int value)
+	{
+		var current = Volatile.Read(ref target);
+		while (value > current)
+		{
+			var observed = Interlocked.CompareExchange(ref target, value, current);
+			if (observed == current)
+			{
+				return;
+			}
+
+			current = observed;
+		}
 	}
 }
