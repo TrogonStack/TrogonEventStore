@@ -1,0 +1,21 @@
+#!/bin/sh
+#MISE description="Write the C# quality comparison refs to GITHUB_OUTPUT"
+
+set -eu
+
+: "${GITHUB_OUTPUT:?GITHUB_OUTPUT is required}"
+: "${EVENT_NAME:?EVENT_NAME is required}"
+
+if [ "$EVENT_NAME" = pull_request ]; then
+	: "${BASE_SHA:?BASE_SHA is required for pull requests}"
+	: "${HEAD_SHA:?HEAD_SHA is required for pull requests}"
+	base=$BASE_SHA
+	head=$HEAD_SHA
+else
+	: "${BEFORE_SHA:?BEFORE_SHA is required for push events}"
+	: "${CURRENT_SHA:?CURRENT_SHA is required for push events}"
+	base=$BEFORE_SHA
+	head=$CURRENT_SHA
+fi
+
+printf 'base=%s\nhead=%s\n' "$base" "$head" >>"$GITHUB_OUTPUT"

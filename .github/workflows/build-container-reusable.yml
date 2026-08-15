@@ -37,7 +37,13 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-        if: ${{ inputs.mode != 'test-only' }}
+      - name: Install task runner
+        id: mise
+        uses: jdx/mise-action@v4.2.3
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
       - name: Install net10.0
         uses: actions/setup-dotnet@v6
         with:
@@ -75,8 +81,7 @@ jobs:
             nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
       - name: Verify Build
         if: ${{ inputs.mode != 'test-only' }}
-        run: |
-          docker run --rm eventstore --insecure --what-if
+        run: mise run --skip-tools github-actions:container -- verify
       - name: Build Test Container
         uses: docker/build-push-action@v7
         if: ${{ inputs.mode != 'test-only' }}
@@ -94,12 +99,10 @@ jobs:
             nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
       - name: Export Test Container
         if: ${{ inputs.mode == 'build-only' }}
-        run: |
-          docker save eventstore-test -o eventstore-test.tar
+        run: mise run --skip-tools github-actions:container -- export-test
       - name: Export Container
         if: ${{ inputs.mode == 'build-only' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
-        run: |
-          docker save eventstore -o eventstore.tar
+        run: mise run --skip-tools github-actions:container -- export-runtime
       - name: Publish Test Container
         uses: actions/upload-artifact@v7
         if: ${{ inputs.mode == 'build-only' }}
@@ -123,23 +126,15 @@ jobs:
           name: ${{ inputs.test-image-artifact-name }}
       - name: Load Test Container
         if: ${{ inputs.mode == 'test-only' }}
-        run: |
-          docker load -i eventstore-test.tar
+        run: mise run --skip-tools github-actions:container -- load-test
       - name: Run Tests
         if: ${{ inputs.mode != 'build-only' }}
-        run: |
-          docker run \
-          --env TEST_GROUP="${{ inputs.test-group-name }}" \
-          --volume "$(pwd)/test-results:/build/test-results" \
-          --rm \
-          eventstore-test
+        env:
+          TEST_GROUP: ${{ inputs.test-group-name }}
+        run: mise run --skip-tools github-actions:container -- test
       - name: Normalize Test Result Permissions
-        if: failure()
-        run: |
-          if [ -d test-results ]; then
-            sudo chown -R "$(id -u):$(id -g)" test-results
-            sudo chmod -R u+rwX,go+rX test-results
-          fi
+        if: ${{ failure() && steps.mise.outcome == 'success' }}
+        run: mise run --skip-tools github-actions:container -- normalize-results
       - name: Publish Test Results
         uses: actions/upload-artifact@v7
         if: failure()

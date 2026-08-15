@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+#MISE description="Run a reusable dotnet build workflow phase"
+
+set -euo pipefail
+
+root=$(cd -- "$(dirname -- "$0")/../../../.." && pwd)
+phase=${1:?dotnet build phase is required}
+
+case "$phase" in
+collect-results)
+	if [[ -d "$root/test-results" ]]; then
+		find "$root/test-results" -name "*.html" -exec cat {} + >"$root/test-results.html"
+	else
+		: >"$root/test-results.html"
+	fi
+	exit 0
+	;;
+compile | verify | test) ;;
+*)
+	echo "Unsupported dotnet build phase: $phase" >&2
+	exit 2
+	;;
+esac
+
+: "${TARGET_ARCH:?TARGET_ARCH is required}"
+: "${BUILD_CONFIGURATION:?BUILD_CONFIGURATION is required}"
+
+protobuf_tools_args=()
+if [[ "$TARGET_ARCH" == arm64 ]]; then
+	protobuf_tools_args=(-p:Protobuf_ProtocFullPath="$(command -v protoc)")
+fi
+
+cd "$root"
+
+case "$phase" in
+compile)
+	dotnet build \
+		--configuration "$BUILD_CONFIGURATION" \
+		-p:Platform="$TARGET_ARCH" \
+		"${protobuf_tools_args[@]}" \
+		src/EventStore.sln
+	;;
+verify)
+	dotnet run \
+		--project src/EventStore.ClusterNode \
+		--configuration "$BUILD_CONFIGURATION" \
+		-p:Platform="$TARGET_ARCH" \
+		"${protobuf_tools_args[@]}" \
+		-- --insecure --what-if
+	;;
+test)
+	while IFS= read -r -d '' test_project; do
+		timeout --signal=TERM --kill-after=30s 30m \
+			dotnet test \
+			--configuration "$BUILD_CONFIGURATION" \
+			-p:Platform="$TARGET_ARCH" \
+			"${protobuf_tools_args[@]}" \
+			-p:ContinuousIntegrationBuild=true \
+			--blame \
+			--settings ./ci/ci.runsettings \
+			--logger:GitHubActions \
+			--logger:html \
+			--logger:trx \
+			--logger:"console;verbosity=normal" \
+			--results-directory="$(pwd)/test-results/$test_project" \
+			"$test_project"
+	done < <(find ./src -maxdepth 1 -type d -name "*.Tests" -print0)
+	;;
+esac

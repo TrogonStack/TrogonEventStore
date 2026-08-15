@@ -1,0 +1,13 @@
+#!/bin/sh
+#MISE description="Authenticate dotnet against GitHub Packages"
+
+set -eu
+
+: "${NUGET_GITHUB_ACTOR:?NUGET_GITHUB_ACTOR is required}"
+: "${NUGET_GITHUB_TOKEN:?NUGET_GITHUB_TOKEN is required}"
+
+dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
+	--name github \
+	--username "$NUGET_GITHUB_ACTOR" \
+	--password "$NUGET_GITHUB_TOKEN" \
+	--store-password-in-clear-text

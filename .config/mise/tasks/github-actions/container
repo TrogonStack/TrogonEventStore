@@ -1,0 +1,45 @@
+#!/bin/sh
+#MISE description="Run a reusable container workflow phase"
+
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../../../.." && pwd)
+phase=${1:?container phase is required}
+
+cd "$root"
+
+case "$phase" in
+verify)
+	docker run --rm eventstore --insecure --what-if
+	;;
+export-test)
+	docker save eventstore-test -o eventstore-test.tar
+	;;
+export-runtime)
+	docker save eventstore -o eventstore.tar
+	;;
+load-test)
+	docker load -i eventstore-test.tar
+	;;
+load-runtime)
+	docker load --input eventstore.tar
+	;;
+test)
+	: "${TEST_GROUP:?TEST_GROUP is required}"
+	docker run \
+		--env TEST_GROUP="$TEST_GROUP" \
+		--volume "$root/test-results:/build/test-results" \
+		--rm \
+		eventstore-test
+	;;
+normalize-results)
+	if [ -d test-results ]; then
+		sudo chown -R "$(id -u):$(id -g)" test-results
+		sudo chmod -R u+rwX,go+rX test-results
+	fi
+	;;
+*)
+	echo "Unsupported container phase: $phase" >&2
+	exit 2
+	;;
+esac

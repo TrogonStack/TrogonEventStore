@@ -1,0 +1,74 @@
+#!/bin/sh
+#MISE description="Run an archive storage CI lifecycle phase"
+
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../../../.." && pwd)
+xunit_project="$root/src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj"
+core_project="$root/src/EventStore.Core.Tests/EventStore.Core.Tests.csproj"
+phase=${1:?archive storage phase is required}
+platform=${TARGET_ARCH:-x64}
+
+run_recovery_test() {
+	dotnet test \
+		--configuration Release \
+		--no-build \
+		-p:Platform="$platform" \
+		-p:RunS3Tests=true \
+		--filter "FullyQualifiedName~S3RestartRecoveryTests" \
+		--logger:GitHubActions \
+		"$xunit_project"
+}
+
+cd "$root"
+
+case "$phase" in
+contract)
+	dotnet test \
+		--configuration Release \
+		-p:Platform="$platform" \
+		-p:ContinuousIntegrationBuild=true \
+		-p:RunS3Tests=true \
+		--filter "FullyQualifiedName~S3ReaderTests|FullyQualifiedName~S3WriterTests|FullyQualifiedName~S3MetricsTests|FullyQualifiedName~S3FixtureLifecycleTests" \
+		--logger:GitHubActions \
+		"$xunit_project"
+	;;
+recovery)
+	if [ "${EVENTSTORE_S3_RECOVERY_PHASE:-}" = unavailable ]; then
+		timeout 20 dotnet test \
+			--configuration Release \
+			--no-build \
+			-p:Platform="$platform" \
+			-p:RunS3Tests=true \
+			--filter "FullyQualifiedName~S3RestartRecoveryTests" \
+			--logger:GitHubActions \
+			"$xunit_project"
+	else
+		run_recovery_test
+	fi
+	;;
+stop-storage)
+	: "${RUSTFS_CONTAINER_ID:?RUSTFS_CONTAINER_ID is required}"
+	timeout 20 docker stop --timeout 10 "$RUSTFS_CONTAINER_ID"
+	test "$(docker inspect --format '{{.State.Status}}' "$RUSTFS_CONTAINER_ID")" = exited
+	;;
+restart-and-verify)
+	: "${RUSTFS_CONTAINER_ID:?RUSTFS_CONTAINER_ID is required}"
+	docker start "$RUSTFS_CONTAINER_ID"
+	timeout 30 sh -c 'until curl --output /dev/null --silent --fail http://localhost:9000/health; do sleep 1; done'
+	run_recovery_test
+	;;
+cluster-restore)
+	dotnet test \
+		--configuration Release \
+		-p:Platform="$platform" \
+		-p:ContinuousIntegrationBuild=true \
+		--filter "TestCategory=ArchiveIntegration" \
+		--logger:GitHubActions \
+		"$core_project"
+	;;
+*)
+	echo "Unsupported archive storage phase: $phase" >&2
+	exit 2
+	;;
+esac
