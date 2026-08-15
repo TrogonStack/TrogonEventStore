@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#MISE description="Publish the container tags implied by the GitHub ref"
+
+set -euo pipefail
+
+: "${GITHUB_REF:?GITHUB_REF is required}"
+: "${GITHUB_REF_NAME:?GITHUB_REF_NAME is required}"
+: "${IMAGE:?IMAGE is required}"
+
+tags=()
+
+if [[ "$GITHUB_REF" == refs/heads/master ]]; then
+	tags+=(ci)
+elif [[ "$GITHUB_REF" =~ ^refs/tags/v([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
+	major=${BASH_REMATCH[1]}
+	minor=${BASH_REMATCH[2]}
+	version=${GITHUB_REF_NAME#v}
+	tags+=("$version")
+
+	if [[ "$version" == *-* ]]; then
+		tags+=(preview)
+	else
+		tags+=("$major.$minor" "$major" stable)
+	fi
+else
+	echo "Unsupported image publication ref: $GITHUB_REF" >&2
+	exit 1
+fi
+
+for tag in "${tags[@]}"; do
+	docker tag eventstore "$IMAGE:$tag"
+	docker push "$IMAGE:$tag"
+done

@@ -38,9 +38,11 @@ jobs:
       - name: Install repository tools
         uses: jdx/mise-action@v4.2.3
         with:
+          version: 2026.8.2
+          install_args: github:open-telemetry/weaver
           cache: false
       - name: Verify semantic conventions
-        run: mise run semconv:check
+        run: mise run --skip-tools semconv:check
 
   csharp-quality:
     runs-on: ubuntu-latest
@@ -54,24 +56,26 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - name: Install task runner
+        uses: jdx/mise-action@v4.2.3
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
       - name: Set up .NET NuGet authentication
-        run: |
-          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
-            --name "github" \
-            --username "${{ github.actor }}" \
-            --password ${{ secrets.GITHUB_TOKEN }} \
-            --store-password-in-clear-text
+        env:
+          NUGET_GITHUB_ACTOR: ${{ github.actor }}
+          NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise run --skip-tools github-actions:nuget-authenticate
       - name: Resolve comparison refs
         id: refs
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "base=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
-            echo "head=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
-            echo "head=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          fi
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: mise run --skip-tools github-actions:resolve-comparison-refs
       - name: Restore
         run: |
           dotnet restore src/EventStore.sln
@@ -96,19 +100,19 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - name: Install task runner
+        uses: jdx/mise-action@v4.2.3
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
       - name: Set up .NET NuGet authentication
-        run: |
-          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
-            --name "github" \
-            --username ${{ github.actor }} \
-            --password ${{ secrets.GITHUB_TOKEN }} \
-            --store-password-in-clear-text
+        env:
+          NUGET_GITHUB_ACTOR: ${{ github.actor }}
+          NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mise run --skip-tools github-actions:nuget-authenticate
       - name: Scan for Vulnerabilities
-        run: |
-          cd src
-          dotnet restore
-          dotnet list package --vulnerable --include-transitive | tee vulnerabilities.txt
-          ! cat vulnerabilities.txt | grep -q "has the following vulnerable packages"
+        run: mise run --skip-tools github-actions:vulnerability-scan
 
   protolock:
     runs-on: ubuntu-latest
@@ -152,87 +156,45 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+      - name: Install task runner
+        uses: jdx/mise-action@v4.2.3
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
       - name: Set up .NET NuGet authentication
         env:
           NUGET_GITHUB_ACTOR: ${{ github.actor }}
           NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
-            --name "github" \
-            --username "$NUGET_GITHUB_ACTOR" \
-            --password "$NUGET_GITHUB_TOKEN" \
-            --store-password-in-clear-text
+        run: mise run --skip-tools github-actions:nuget-authenticate
       - name: Run archive storage contract tests
-        run: |
-          dotnet test \
-            --configuration Release \
-            -p:Platform=x64 \
-            -p:ContinuousIntegrationBuild=true \
-            -p:RunS3Tests=true \
-            --filter "FullyQualifiedName~S3ReaderTests|FullyQualifiedName~S3WriterTests|FullyQualifiedName~S3MetricsTests|FullyQualifiedName~S3FixtureLifecycleTests" \
-            --logger:GitHubActions \
-            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+        run: mise run --skip-tools github-actions:archive-storage-contract -- contract
 
       - name: Seed archive restart recovery data
         id: seed_archive_recovery
         env:
           EVENTSTORE_S3_RECOVERY_PHASE: seed
-        run: |
-          dotnet test \
-            --configuration Release \
-            --no-build \
-            -p:Platform=x64 \
-            -p:RunS3Tests=true \
-            --filter "FullyQualifiedName~S3RestartRecoveryTests" \
-            --logger:GitHubActions \
-            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+        run: mise run --skip-tools github-actions:archive-storage-contract -- recovery
 
       - name: Stop RustFS without removing its data
         env:
           RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
-        run: |
-          timeout 20 docker stop --timeout 10 "$RUSTFS_CONTAINER_ID"
-          test "$(docker inspect --format '{{.State.Status}}' "$RUSTFS_CONTAINER_ID")" = "exited"
+        run: mise run --skip-tools github-actions:archive-storage-contract -- stop-storage
 
       - name: Assert archive storage is unavailable
         env:
           EVENTSTORE_S3_RECOVERY_PHASE: unavailable
-        run: |
-          timeout 20 dotnet test \
-            --configuration Release \
-            --no-build \
-            -p:Platform=x64 \
-            -p:RunS3Tests=true \
-            --filter "FullyQualifiedName~S3RestartRecoveryTests" \
-            --logger:GitHubActions \
-            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+        run: mise run --skip-tools github-actions:archive-storage-contract -- recovery
 
       - name: Restart RustFS and verify archive recovery
         if: ${{ always() && steps.seed_archive_recovery.outcome == 'success' }}
         env:
           EVENTSTORE_S3_RECOVERY_PHASE: verify-cleanup
           RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
-        run: |
-          docker start "$RUSTFS_CONTAINER_ID"
-          timeout 30 bash -c -- 'until curl --output /dev/null --silent --fail http://localhost:9000/health; do sleep 1; done'
-          dotnet test \
-            --configuration Release \
-            --no-build \
-            -p:Platform=x64 \
-            -p:RunS3Tests=true \
-            --filter "FullyQualifiedName~S3RestartRecoveryTests" \
-            --logger:GitHubActions \
-            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+        run: mise run --skip-tools github-actions:archive-storage-contract -- restart-and-verify
 
       - name: Run archive cluster restore gate
-        run: |
-          dotnet test \
-            --configuration Release \
-            -p:Platform=x64 \
-            -p:ContinuousIntegrationBuild=true \
-            --filter "TestCategory=ArchiveIntegration" \
-            --logger:GitHubActions \
-            src/EventStore.Core.Tests/EventStore.Core.Tests.csproj
+        run: mise run --skip-tools github-actions:archive-storage-contract -- cluster-restore
 
   docker-compose:
     runs-on: ubuntu-latest
@@ -240,6 +202,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+      - name: Install task runner
+        uses: jdx/mise-action@v4.2.3
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
       - name: Github Registry Docker Login
         uses: docker/login-action@v4
         with:
@@ -250,26 +218,4 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          docker compose build
-          docker compose run --rm cert-gen
-          docker compose run --rm --entrypoint sh cert-gen -c '
-            test -z "$(find /certs/ca -mindepth 1 -maxdepth 1 ! -name ca.crt -print -quit)"
-            test "$(stat -c %a /certs/ca/ca.crt)" = 644
-            for certificate in /certs/node*/node.crt; do
-              test "$(stat -c %a "$certificate")" = 644
-            done
-            for private_key in /certs/node*/node.key; do
-              test "$(stat -c %a "$private_key")" = 600
-            done
-          '
-          docker compose run --rm --entrypoint sh cert-gen -c 'sha256sum /certs/ca/ca.crt /certs/node*/node.crt /certs/node*/node.key' > /tmp/certificate-fingerprints.before
-          docker compose run --rm cert-gen
-          docker compose run --rm --entrypoint sh cert-gen -c 'sha256sum /certs/ca/ca.crt /certs/node*/node.crt /certs/node*/node.key' > /tmp/certificate-fingerprints.after
-          diff --unified /tmp/certificate-fingerprints.before /tmp/certificate-fingerprints.after
-          docker compose up --detach
-          printf 'Waiting for cluster'
-          for port in 2111 2112 2113; do
-            timeout 60 bash -c -- "until curl --output /dev/null --silent --fail --cacert certs/ca/ca.crt https://localhost:$port/-/readiness; do printf '.'; sleep 2; done"
-          done
-          docker compose down
+        run: mise run --skip-tools github-actions:docker-compose-smoke
