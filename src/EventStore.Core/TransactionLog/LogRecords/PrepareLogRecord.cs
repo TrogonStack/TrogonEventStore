@@ -240,7 +240,8 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 			eventType: EventType,
 			eventTypeSize: _eventTypeSize,
 			data: _dataOnDisk,
-			metadata: Metadata);
+			metadata: Metadata,
+			prepareRecordVersion: Version);
 	}
 
 	public override void WriteTo(ref BufferWriterSlim<byte> writer)
