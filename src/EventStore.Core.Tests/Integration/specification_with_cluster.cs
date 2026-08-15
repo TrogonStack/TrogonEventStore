@@ -15,10 +15,11 @@ namespace EventStore.Core.Tests.Integration;
 
 public abstract class specification_with_cluster<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
-	protected readonly MiniClusterNode<TLogFormat, TStreamId>[] _nodes = new MiniClusterNode<TLogFormat, TStreamId>[3];
-	protected readonly Endpoints[] _nodeEndpoints = new Endpoints[3];
+	protected MiniClusterNode<TLogFormat, TStreamId>[] _nodes;
+	protected Endpoints[] _nodeEndpoints;
 	protected IEventStoreConnection _conn;
 	protected virtual TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(2);
+	protected virtual int NodeCount => 3;
 
 	private readonly Dictionary<int, Func<bool, MiniClusterNode<TLogFormat, TStreamId>>> _nodeCreationFactory = new();
 
@@ -79,16 +80,14 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 		MiniNodeLogging.Setup();
 
-		_nodeEndpoints[0] = new Endpoints();
-		_nodeEndpoints[1] = new Endpoints();
-		_nodeEndpoints[2] = new Endpoints();
+		_nodes = new MiniClusterNode<TLogFormat, TStreamId>[NodeCount];
+		_nodeEndpoints = Enumerable.Range(0, NodeCount).Select(_ => new Endpoints()).ToArray();
+		foreach (var endpoints in _nodeEndpoints)
+		{
+			endpoints.DisposeSockets();
+		}
 
-		_nodeEndpoints[0].DisposeSockets();
-		_nodeEndpoints[1].DisposeSockets();
-		_nodeEndpoints[2].DisposeSockets();
-
-		var duplicates = _nodeEndpoints[0].Ports().Concat(_nodeEndpoints[1].Ports())
-			.Concat(_nodeEndpoints[2].Ports())
+		var duplicates = _nodeEndpoints.SelectMany(x => x.Ports())
 			.GroupBy(x => x)
 			.Where(g => g.Count() > 1)
 			.Select(x => x.Key)
@@ -96,25 +95,25 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 		Assert.IsEmpty(duplicates);
 
-		_nodeCreationFactory.Add(0, wait => CreateNode(0,
-			_nodeEndpoints[0], new[] { _nodeEndpoints[1].HttpEndPoint, _nodeEndpoints[2].HttpEndPoint },
-			wait));
-		_nodeCreationFactory.Add(1, wait => CreateNode(1,
-			_nodeEndpoints[1], new[] { _nodeEndpoints[0].HttpEndPoint, _nodeEndpoints[2].HttpEndPoint },
-			wait));
-		_nodeCreationFactory.Add(2, wait => CreateNode(2,
-			_nodeEndpoints[2], new[] { _nodeEndpoints[0].HttpEndPoint, _nodeEndpoints[1].HttpEndPoint },
-			wait));
-
-		_nodes[0] = _nodeCreationFactory[0](true);
-		_nodes[1] = _nodeCreationFactory[1](true);
-		_nodes[2] = _nodeCreationFactory[2](true);
+		for (var index = 0; index < NodeCount; index++)
+		{
+			var nodeIndex = index;
+			_nodeCreationFactory.Add(nodeIndex, wait => CreateNode(
+				nodeIndex,
+				_nodeEndpoints[nodeIndex],
+				_nodeEndpoints.Where((_, otherIndex) => otherIndex != nodeIndex)
+					.Select(x => (EndPoint)x.HttpEndPoint)
+					.ToArray(),
+				wait));
+			_nodes[nodeIndex] = _nodeCreationFactory[nodeIndex](true);
+		}
 
 		BeforeNodesStart();
 
-		_nodes[0].Start();
-		_nodes[1].Start();
-		_nodes[2].Start();
+		foreach (var node in _nodes)
+		{
+			node.Start();
+		}
 
 		try
 		{
@@ -125,7 +124,8 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			if (_nodes.Count(x => x.Started.IsCompletedSuccessfully) < 2)
 			{
 				MiniNodeLogging.WriteLogs();
-				throw new TimeoutException($"Cluster nodes did not start. Statuses: {_nodes[0].NodeState}/{_nodes[1].NodeState}/{_nodes[2].NodeState}", ex);
+				throw new TimeoutException(
+					$"Cluster nodes did not start. Statuses: {string.Join('/', _nodes.Select(x => x.NodeState))}", ex);
 			}
 		}
 
@@ -188,10 +188,10 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	public override async Task TestFixtureTearDown()
 	{
 		_conn?.Close();
-		await Task.WhenAll(
-			_nodes[0].Shutdown(),
-			_nodes[1].Shutdown(),
-			_nodes[2].Shutdown());
+		if (_nodes is not null)
+		{
+			await Task.WhenAll(_nodes.Where(node => node is not null).Select(node => node.Shutdown()));
+		}
 
 		MiniNodeLogging.Clear();
 

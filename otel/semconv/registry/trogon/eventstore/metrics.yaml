@@ -312,6 +312,52 @@ groups:
     metric_name: trogon.eventstore.storage.chunk.read.distance
     instrument: histogram
     unit: "{chunk}"
+  - id: metric.trogon.eventstore.archive.checkpoint.lag
+    type: metric
+    stability: development
+    brief: Replicated transaction log bytes not yet covered by the archive checkpoint.
+    metric_name: trogon.eventstore.archive.checkpoint.lag
+    instrument: gauge
+    unit: By
+  - id: metric.trogon.eventstore.archive.chunk.pending.count
+    type: metric
+    stability: development
+    brief: Number of archive chunks waiting for or undergoing persistence.
+    metric_name: trogon.eventstore.archive.chunk.pending.count
+    instrument: updowncounter
+    unit: "{chunk}"
+  - id: metric.trogon.eventstore.archive.retry.count
+    type: metric
+    stability: development
+    brief: Number of retries initiated by archive operations.
+    metric_name: trogon.eventstore.archive.retry.count
+    instrument: counter
+    unit: "{retry}"
+    attributes:
+      - ref: trogon.eventstore.activity.name
+        requirement_level: required
+  - id: metric.trogon.eventstore.archive.failure.count
+    type: metric
+    stability: development
+    brief: Number of failed archive operations.
+    metric_name: trogon.eventstore.archive.failure.count
+    instrument: counter
+    unit: "{failure}"
+    attributes:
+      - ref: trogon.eventstore.activity.name
+        requirement_level: required
+  - id: metric.trogon.eventstore.archive.read.duration
+    type: metric
+    stability: development
+    brief: Duration of remote archive read requests.
+    metric_name: trogon.eventstore.archive.read.duration
+    instrument: histogram
+    unit: s
+    attributes:
+      - ref: trogon.eventstore.activity.name
+        requirement_level: required
+      - ref: trogon.eventstore.activity.outcome
+        requirement_level: required
   - id: metric.trogon.eventstore.persistent_subscription.connection.count
     type: metric
     stability: development

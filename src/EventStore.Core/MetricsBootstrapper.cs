@@ -6,6 +6,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Diagnostics;
 using EventStore.Core.Index;
 using EventStore.Core.Metrics;
+using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.VNode;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
@@ -18,6 +19,7 @@ namespace EventStore.Core;
 
 public class Trackers
 {
+	internal Meter CoreMeter { get; set; }
 	public IInaugurationStatusTracker InaugurationStatusTracker { get; set; } = new NodeStatusTracker.NoOp();
 	public IIndexStatusTracker IndexStatusTracker { get; set; } = new IndexStatusTracker.NoOp();
 	public INodeStatusTracker NodeStatusTracker { get; set; } = new NodeStatusTracker.NoOp();
@@ -34,6 +36,7 @@ public class Trackers
 	public IElectionCounterTracker ElectionCounterTracker { get; set; } = new ElectionsCounterTracker.NoOp();
 	public IPersistentSubscriptionTracker PersistentSubscriptionTracker { get; set; } =
 		IPersistentSubscriptionTracker.NoOp;
+	public IArchiveMetrics ArchiveMetrics { get; set; } = IArchiveMetrics.NoOp;
 }
 
 public class GrpcTrackers
@@ -68,6 +71,21 @@ public class GossipTrackers
 
 public static class MetricsBootstrapper
 {
+	public static void BootstrapArchive(
+		Conf conf,
+		Trackers trackers,
+		bool archiveEnabled,
+		bool isArchiver)
+	{
+		if (!archiveEnabled || conf.ExpectedScrapeIntervalSeconds <= 0)
+		{
+			return;
+		}
+
+		trackers.CoreMeter ??= TelemetryMeterFactory.Create(TelemetryMeterInstrumentation.CoreName);
+		trackers.ArchiveMetrics = new ArchiveMetrics(trackers.CoreMeter, observeArchiverState: isArchiver);
+	}
+
 	public static void Bootstrap(
 		Conf conf,
 		TFChunkDbConfig dbConfig,
@@ -84,7 +102,8 @@ public static class MetricsBootstrapper
 			return;
 		}
 
-		var coreMeter = TelemetryMeterFactory.Create(TelemetryMeterInstrumentation.CoreName);
+		var coreMeter = trackers.CoreMeter ??=
+			TelemetryMeterFactory.Create(TelemetryMeterInstrumentation.CoreName);
 		var statusMetric = new StatusMetric(coreMeter, MetricDefinitions.TrogonEventstoreComponentStatus);
 		var grpcMethodMetric = new DurationMetric(coreMeter, MetricDefinitions.TrogonEventstoreGrpcServerCallDuration);
 		var gossipLatencyMetric = new DurationMetric(coreMeter, MetricDefinitions.TrogonEventstoreGossipExchangeDuration);

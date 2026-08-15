@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Services.Archive.Naming;
@@ -24,6 +25,8 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	private int _listings;
 
 	private readonly Action<string> _onGetChunk;
+	private readonly Action _onGetCheckpoint;
+	private readonly Func<string, Stream> _getChunk;
 
 	public string[] ChunkGets
 	{
@@ -39,12 +42,20 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	private readonly List<string> _chunkGets;
 
 
-	public FakeArchiveStorage(int chunkSize, string[] chunks, long checkpoint, Action<string> onGetChunk)
+	public FakeArchiveStorage(
+		int chunkSize,
+		string[] chunks,
+		long checkpoint,
+		Action<string> onGetChunk,
+		Action onGetCheckpoint = null,
+		Func<string, Stream> getChunk = null)
 	{
 		_chunkSize = chunkSize;
 		_chunks = chunks;
 		_checkpoint = checkpoint;
 		_onGetChunk = onGetChunk;
+		_onGetCheckpoint = onGetCheckpoint;
+		_getChunk = getChunk;
 		_chunkGets = new();
 	}
 
@@ -62,12 +73,13 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 
 	public ValueTask<long> GetCheckpoint(CancellationToken ct)
 	{
+		_onGetCheckpoint?.Invoke();
 		return ValueTask.FromResult(_checkpoint);
 	}
 
 	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
 	{
-		return ValueTask.FromResult((long)(ChunkHeader.Size + _chunkSize));
+		return ValueTask.FromResult((long)TFChunk.GetAlignedSize(ChunkHeader.Size + ChunkFooter.Size));
 	}
 
 	private ChunkHeader CreateChunkHeader(int chunkStartNumber, int chunkEndNumber)
@@ -91,14 +103,35 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 		}
 
 		_onGetChunk?.Invoke(chunkFile);
-		var chunk = new byte[ChunkHeader.Size + _chunkSize];
+		if (_getChunk is not null)
+		{
+			return ValueTask.FromResult(_getChunk(chunkFile));
+		}
+
+		return ValueTask.FromResult(CreateChunk(chunkFile));
+	}
+
+	public Stream CreateChunk(string chunkFile)
+	{
+		return new MemoryStream(CreateChunkBytes(chunkFile));
+	}
+
+	public byte[] CreateChunkBytes(string chunkFile)
+	{
+		var chunk = new byte[TFChunk.GetAlignedSize(ChunkHeader.Size + ChunkFooter.Size)];
 		var chunkStartNumber = _customNamingStrategy.GetIndexFor(chunkFile);
 		var chunkEndNumber = _customNamingStrategy.GetVersionFor(chunkFile);
 		var header = CreateChunkHeader(chunkStartNumber, chunkEndNumber);
 		header.Format(chunk.AsSpan()[..ChunkHeader.Size]);
 
-		var stream = new MemoryStream(chunk);
-		return ValueTask.FromResult((Stream)stream);
+		var footerOffset = chunk.Length - ChunkFooter.Size;
+		new ChunkFooter(true, physicalDataSize: 0, logicalDataSize: 0, mapSize: 0)
+			.Format(chunk.AsSpan(footerOffset, ChunkFooter.Size));
+		using var hash = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
+		hash.AppendData(chunk.AsSpan(0, chunk.Length - ChunkFooter.ChecksumSize));
+		new ChunkFooter(true, physicalDataSize: 0, logicalDataSize: 0, mapSize: 0, hash)
+			.Format(chunk.AsSpan(footerOffset, ChunkFooter.Size));
+		return chunk;
 	}
 
 	public IAsyncEnumerable<string> ListChunks(CancellationToken ct)

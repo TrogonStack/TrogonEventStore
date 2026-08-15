@@ -87,6 +87,16 @@ Queue and message labels come from the `QueueLabels` and `MessageTypes` regular-
 
 The `trogon.eventstore.storage.activity` attribute is `read` or `write`. The checkpoint read kind currently emitted by the node is `non_flushed`.
 
+### Archive
+
+| Metric | Instrument | Unit | Attributes | Description |
+| --- | --- | --- | --- | --- |
+| `trogon.eventstore.archive.checkpoint.lag` | Gauge | `By` | None | Replicated transaction log bytes not yet covered by the archive checkpoint |
+| `trogon.eventstore.archive.chunk.pending.count` | UpDownCounter | `{chunk}` | None | Chunks waiting for commit, queued for persistence, or currently being persisted |
+| `trogon.eventstore.archive.retry.count` | Counter | `{retry}` | `trogon.eventstore.activity.name` | Archive retries by operation |
+| `trogon.eventstore.archive.failure.count` | Counter | `{failure}` | `trogon.eventstore.activity.name` | Archive failures by operation |
+| `trogon.eventstore.archive.read.duration` | Histogram | `s` | `trogon.eventstore.activity.name`, `trogon.eventstore.activity.outcome` | Remote archive read duration through stream completion or disposal |
+
 ### Persistent subscriptions
 
 Every persistent subscription instrument includes `trogon.eventstore.persistent_subscription.stream` and `trogon.eventstore.persistent_subscription.group`.

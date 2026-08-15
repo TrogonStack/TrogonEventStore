@@ -120,6 +120,120 @@ jobs:
         shell: bash
         run: |
           ./protolock.sh status --uptodate
+
+  archive-storage-contract:
+    runs-on: ubuntu-latest
+    name: Archive Storage Contract
+    env:
+      EVENTSTORE_S3_TEST_ENDPOINT: http://localhost:9000
+      EVENTSTORE_S3_TEST_REGION: us-east-1
+      EVENTSTORE_S3_TEST_ACCESS_KEY: archive-contract
+      EVENTSTORE_S3_TEST_SECRET_KEY: archive-contract-secret-key
+      EVENTSTORE_S3_RECOVERY_BUCKET: archive-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+    services:
+      rustfs:
+        image: rustfs/rustfs:1.0.0-beta.11@sha256:84ce557a0245a06a9aae5516f55ee0f007fca78d41df356f419306fdc0cb168c
+        ports:
+          - 9000:9000
+        env:
+          RUSTFS_ACCESS_KEY: archive-contract
+          RUSTFS_SECRET_KEY: archive-contract-secret-key
+        options: >-
+          --health-cmd "curl --fail http://localhost:9000/health"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install net10.0
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Set up .NET NuGet authentication
+        env:
+          NUGET_GITHUB_ACTOR: ${{ github.actor }}
+          NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
+            --name "github" \
+            --username "$NUGET_GITHUB_ACTOR" \
+            --password "$NUGET_GITHUB_TOKEN" \
+            --store-password-in-clear-text
+      - name: Run archive storage contract tests
+        run: |
+          dotnet test \
+            --configuration Release \
+            -p:Platform=x64 \
+            -p:ContinuousIntegrationBuild=true \
+            -p:RunS3Tests=true \
+            --filter "FullyQualifiedName~S3ReaderTests|FullyQualifiedName~S3WriterTests|FullyQualifiedName~S3MetricsTests|FullyQualifiedName~S3FixtureLifecycleTests" \
+            --logger:GitHubActions \
+            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+
+      - name: Seed archive restart recovery data
+        id: seed_archive_recovery
+        env:
+          EVENTSTORE_S3_RECOVERY_PHASE: seed
+        run: |
+          dotnet test \
+            --configuration Release \
+            --no-build \
+            -p:Platform=x64 \
+            -p:RunS3Tests=true \
+            --filter "FullyQualifiedName~S3RestartRecoveryTests" \
+            --logger:GitHubActions \
+            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+
+      - name: Stop RustFS without removing its data
+        env:
+          RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
+        run: |
+          timeout 20 docker stop --timeout 10 "$RUSTFS_CONTAINER_ID"
+          test "$(docker inspect --format '{{.State.Status}}' "$RUSTFS_CONTAINER_ID")" = "exited"
+
+      - name: Assert archive storage is unavailable
+        env:
+          EVENTSTORE_S3_RECOVERY_PHASE: unavailable
+        run: |
+          timeout 20 dotnet test \
+            --configuration Release \
+            --no-build \
+            -p:Platform=x64 \
+            -p:RunS3Tests=true \
+            --filter "FullyQualifiedName~S3RestartRecoveryTests" \
+            --logger:GitHubActions \
+            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+
+      - name: Restart RustFS and verify archive recovery
+        if: ${{ always() && steps.seed_archive_recovery.outcome == 'success' }}
+        env:
+          EVENTSTORE_S3_RECOVERY_PHASE: verify-cleanup
+          RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
+        run: |
+          docker start "$RUSTFS_CONTAINER_ID"
+          timeout 30 bash -c -- 'until curl --output /dev/null --silent --fail http://localhost:9000/health; do sleep 1; done'
+          dotnet test \
+            --configuration Release \
+            --no-build \
+            -p:Platform=x64 \
+            -p:RunS3Tests=true \
+            --filter "FullyQualifiedName~S3RestartRecoveryTests" \
+            --logger:GitHubActions \
+            src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
+
+      - name: Run archive cluster restore gate
+        run: |
+          dotnet test \
+            --configuration Release \
+            -p:Platform=x64 \
+            -p:ContinuousIntegrationBuild=true \
+            --filter "TestCategory=ArchiveIntegration" \
+            --logger:GitHubActions \
+            src/EventStore.Core.Tests/EventStore.Core.Tests.csproj
+
   docker-compose:
     runs-on: ubuntu-latest
     name: Docker Compose Smoke Test

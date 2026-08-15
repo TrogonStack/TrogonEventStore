@@ -35,6 +35,7 @@ public class ArchiverService :
 	private readonly Channel<bool> _archiveSignal;
 	private readonly IChunkUnmerger _chunkUnmerger;
 	private readonly IArchiveChunkNamer _chunkNamer;
+	private readonly IArchiveMetrics _metrics;
 
 	private readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(1);
 	private long _replicationPosition;
@@ -45,13 +46,15 @@ public class ArchiverService :
 		ISubscriber mainBus,
 		IArchiveStorageFactory archiveStorageFactory,
 		IChunkUnmerger chunkUnmerger,
-		IArchiveChunkNamer chunkNamer)
+		IArchiveChunkNamer chunkNamer,
+		IArchiveMetrics metrics = null)
 	{
 		_mainBus = mainBus;
 		_archiveWriter = archiveStorageFactory.CreateWriter();
 		_archiveReader = archiveStorageFactory.CreateReader();
 		_chunkUnmerger = chunkUnmerger;
 		_chunkNamer = chunkNamer;
+		_metrics = metrics ?? IArchiveMetrics.NoOp;
 
 		_uncommittedChunks = new();
 		_chunksToArchive = new();
@@ -95,6 +98,7 @@ public class ArchiverService :
 		if (chunkInfo.ChunkEndPosition > _replicationPosition)
 		{
 			_uncommittedChunks.Enqueue(chunkInfo);
+			_metrics.SetUncommittedChunks(_uncommittedChunks.Count);
 			return;
 		}
 
@@ -114,6 +118,7 @@ public class ArchiverService :
 	public void Handle(ReplicationTrackingMessage.ReplicatedTo message)
 	{
 		_replicationPosition = Math.Max(_replicationPosition, message.LogPosition);
+		_metrics.SetReplicationPosition(_replicationPosition);
 		ProcessUncommittedChunks();
 
 		if (_archivingStarted)
@@ -169,6 +174,7 @@ public class ArchiverService :
 			}
 
 			_uncommittedChunks.Dequeue();
+			_metrics.SetUncommittedChunks(_uncommittedChunks.Count);
 			ScheduleChunkForArchiving(chunkInfo, "new");
 		}
 	}
@@ -183,6 +189,7 @@ public class ArchiverService :
 			}
 
 			_chunksToArchive[(chunkInfo.ChunkStartNumber, chunkInfo.ChunkEndNumber, chunkInfo.ChunkLocator)] = chunkInfo;
+			_metrics.SetQueuedChunks(_chunksToArchive.Count);
 		}
 
 		_archiveSignal.Writer.TryWrite(true);
@@ -201,7 +208,15 @@ public class ArchiverService :
 
 			while (TryGetNextChunkToArchive(out var chunkInfo))
 			{
-				await ArchiveChunk(chunkInfo, ct);
+				_metrics.SetActiveChunks(1);
+				try
+				{
+					await ArchiveChunk(chunkInfo, ct);
+				}
+				finally
+				{
+					_metrics.SetActiveChunks(0);
+				}
 			}
 		}
 	}
@@ -216,6 +231,7 @@ public class ArchiverService :
 				if (candidate.ChunkEndPosition <= _checkpoint)
 				{
 					_chunksToArchive.Remove(key);
+					_metrics.SetQueuedChunks(_chunksToArchive.Count);
 					continue;
 				}
 
@@ -225,6 +241,7 @@ public class ArchiverService :
 				}
 
 				_chunksToArchive.Remove(key);
+				_metrics.SetQueuedChunks(_chunksToArchive.Count);
 				chunkInfo = candidate;
 				return true;
 			}
@@ -268,6 +285,8 @@ public class ArchiverService :
 
 				while (!await _archiveWriter.StoreChunk(chunkToStore, destinationFile, ct))
 				{
+					_metrics.RecordFailure(ArchiveOperation.StoreChunk);
+					_metrics.RecordRetry(ArchiveOperation.StoreChunk);
 					Log.Warning("Archiving of {chunkFile}{chunkDetails} failed. Retrying in: {retryInterval}.",
 						Path.GetFileName(chunkPath),
 						chunksUnmerged ? $" (logical chunk no.: {logicalChunkNumber})" : string.Empty,
@@ -287,6 +306,8 @@ public class ArchiverService :
 			{
 				while (!await _archiveWriter.SetCheckpoint(chunkInfo.ChunkEndPosition, ct))
 				{
+					_metrics.RecordFailure(ArchiveOperation.SetCheckpoint);
+					_metrics.RecordRetry(ArchiveOperation.SetCheckpoint);
 					Log.Warning(
 						"Failed to set the archive checkpoint to: 0x{checkpoint:X}. Retrying in: {retryInterval}.",
 						chunkInfo.ChunkEndPosition, RetryInterval);
@@ -296,6 +317,7 @@ public class ArchiverService :
 				lock (_chunksToArchiveLock)
 				{
 					_checkpoint = chunkInfo.ChunkEndPosition;
+					_metrics.SetCheckpoint(_checkpoint);
 				}
 
 				Log.Debug("Archive checkpoint set to: 0x{checkpoint:X}", chunkInfo.ChunkEndPosition);
@@ -314,6 +336,7 @@ public class ArchiverService :
 		}
 		catch (Exception ex)
 		{
+			_metrics.RecordFailure(ArchiveOperation.Service);
 			Log.Error(ex, "Archiving of {chunkFile} failed.", chunkFile);
 			throw;
 		}
@@ -326,6 +349,7 @@ public class ArchiverService :
 			try
 			{
 				_checkpoint = await _archiveReader.GetCheckpoint(ct);
+				_metrics.SetCheckpoint(_checkpoint);
 				Log.Debug("Archive checkpoint is: 0x{checkpoint:X}", _checkpoint);
 				return;
 			}
@@ -335,6 +359,8 @@ public class ArchiverService :
 			}
 			catch (Exception ex)
 			{
+				_metrics.RecordFailure(ArchiveOperation.LoadCheckpoint);
+				_metrics.RecordRetry(ArchiveOperation.LoadCheckpoint);
 				Log.Warning(ex, "Failed to load the archive checkpoint. Retrying in: {retryInterval}.", RetryInterval);
 				await Task.Delay(RetryInterval, ct);
 			}
@@ -356,6 +382,8 @@ public class ArchiverService :
 
 				_chunksToArchive.Remove(key);
 			}
+
+			_metrics.SetQueuedChunks(_chunksToArchive.Count);
 		}
 
 		_archiveSignal.Writer.TryWrite(true);

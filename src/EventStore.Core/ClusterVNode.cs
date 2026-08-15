@@ -329,13 +329,18 @@ public class ClusterVNode<TStreamId> :
 		NodeInfo = new VNodeInfo(instanceId.Value, debugIndex, intTcp, intSecIp, extTcp, extSecIp,
 			httpEndPoint, options.Cluster.ReadOnlyReplica);
 
+		var metricsConfiguration = MetricsConfiguration.Get(configuration);
+		var trackers = new Trackers();
+		MetricsBootstrapper.BootstrapArchive(
+			metricsConfiguration,
+			trackers,
+			archiveOptions.Enabled,
+			options.Cluster.Archiver);
 		var dbConfig = CreateDbConfig(
 			out var statsHelper,
 			out var readerThreadsCount,
 			out var workerThreadsCount);
 
-		var trackers = new Trackers();
-		var metricsConfiguration = MetricsConfiguration.Get(configuration);
 		MetricsBootstrapper.Bootstrap(metricsConfiguration, dbConfig, trackers);
 		static bool WatchSlowMessages(TimeSpan threshold) => threshold > TimeSpan.Zero;
 
@@ -448,7 +453,8 @@ public class ClusterVNode<TStreamId> :
 			{
 				var archiveReader = new ArchiveStorageFactory(
 					archiveOptions,
-					new ArchiveChunkNamer(_fileNamingStrategy))
+					new ArchiveChunkNamer(_fileNamingStrategy),
+					trackers.ArchiveMetrics)
 					.CreateReader();
 
 				chunkFileSystem = new FileSystemWithArchive(
@@ -1379,7 +1385,8 @@ public class ClusterVNode<TStreamId> :
 				// todo: consider if we can/should reuse the same reader elsewhere
 				var archiveReader = new ArchiveStorageFactory(
 					archiveOptions,
-					new ArchiveChunkNamer(_fileNamingStrategy)).CreateReader();
+					new ArchiveChunkNamer(_fileNamingStrategy),
+					trackers.ArchiveMetrics).CreateReader();
 				chunkDeleter = new ChunkDeleter<TStreamId, ILogRecord>(
 					logger: logger,
 					archiveCheckpoint: new AdvancingCheckpoint(archiveReader.GetCheckpoint),
@@ -1657,7 +1664,9 @@ public class ClusterVNode<TStreamId> :
 			services
 				.AddSingleton(telemetryService) // for correct disposal
 				.AddSingleton(_readIndex)
+				.AddSingleton(Db.TransformManager)
 				.AddSingleton(standardComponents)
+				.AddSingleton<IArchiveMetrics>(trackers.ArchiveMetrics)
 				.AddSingleton(authorizationGateway)
 				.AddSingleton(certificateProvider)
 				.AddSingleton<IReadOnlyList<IDbTransform>>(new List<IDbTransform> { new IdentityDbTransform() })

@@ -8,6 +8,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
+using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Archiver;
 using EventStore.Core.Services.Archive.Archiver.Unmerger;
 using EventStore.Core.Services.Archive.Naming;
@@ -25,15 +26,39 @@ public class ArchiverServiceTests
 		TimeSpan? chunkStorageDelay = null,
 		TimeSpan? checkpointStorageDelay = null,
 		string[] existingChunks = null,
-		long? existingCheckpoint = null)
+		long? existingCheckpoint = null,
+		IArchiveMetrics metrics = null)
 	{
 		var archive = new FakeArchiveStorage(
 			chunkStorageDelay ?? TimeSpan.Zero,
 			checkpointStorageDelay ?? TimeSpan.Zero,
 			existingChunks ?? Array.Empty<string>(),
 			existingCheckpoint ?? 0L);
-		var service = new ArchiverService(new FakeSubscriber(), archive, new FakeUnmerger(), new FakeArchiveChunkNamer());
+		var service = new ArchiverService(
+			new FakeSubscriber(), archive, new FakeUnmerger(), new FakeArchiveChunkNamer(), metrics);
 		return (service, archive);
+	}
+
+	[Fact]
+	public async Task reports_archive_backlog_and_checkpoint_lag_inputs()
+	{
+		var metrics = new RecordingArchiveMetrics();
+		var (sut, archive) = CreateSut(metrics: metrics);
+		var chunkInfo = GetChunkInfo(0, 0);
+
+		sut.Handle(new SystemMessage.ChunkCompleted(chunkInfo));
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
+
+		await WaitFor(archive, numStores: 1, numCheckpoints: 1);
+		AssertEx.IsOrBecomesTrue(
+			() => metrics.Checkpoint == chunkInfo.ChunkEndPosition,
+			timeout: TimeSpan.FromSeconds(10));
+
+		Assert.Equal(chunkInfo.ChunkEndPosition, metrics.ReplicationPosition);
+		Assert.Equal(chunkInfo.ChunkEndPosition, metrics.Checkpoint);
+		Assert.Equal(1, metrics.MaxUncommittedChunks);
+		Assert.Equal(1, metrics.MaxQueuedChunks);
+		Assert.Equal(1, metrics.MaxActiveChunks);
 	}
 
 	private static ChunkInfo GetChunkInfo(int chunkStartNumber, int chunkEndNumber, bool complete = true, bool remote = false)

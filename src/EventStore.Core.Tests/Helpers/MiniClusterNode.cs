@@ -16,6 +16,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Certificates;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
+using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 using EventStore.Core.Services.Storage.ReaderIndex;
@@ -49,6 +50,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 
 	public readonly ClusterVNode Node;
 	public TFChunkDb Db => Node.Db;
+	public string DbPath => _dbPath;
 	private readonly string _dbPath;
 	private readonly bool _isReadOnlyReplica;
 	private readonly TaskCompletionSource<bool> _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -64,7 +66,9 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		IPEndPoint httpEndPoint, EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
 		bool enableTrustedAuth = false, int memTableSize = 1000,
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
-		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null)
+		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null,
+		ArchiveOptions archiveOptions = null, bool archiver = false,
+		int clusterSize = 3, bool unsafeAllowSurplusNodes = false)
 	{
 
 		RunningTime.Start();
@@ -100,14 +104,15 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				DiscoverViaDns = false,
 				ClusterDns = string.Empty,
 				GossipSeed = gossipSeeds,
-				ClusterSize = 3,
+				ClusterSize = clusterSize,
 				NodePriority = nodePriority,
 				GossipIntervalMs = 2_000,
 				GossipAllowedDifferenceMs = 1_000,
 				GossipTimeoutMs = 2_000,
 				DeadMemberRemovalPeriodSec = 1_800_000,
 				ReadOnlyReplica = readOnlyReplica,
-				Archiver = false,
+				Archiver = archiver,
+				UnsafeAllowSurplusNodes = unsafeAllowSurplusNodes,
 				StreamInfoCacheCapacity = 10_000
 			},
 			Interface = new()
@@ -144,15 +149,33 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			PlugableComponents = subsystems
 		};
 
-		var inMemConf = new ConfigurationBuilder()
-			.AddInMemoryCollection(new KeyValuePair<string, string>[] {
+		var configuration = new List<KeyValuePair<string, string>> {
 				new("EventStore:TcpPlugin:NodeTcpPort", externalTcp.Port.ToString()),
 				new("EventStore:TcpPlugin:EnableExternalTcp", "true"),
 				new("EventStore:TcpUnitTestPlugin:NodeTcpPort", externalTcp.Port.ToString()),
 				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatInterval", "10000"),
 				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatTimeout", "10000"),
 				new("EventStore:TcpUnitTestPlugin:Insecure", options.Application.Insecure.ToString()),
-			}).Build();
+			};
+
+		if (archiveOptions is not null)
+		{
+			configuration.AddRange([
+				new("EventStore:Archive:Enabled", archiveOptions.Enabled.ToString()),
+				new("EventStore:Archive:StorageType", archiveOptions.StorageType.ToString()),
+				new("EventStore:Archive:S3:Bucket", archiveOptions.S3.Bucket),
+				new("EventStore:Archive:S3:Region", archiveOptions.S3.Region),
+				new("EventStore:Archive:S3:AccessKeyId", archiveOptions.S3.AccessKeyId),
+				new("EventStore:Archive:S3:SecretAccessKey", archiveOptions.S3.SecretAccessKey),
+				new("EventStore:Archive:S3:ServiceUrl", archiveOptions.S3.ServiceUrl),
+				new("EventStore:Archive:RetainAtLeast:Days", archiveOptions.RetainAtLeast.Days.ToString()),
+				new("EventStore:Archive:RetainAtLeast:LogicalBytes", archiveOptions.RetainAtLeast.LogicalBytes.ToString()),
+			]);
+		}
+
+		var inMemConf = new ConfigurationBuilder()
+			.AddInMemoryCollection(configuration)
+			.Build();
 		var serverCertificate = ssl_connections.GetServerCertificate();
 		var trustedRootCertificates =
 			new X509Certificate2Collection(ssl_connections.GetRootCertificate());

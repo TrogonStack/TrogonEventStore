@@ -14,13 +14,13 @@ internal static class S3Storage
 		{
 			var sessionToken = string.IsNullOrWhiteSpace(options.SessionToken) ? null : options.SessionToken;
 
-			return (IAwsS3BlobStorage)StorageFactory.Blobs.AwsS3(
+			return (IAwsS3BlobStorage)StorageFactory.Blobs.MinIO(
 				options.AccessKeyId,
 				options.SecretAccessKey,
-				sessionToken,
 				options.Bucket,
 				options.Region,
-				options.ServiceUrl);
+				options.ServiceUrl,
+				sessionToken);
 		}
 
 		if (HasExplicitCredentials(options))

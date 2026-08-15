@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Storage.Exceptions;
 using EventStore.Core.TransactionLog.Checkpoint;
+using EventStore.Core.TransactionLog.Chunks;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.ArchiveCatchup;
@@ -31,6 +33,7 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		public ICheckpoint WriterCheckpoint { get; init; }
 		public ICheckpoint ChaserCheckpoint { get; init; }
 		public ICheckpoint EpochCheckpoint { get; init; }
+		public RecordingArchiveMetrics Metrics { get; init; }
 	}
 
 	private Sut CreateSut(
@@ -38,12 +41,17 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		long? archiveCheckpoint = null,
 		string[] dbChunks = null,
 		string[] archiveChunks = null,
-		Action<string> onGetChunk = null)
+		Action<string> onGetChunk = null,
+		Action onGetCheckpoint = null,
+		Func<string, Stream> getChunk = null,
+		TimeSpan? retryInterval = null,
+		int chunkSize = ChunkSize,
+		Action<string> deleteTempFile = null)
 	{
 		dbCheckpoint ??= 0L;
 		archiveCheckpoint ??= 0L;
-		dbChunks ??= CreateChunkList(dbCheckpoint.Value);
-		archiveChunks ??= CreateChunkList(archiveCheckpoint.Value);
+		dbChunks ??= CreateChunkList(dbCheckpoint.Value, chunkSize);
+		archiveChunks ??= CreateChunkList(archiveCheckpoint.Value, chunkSize);
 
 		foreach (var dbChunk in dbChunks)
 		{
@@ -51,10 +59,13 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		}
 
 		var archive = new FakeArchiveStorage(
-			chunkSize: ChunkSize,
+			chunkSize,
 			archiveChunks,
 			archiveCheckpoint.Value,
-			onGetChunk);
+			onGetChunk,
+			onGetCheckpoint,
+			getChunk);
+		var metrics = new RecordingArchiveMetrics();
 
 		var writerCheckpoint = new InMemoryCheckpoint(dbCheckpoint.Value);
 		var chaserCheckpoint = new InMemoryCheckpoint(dbCheckpoint.Value);
@@ -64,9 +75,12 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 			writerCheckpoint: writerCheckpoint,
 			chaserCheckpoint: chaserCheckpoint,
 			epochCheckpoint: epochCheckpoint,
-			chunkSize: ChunkSize,
+			chunkSize,
 			fileNamingStrategy: new CustomNamingStrategy(),
-			archiveStorageFactory: archive
+			archiveStorageFactory: archive,
+			metrics: metrics,
+			retryInterval: retryInterval ?? TimeSpan.Zero,
+			deleteTempFile: deleteTempFile
 		);
 
 		return new Sut
@@ -77,17 +91,18 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 			ArchiveChunks = archiveChunks,
 			WriterCheckpoint = writerCheckpoint,
 			ChaserCheckpoint = chaserCheckpoint,
-			EpochCheckpoint = epochCheckpoint
+			EpochCheckpoint = epochCheckpoint,
+			Metrics = metrics
 		};
 	}
 
-	private string[] CreateChunkList(long checkpoint)
+	private string[] CreateChunkList(long checkpoint, int chunkSize = ChunkSize)
 	{
 		var chunks = new List<string>();
 		var namingStrategy = new CustomNamingStrategy();
 
-		var numChunks = checkpoint / ChunkSize;
-		if (checkpoint % ChunkSize != 0)
+		var numChunks = checkpoint / chunkSize;
+		if (checkpoint % chunkSize != 0)
 		{
 			numChunks++;
 		}
@@ -98,6 +113,24 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		}
 
 		return chunks.ToArray();
+	}
+
+	[Fact]
+	public async Task catches_up_when_a_completed_chunk_is_smaller_than_the_preallocation_size()
+	{
+		const int preallocationSize = 8192;
+		const string chunkFile = "chunk-0.0";
+		var sut = CreateSut(
+			archiveCheckpoint: preallocationSize,
+			chunkSize: preallocationSize);
+		var receivedLength = sut.Archive.CreateChunkBytes(chunkFile).Length;
+		Assert.True(receivedLength < preallocationSize);
+		Assert.Equal(receivedLength, await sut.Archive.GetChunkLength(chunkFile, CancellationToken.None));
+
+		await sut.Catchup.Run();
+
+		Assert.Equal(preallocationSize, sut.WriterCheckpoint.Read());
+		Assert.Equal(receivedLength, new FileInfo(Path.Combine(DbPath, chunkFile)).Length);
 	}
 
 	[Theory]
@@ -211,6 +244,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		Assert.Equal(2000L, sut.WriterCheckpoint.Read());
 		Assert.Equal(2000L, sut.ChaserCheckpoint.Read());
 		Assert.Equal(-1, sut.EpochCheckpoint.Read());
+		Assert.Equal([ArchiveOperation.CatchUpChunk], sut.Metrics.Failures);
+		Assert.Equal([ArchiveOperation.CatchUpChunk], sut.Metrics.Retries);
 
 		return;
 
@@ -225,6 +260,158 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 				throw new ChunkDeletedException();
 			}
 		}
+	}
+
+	[Fact]
+	public async Task records_checkpoint_failure_before_retrying()
+	{
+		using var cts = new CancellationTokenSource();
+		var sut = CreateSut(
+			retryInterval: TimeSpan.FromMinutes(1),
+			onGetCheckpoint: () =>
+			{
+				cts.Cancel();
+				throw new InvalidOperationException("checkpoint unavailable");
+			});
+
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sut.Catchup.Run(cts.Token));
+
+		Assert.Equal([ArchiveOperation.CatchUpCheckpoint], sut.Metrics.Failures);
+		Assert.Equal([ArchiveOperation.CatchUpCheckpoint], sut.Metrics.Retries);
+	}
+
+	[Fact]
+	public async Task resumes_after_checkpoint_outage_on_restart()
+	{
+		using var outage = new CancellationTokenSource();
+		var unavailable = true;
+		var sut = CreateSut(
+			archiveCheckpoint: ChunkSize,
+			onGetCheckpoint: () =>
+			{
+				if (!unavailable)
+				{
+					return;
+				}
+
+				outage.Cancel();
+				throw new IOException("archive unavailable");
+			});
+
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sut.Catchup.Run(outage.Token));
+		Assert.Equal(0, sut.WriterCheckpoint.Read());
+		Assert.Equal(0, sut.ChaserCheckpoint.Read());
+
+		unavailable = false;
+		await sut.Catchup.Run();
+
+		Assert.Equal(ChunkSize, sut.WriterCheckpoint.Read());
+		Assert.Equal(ChunkSize, sut.ChaserCheckpoint.Read());
+	}
+
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public async Task retries_corrupt_or_truncated_chunk_on_restart(bool truncated)
+	{
+		FakeArchiveStorage archive = null;
+		var firstRead = true;
+		using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+		var sut = CreateSut(
+			archiveCheckpoint: ChunkSize,
+			retryInterval: TimeSpan.FromMinutes(1),
+			getChunk: chunkFile =>
+			{
+				if (!firstRead)
+				{
+					return archive.CreateChunk(chunkFile);
+				}
+
+				firstRead = false;
+				var bytes = archive.CreateChunkBytes(chunkFile);
+				if (truncated)
+				{
+					Array.Resize(ref bytes, bytes.Length - 1);
+				}
+				else
+				{
+					bytes[ChunkHeader.Size] ^= byte.MaxValue;
+				}
+				return new MemoryStream(bytes);
+			});
+		archive = sut.Archive;
+
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sut.Catchup.Run(cancellation.Token));
+		Assert.Equal(0, sut.WriterCheckpoint.Read());
+		Assert.Equal(0, sut.ChaserCheckpoint.Read());
+
+		await sut.Catchup.Run();
+
+		Assert.Equal(ChunkSize, sut.WriterCheckpoint.Read());
+		Assert.Equal(ChunkSize, sut.ChaserCheckpoint.Read());
+	}
+
+	[Fact]
+	public async Task cleans_up_before_backoff_and_ignores_cleanup_failures()
+	{
+		FakeArchiveStorage archive = null;
+		var returnCorruptChunk = true;
+		var cleanupAttempted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		using var cancellation = new CancellationTokenSource();
+		var sut = CreateSut(
+			archiveCheckpoint: ChunkSize,
+			retryInterval: TimeSpan.FromMinutes(1),
+			getChunk: chunkFile =>
+			{
+				var bytes = archive.CreateChunkBytes(chunkFile);
+				if (returnCorruptChunk)
+				{
+					bytes[ChunkHeader.Size] ^= byte.MaxValue;
+				}
+				return new MemoryStream(bytes);
+			},
+			deleteTempFile: _ =>
+			{
+				cleanupAttempted.TrySetResult();
+				throw new IOException("cleanup failed");
+			});
+		archive = sut.Archive;
+
+		var firstRun = sut.Catchup.Run(cancellation.Token);
+		await cleanupAttempted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		cancellation.Cancel();
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => firstRun);
+		Assert.Equal(0, sut.WriterCheckpoint.Read());
+
+		returnCorruptChunk = false;
+		await sut.Catchup.Run();
+
+		Assert.Equal(ChunkSize, sut.WriterCheckpoint.Read());
+	}
+
+	[Fact]
+	public async Task backs_off_when_a_listed_chunk_remains_missing()
+	{
+		var attempts = 0;
+		var secondAttempt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+		var sut = CreateSut(
+			archiveCheckpoint: ChunkSize,
+			retryInterval: TimeSpan.FromMinutes(1),
+			onGetChunk: _ =>
+			{
+				if (Interlocked.Increment(ref attempts) == 2)
+				{
+					secondAttempt.TrySetResult();
+				}
+
+				throw new ChunkDeletedException();
+			});
+
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sut.Catchup.Run(cancellation.Token));
+
+		Assert.False(secondAttempt.Task.IsCompleted);
+		Assert.Equal(1, attempts);
 	}
 
 	[Fact]
