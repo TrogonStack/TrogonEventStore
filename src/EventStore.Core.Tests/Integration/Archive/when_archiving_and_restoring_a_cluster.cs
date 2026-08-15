@@ -38,6 +38,7 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 
 	private readonly string _bucket = $"archive-soak-{Guid.NewGuid():N}";
 	private readonly ArchiveOptions _archiveOptions;
+	private bool _bucketCreated;
 	private AmazonS3Client _s3Client;
 	private S3Reader _archiveReader;
 	private long _archivedCheckpoint;
@@ -92,6 +93,7 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 				ForcePathStyle = true,
 			});
 		_s3Client.PutBucketAsync(new PutBucketRequest { BucketName = _bucket }).GetAwaiter().GetResult();
+		_bucketCreated = true;
 		var checkpointInitialized = new S3Writer(_archiveOptions.S3, ArchiveCheckpointFile)
 			.SetCheckpoint(0L, CancellationToken.None)
 			.AsTask()
@@ -262,13 +264,22 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 			return;
 		}
 
-		var objects = await _s3Client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = _bucket });
-		foreach (var item in objects.S3Objects ?? [])
+		try
 		{
-			await _s3Client.DeleteObjectAsync(_bucket, item.Key);
+			if (_bucketCreated)
+			{
+				var objects = await _s3Client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = _bucket });
+				foreach (var item in objects.S3Objects ?? [])
+				{
+					await _s3Client.DeleteObjectAsync(_bucket, item.Key);
+				}
+				await _s3Client.DeleteBucketAsync(_bucket);
+			}
 		}
-		await _s3Client.DeleteBucketAsync(_bucket);
-		_s3Client.Dispose();
+		finally
+		{
+			_s3Client.Dispose();
+		}
 	}
 
 	[Test]

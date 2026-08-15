@@ -78,4 +78,35 @@ public class S3MetricsTests : ArchiveStorageTestsBase<S3MetricsTests>
 		measurement.Tags.Any(tag =>
 			tag.Key == TrogonAttributeNames.ActivityOutcome && (string)tag.Value == outcome);
 }
+
+public class S3FixtureLifecycleTests : ArchiveStorageTestsBase<S3FixtureLifecycleTests>
+{
+	protected override StorageType StorageType => StorageType.S3;
+
+	[Fact]
+	public async Task teardown_does_not_access_a_bucket_that_setup_failed_to_create()
+	{
+		var failedFixture = new FailedBucketFixture();
+		await Assert.ThrowsAsync<Amazon.S3.AmazonS3Exception>(failedFixture.InitializeAsync);
+		await failedFixture.DisposeAsync();
+	}
+
+	private sealed class FailedBucketFixture : ArchiveStorageTestsBase<FailedBucketFixture>
+	{
+		protected override StorageType StorageType => StorageType.S3;
+
+		protected override S3Options CreateS3Options()
+		{
+			var options = base.CreateS3Options();
+			return new()
+			{
+				Bucket = options.Bucket,
+				Region = options.Region,
+				AccessKeyId = options.AccessKeyId,
+				SecretAccessKey = $"{options.SecretAccessKey}-invalid",
+				ServiceUrl = options.ServiceUrl,
+			};
+		}
+	}
+}
 #endif

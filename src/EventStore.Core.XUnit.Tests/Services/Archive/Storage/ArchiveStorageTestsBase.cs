@@ -16,6 +16,7 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 {
 	protected const string ChunkPrefix = "chunk-";
 	private readonly string _bucket = $"archive-contract-{Guid.NewGuid():N}";
+	private bool _bucketCreated;
 	private AmazonS3Client _s3Client;
 	protected string ArchivePath => Path.Combine(Fixture.Directory, "archive");
 	protected string DbPath => Path.Combine(Fixture.Directory, "db");
@@ -47,13 +48,14 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 			});
 
 		await _s3Client.PutBucketAsync(new PutBucketRequest { BucketName = options.Bucket });
+		_bucketCreated = true;
 	}
 
 	public override async Task DisposeAsync()
 	{
 		try
 		{
-			if (_s3Client is not null)
+			if (_bucketCreated)
 			{
 				var objects = await _s3Client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = _bucket });
 				foreach (var item in objects.S3Objects ?? [])
@@ -88,7 +90,7 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 		return factory;
 	}
 
-	private S3Options CreateS3Options() => new()
+	protected virtual S3Options CreateS3Options() => new()
 	{
 		Bucket = _bucket,
 		Region = GetRequiredEnvironmentVariable("EVENTSTORE_S3_TEST_REGION"),

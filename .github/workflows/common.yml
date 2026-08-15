@@ -169,7 +169,7 @@ jobs:
             -p:Platform=x64 \
             -p:ContinuousIntegrationBuild=true \
             -p:RunS3Tests=true \
-            --filter "FullyQualifiedName~S3ReaderTests|FullyQualifiedName~S3WriterTests|FullyQualifiedName~S3MetricsTests" \
+            --filter "FullyQualifiedName~S3ReaderTests|FullyQualifiedName~S3WriterTests|FullyQualifiedName~S3MetricsTests|FullyQualifiedName~S3FixtureLifecycleTests" \
             --logger:GitHubActions \
             src/EventStore.Core.XUnit.Tests/EventStore.Core.XUnit.Tests.csproj
 
