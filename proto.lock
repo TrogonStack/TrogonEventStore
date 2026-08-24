@@ -6222,18 +6222,18 @@
                 "fields": [
                   {
                     "id": 1,
-                    "name": "stream_position",
-                    "type": "uint64"
+                    "name": "timestamp",
+                    "type": "google.protobuf.Timestamp"
                   },
                   {
                     "id": 2,
-                    "name": "all_stream_position",
-                    "type": "event_store.client.AllStreamPosition"
+                    "name": "stream_revision",
+                    "type": "int64"
                   },
                   {
                     "id": 3,
-                    "name": "no_position",
-                    "type": "event_store.client.Empty"
+                    "name": "position",
+                    "type": "Position"
                   }
                 ]
               },
@@ -6242,18 +6242,18 @@
                 "fields": [
                   {
                     "id": 1,
-                    "name": "stream_position",
-                    "type": "uint64"
+                    "name": "timestamp",
+                    "type": "google.protobuf.Timestamp"
                   },
                   {
                     "id": 2,
-                    "name": "all_stream_position",
-                    "type": "event_store.client.AllStreamPosition"
+                    "name": "stream_revision",
+                    "type": "int64"
                   },
                   {
                     "id": 3,
-                    "name": "no_position",
-                    "type": "event_store.client.Empty"
+                    "name": "position",
+                    "type": "Position"
                   }
                 ]
               },
@@ -6346,6 +6346,21 @@
               },
               {
                 "name": "Checkpoint",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "commit_position",
+                    "type": "uint64"
+                  },
+                  {
+                    "id": 2,
+                    "name": "prepare_position",
+                    "type": "uint64"
+                  }
+                ]
+              },
+              {
+                "name": "Position",
                 "fields": [
                   {
                     "id": 1,

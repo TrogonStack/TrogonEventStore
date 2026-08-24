@@ -218,7 +218,7 @@ ReadLoop:
 					"Subscription {subscriptionId} to {streamName} caught up at checkpoint {streamRevision:N0}.",
 					_subscriptionId, _streamName, checkpoint);
 
-				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionCaughtUp(checkpoint), ct);
+				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionCaughtUp(checkpoint, DateTime.UtcNow), ct);
 			}
 
 			private async Task NotifyFellBehind(long checkpoint, CancellationToken ct)
@@ -227,7 +227,7 @@ ReadLoop:
 					"Subscription {subscriptionId} to {streamName} fell behind at checkpoint {streamRevision:N0}.",
 					_subscriptionId, _streamName, checkpoint);
 
-				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionFellBehind(checkpoint), ct);
+				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionFellBehind(checkpoint, DateTime.UtcNow), ct);
 			}
 
 			private async ValueTask<(long, ulong)> GoLive(long checkpoint, ulong sequenceNumber, CancellationToken ct)

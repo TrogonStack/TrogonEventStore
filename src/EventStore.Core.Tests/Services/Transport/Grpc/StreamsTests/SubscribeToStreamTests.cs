@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ public class SubscribeToStreamTests
 		private const string StreamId = nameof(when_subscribing_to_stream<TLogFormat, TStreamId>);
 		private readonly List<ReadResp> _responses = new();
 		private ulong _positionOfLastWrite;
+		private DateTime _subscriptionStartedAt;
 
 		public when_subscribing_to_stream() : base(new LotsOfExpiriesStrategy())
 		{
@@ -41,6 +43,7 @@ public class SubscribeToStreamTests
 
 		protected override async Task When()
 		{
+			_subscriptionStartedAt = DateTime.UtcNow;
 			using var call = StreamsClient.Read(new()
 			{
 				Options = new()
@@ -60,13 +63,9 @@ public class SubscribeToStreamTests
 			while (await call.ResponseStream.MoveNext())
 			{
 				var response = call.ResponseStream.Current;
-				if (response.ContentCase == ReadResp.ContentOneofCase.Event &&
-					_positionOfLastWrite == response.Event.Event.StreamRevision)
-				{
-					break;
-				}
-
 				_responses.Add(response);
+				if (response.ContentCase == ReadResp.ContentOneofCase.CaughtUp)
+					break;
 			}
 
 			// caught up, now add one more event
@@ -92,6 +91,21 @@ public class SubscribeToStreamTests
 		{
 			Assert.AreEqual(ReadResp.ContentOneofCase.Confirmation, _responses[0].ContentCase);
 			Assert.NotNull(_responses[0].Confirmation.SubscriptionId);
+		}
+
+		[Test]
+		public void caught_up_includes_the_stream_revision()
+		{
+			var caughtUp = _responses.Single(x => x.ContentCase == ReadResp.ContentOneofCase.CaughtUp).CaughtUp;
+			Assert.True(caughtUp.HasStreamRevision);
+			Assert.AreEqual((long)_positionOfLastWrite, caughtUp.StreamRevision);
+		}
+
+		[Test]
+		public void caught_up_includes_the_server_timestamp()
+		{
+			var caughtUp = _responses.Single(x => x.ContentCase == ReadResp.ContentOneofCase.CaughtUp).CaughtUp;
+			Assert.That(caughtUp.Timestamp.ToDateTime(), Is.InRange(_subscriptionStartedAt, DateTime.UtcNow));
 		}
 	}
 }
