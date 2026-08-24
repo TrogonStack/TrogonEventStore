@@ -17,6 +17,7 @@ using CountOptionOneofCase = EventStore.Client.Streams.ReadReq.Types.Options.Cou
 using FilterOptionOneofCase = EventStore.Client.Streams.ReadReq.Types.Options.FilterOptionOneofCase;
 using ReadDirection = EventStore.Client.Streams.ReadReq.Types.Options.Types.ReadDirection;
 using StreamOptionOneofCase = EventStore.Client.Streams.ReadReq.Types.Options.StreamOptionOneofCase;
+using Timestamp = Google.Protobuf.WellKnownTypes.Timestamp;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
@@ -314,56 +315,58 @@ internal partial class Streams<TStreamId>
 
 	private static ReadResp.Types.CaughtUp ToCaughtUp(ReadResponse.SubscriptionCaughtUp caughtUp)
 	{
-		var response = new ReadResp.Types.CaughtUp();
+		var response = new ReadResp.Types.CaughtUp
+		{
+			Timestamp = Timestamp.FromDateTime(caughtUp.Timestamp)
+		};
 		SetPosition(response, caughtUp.AllStreamPosition, caughtUp.StreamPosition);
 		return response;
 	}
 
 	private static ReadResp.Types.FellBehind ToFellBehind(ReadResponse.SubscriptionFellBehind fellBehind)
 	{
-		var response = new ReadResp.Types.FellBehind();
+		var response = new ReadResp.Types.FellBehind
+		{
+			Timestamp = Timestamp.FromDateTime(fellBehind.Timestamp)
+		};
 		SetPosition(response, fellBehind.AllStreamPosition, fellBehind.StreamPosition);
 		return response;
 	}
 
 	private static void SetPosition(ReadResp.Types.CaughtUp response, TFPos? allStreamPosition, long? streamPosition)
 	{
-		if (TrySetAllStreamPosition(allStreamPosition, position => response.AllStreamPosition = position))
+		if (TrySetAllStreamPosition(allStreamPosition, position => response.Position = position))
 		{
 			return;
 		}
 
-		if (TrySetStreamPosition(streamPosition, position => response.StreamPosition = position))
+		if (TrySetStreamPosition(streamPosition, position => response.StreamRevision = position))
 		{
 			return;
 		}
-
-		response.NoPosition = new Empty();
 	}
 
 	private static void SetPosition(ReadResp.Types.FellBehind response, TFPos? allStreamPosition, long? streamPosition)
 	{
-		if (TrySetAllStreamPosition(allStreamPosition, position => response.AllStreamPosition = position))
+		if (TrySetAllStreamPosition(allStreamPosition, position => response.Position = position))
 		{
 			return;
 		}
 
-		if (TrySetStreamPosition(streamPosition, position => response.StreamPosition = position))
+		if (TrySetStreamPosition(streamPosition, position => response.StreamRevision = position))
 		{
 			return;
 		}
-
-		response.NoPosition = new Empty();
 	}
 
-	private static bool TrySetAllStreamPosition(TFPos? position, Action<AllStreamPosition> setPosition)
+	private static bool TrySetAllStreamPosition(TFPos? position, Action<ReadResp.Types.Position> setPosition)
 	{
 		if (position is not { CommitPosition: >= 0, PreparePosition: >= 0 } allPosition)
 		{
 			return false;
 		}
 
-		setPosition(new AllStreamPosition
+		setPosition(new ReadResp.Types.Position
 		{
 			CommitPosition = (ulong)allPosition.CommitPosition,
 			PreparePosition = (ulong)allPosition.PreparePosition
@@ -372,14 +375,14 @@ internal partial class Streams<TStreamId>
 		return true;
 	}
 
-	private static bool TrySetStreamPosition(long? streamPosition, Action<ulong> setPosition)
+	private static bool TrySetStreamPosition(long? streamPosition, Action<long> setPosition)
 	{
 		if (streamPosition is not >= 0)
 		{
 			return false;
 		}
 
-		setPosition((ulong)streamPosition);
+		setPosition(streamPosition.Value);
 		return true;
 	}
 

@@ -1,3 +1,4 @@
+using System;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Transport.Common;
 
@@ -17,33 +18,39 @@ public abstract class ReadResponse
 
 	public class SubscriptionCaughtUp : ReadResponse
 	{
+		public readonly DateTime Timestamp;
 		public readonly TFPos? AllStreamPosition;
 		public readonly long? StreamPosition;
 
-		public SubscriptionCaughtUp(TFPos allStreamPosition)
+		public SubscriptionCaughtUp(TFPos allStreamPosition, DateTime timestamp)
 		{
 			AllStreamPosition = allStreamPosition;
+			Timestamp = timestamp;
 		}
 
-		public SubscriptionCaughtUp(long streamPosition)
+		public SubscriptionCaughtUp(long streamPosition, DateTime timestamp)
 		{
 			StreamPosition = streamPosition;
+			Timestamp = timestamp;
 		}
 	}
 
 	public class SubscriptionFellBehind : ReadResponse
 	{
+		public readonly DateTime Timestamp;
 		public readonly TFPos? AllStreamPosition;
 		public readonly long? StreamPosition;
 
-		public SubscriptionFellBehind(TFPos allStreamPosition)
+		public SubscriptionFellBehind(TFPos allStreamPosition, DateTime timestamp)
 		{
 			AllStreamPosition = allStreamPosition;
+			Timestamp = timestamp;
 		}
 
-		public SubscriptionFellBehind(long streamPosition)
+		public SubscriptionFellBehind(long streamPosition, DateTime timestamp)
 		{
 			StreamPosition = streamPosition;
+			Timestamp = timestamp;
 		}
 	}
 

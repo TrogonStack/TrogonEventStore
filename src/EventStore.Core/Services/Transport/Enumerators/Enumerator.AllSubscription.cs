@@ -202,7 +202,7 @@ ReadLoop:
 					"Subscription {subscriptionId} to $all caught up at checkpoint {position}.",
 					_subscriptionId, checkpoint);
 
-				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionCaughtUp(checkpoint), ct);
+				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionCaughtUp(checkpoint, DateTime.UtcNow), ct);
 			}
 
 			private async Task NotifyFellBehind(TFPos checkpoint, CancellationToken ct)
@@ -211,7 +211,7 @@ ReadLoop:
 					"Subscription {subscriptionId} to $all fell behind at checkpoint {position}.",
 					_subscriptionId, checkpoint);
 
-				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionFellBehind(checkpoint), ct);
+				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionFellBehind(checkpoint, DateTime.UtcNow), ct);
 			}
 
 			private async ValueTask<(TFPos, ulong)> GoLive(TFPos checkpoint, ulong sequenceNumber, CancellationToken ct)

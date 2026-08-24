@@ -104,19 +104,15 @@ message ReadResp {
 	}
 	
 	message CaughtUp {
-		oneof position {
-			uint64 stream_position = 1;
-			event_store.client.AllStreamPosition all_stream_position = 2;
-			event_store.client.Empty no_position = 3;
-		}
+		google.protobuf.Timestamp timestamp = 1;
+		optional int64 stream_revision = 2;
+		optional Position position = 3;
 	}
 
 	message FellBehind {
-		oneof position {
-			uint64 stream_position = 1;
-			event_store.client.AllStreamPosition all_stream_position = 2;
-			event_store.client.Empty no_position = 3;
-		}
+		google.protobuf.Timestamp timestamp = 1;
+		optional int64 stream_revision = 2;
+		optional Position position = 3;
 	}
 
 	message ReadEvent {
@@ -142,6 +138,10 @@ message ReadResp {
 		string subscription_id = 1;
 	}
 	message Checkpoint {
+		uint64 commit_position = 1;
+		uint64 prepare_position = 2;
+	}
+	message Position {
 		uint64 commit_position = 1;
 		uint64 prepare_position = 2;
 	}
