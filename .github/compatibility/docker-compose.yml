@@ -1,0 +1,21 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.154.0@sha256:b3079f45e19bdb7326bf49cdddce6cf60dfd865138db39f2733ea48ab17bc4cb
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    ports:
+      - "${TROGON_EVENTSTORE_COMPATIBILITY_OTLP_PORT:-4317}:4317"
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ./artifacts:/var/lib/otel
+
+  server:
+    image: eventstore
+    pull_policy: never
+    depends_on:
+      - collector
+    environment:
+      EVENTSTORE_INSECURE: "true"
+      EventStore__OpenTelemetry__Otlp__Endpoint: http://collector:4317
+      EventStore__OpenTelemetry__Traces__Enabled: "true"
+    ports:
+      - "127.0.0.1:${TROGON_EVENTSTORE_COMPATIBILITY_PORT:-2113}:2113"

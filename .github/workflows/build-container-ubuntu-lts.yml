@@ -62,12 +62,76 @@ jobs:
       test-group-name: ${{ matrix.test-group-name }}
     secrets: inherit
 
+  client-compatibility:
+    name: Client Compatibility
+    needs:
+      - build-images
+      - test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout server
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install task runner
+        uses: jdx/mise-action@v4.2.3
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
+      - name: Install net10.0
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup set profile minimal
+          rustup update stable
+          rustup default stable
+      - name: Resolve client revisions
+        id: clients
+        run: mise run --skip-tools github-actions:client-compatibility -- refs
+      - name: Checkout C# client
+        uses: actions/checkout@v7
+        with:
+          repository: TrogonStack/TrogonEventStore-Client-Dotnet
+          ref: ${{ steps.clients.outputs.dotnet }}
+          path: .github/compatibility/clients/dotnet
+          persist-credentials: false
+      - name: Checkout Rust client
+        uses: actions/checkout@v7
+        with:
+          repository: TrogonStack/TrogonEventStore-Client-Rust
+          ref: ${{ steps.clients.outputs.rust }}
+          path: .github/compatibility/clients/rust
+          persist-credentials: false
+      - name: Download server image
+        uses: actions/download-artifact@v8
+        with:
+          name: eventstore-image-noble-linux-x64
+      - name: Load server image
+        run: mise run --skip-tools github-actions:container -- load-runtime
+      - name: Run client compatibility gate
+        run: mise run --skip-tools github-actions:client-compatibility -- run
+      - name: Publish compatibility evidence
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: client-compatibility
+          path: .github/compatibility/artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+
   publish-image:
     name: Publish Image
     if: ${{ github.repository == 'TrogonStack/TrogonEventStore' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
     needs:
       - build-images
       - test
+      - client-compatibility
     permissions:
       contents: read
       packages: write

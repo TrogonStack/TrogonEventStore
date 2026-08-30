@@ -1,0 +1,17 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:
+  file:
+    path: /var/lib/otel/traces.json
+    format: json
+    flush_interval: 100ms
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [file]
