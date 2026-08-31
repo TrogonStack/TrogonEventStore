@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Security.Claims;
 using EventStore.Client.Messages;
 using EventStore.Common.Utils;
-using EventStore.Core.Helpers;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Storage.ReaderIndex;
@@ -93,10 +91,6 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		AddWrapper<ClientMessage.ScavengeDatabaseStartedResponse>(WrapScavengeDatabaseResponse, ClientVersion.V2);
 		AddWrapper<ClientMessage.ScavengeDatabaseUnauthorizedResponse>(WrapScavengeDatabaseResponse, ClientVersion.V2);
 
-		AddWrapper<ClientMessage.NotHandled>(WrapNotHandled, ClientVersion.V2);
-		AddUnwrapper(TcpCommand.NotHandled, UnwrapNotHandled, ClientVersion.V2);
-
-		AddWrapper<TcpMessage.NotAuthenticated>(WrapNotAuthenticated, ClientVersion.V2);
 		AddWrapper<TcpMessage.Authenticated>(WrapAuthenticated, ClientVersion.V2);
 	}
 
@@ -597,53 +591,6 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 
 		var dto = new ScavengeDatabaseResponse(result, scavengeId);
 		return new TcpPackage(TcpCommand.ScavengeDatabaseResponse, correlationId, dto.Serialize());
-	}
-
-	private ClientMessage.NotHandled UnwrapNotHandled(TcpPackage package, IEnvelope envelope)
-	{
-		var dto = package.Data.Deserialize<NotHandled>();
-		if (dto == null)
-		{
-			return null;
-		}
-
-		var reason = dto.Reason switch
-		{
-			NotHandled.Types.NotHandledReason.NotReady => ClientMessage.NotHandled.Types.NotHandledReason.NotReady,
-			NotHandled.Types.NotHandledReason.TooBusy => ClientMessage.NotHandled.Types.NotHandledReason.TooBusy,
-			NotHandled.Types.NotHandledReason.NotLeader => ClientMessage.NotHandled.Types.NotHandledReason.NotLeader,
-			NotHandled.Types.NotHandledReason.IsReadOnly => ClientMessage.NotHandled.Types.NotHandledReason.IsReadOnly,
-			_ => throw new ArgumentOutOfRangeException()
-		};
-		var leaderInfoDto = dto.AdditionalInfo switch
-		{
-			{ } ai => ai.ToByteArray().Deserialize<NotHandled.Types.LeaderInfo>(),
-			_ => null
-		};
-
-		var leaderInfo = leaderInfoDto switch
-		{
-			{ ExternalTcpAddress: { } } => new ClientMessage.NotHandled.Types.LeaderInfo(
-				new DnsEndPoint(leaderInfoDto.ExternalTcpAddress, leaderInfoDto.ExternalTcpPort), false,
-				new DnsEndPoint(leaderInfoDto.HttpAddress, leaderInfoDto.HttpPort)),
-			{ ExternalSecureTcpAddress: { } } => new ClientMessage.NotHandled.Types.LeaderInfo(
-				new DnsEndPoint(leaderInfoDto.ExternalSecureTcpAddress, leaderInfoDto.ExternalSecureTcpPort), true,
-				new DnsEndPoint(leaderInfoDto.HttpAddress, leaderInfoDto.HttpPort)),
-			_ => null
-		};
-		return new ClientMessage.NotHandled(package.CorrelationId, reason, leaderInfo);
-	}
-
-	private TcpPackage WrapNotHandled(ClientMessage.NotHandled msg)
-	{
-		var dto = new Client.Messages.NotHandled(msg);
-		return new TcpPackage(TcpCommand.NotHandled, msg.CorrelationId, dto.Serialize());
-	}
-
-	private TcpPackage WrapNotAuthenticated(TcpMessage.NotAuthenticated msg)
-	{
-		return new TcpPackage(TcpCommand.NotAuthenticated, msg.CorrelationId,
-			Helper.UTF8NoBom.GetBytes(msg.Reason ?? string.Empty));
 	}
 
 	private TcpPackage WrapAuthenticated(TcpMessage.Authenticated msg)

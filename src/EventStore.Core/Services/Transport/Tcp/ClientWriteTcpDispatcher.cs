@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
@@ -55,6 +56,12 @@ namespace EventStore.Core.Services.Transport.Tcp
 			AddWrapper<ClientMessage.DeleteStream>(WrapDeleteStream, ClientVersion.V2);
 			AddUnwrapper(TcpCommand.DeleteStreamCompleted, UnwrapDeleteStreamCompleted, ClientVersion.V2);
 			AddWrapper<ClientMessage.DeleteStreamCompleted>(WrapDeleteStreamCompleted, ClientVersion.V2);
+
+			AddUnwrapper(TcpCommand.NotHandled, UnwrapNotHandled, ClientVersion.V2);
+			AddWrapper<ClientMessage.NotHandled>(WrapNotHandled, ClientVersion.V2);
+
+			AddUnwrapper(TcpCommand.NotAuthenticated, UnwrapNotAuthenticated, ClientVersion.V2);
+			AddWrapper<TcpMessage.NotAuthenticated>(WrapNotAuthenticated, ClientVersion.V2);
 		}
 		private ClientMessage.WriteEvents UnwrapWriteEvents(TcpPackage package, IEnvelope envelope,
 			ClaimsPrincipal user)
@@ -380,5 +387,52 @@ namespace EventStore.Core.Services.Transport.Tcp
 				msg.CommitPosition);
 			return new TcpPackage(TcpCommand.DeleteStreamCompleted, msg.CorrelationId, dto.Serialize());
 		}
+
+		private static ClientMessage.NotHandled UnwrapNotHandled(TcpPackage package, IEnvelope envelope)
+		{
+			var dto = package.Data.Deserialize<NotHandled>();
+			if (dto == null)
+			{
+				return null;
+			}
+
+			var reason = dto.Reason switch
+			{
+				NotHandled.Types.NotHandledReason.NotReady => ClientMessage.NotHandled.Types.NotHandledReason.NotReady,
+				NotHandled.Types.NotHandledReason.TooBusy => ClientMessage.NotHandled.Types.NotHandledReason.TooBusy,
+				NotHandled.Types.NotHandledReason.NotLeader => ClientMessage.NotHandled.Types.NotHandledReason.NotLeader,
+				NotHandled.Types.NotHandledReason.IsReadOnly => ClientMessage.NotHandled.Types.NotHandledReason.IsReadOnly,
+				_ => ClientMessage.NotHandled.Types.NotHandledReason.NotReady
+			};
+			var leaderInfoDto = dto.AdditionalInfo.IsEmpty
+				? null
+				: dto.AdditionalInfo.ToByteArray().Deserialize<NotHandled.Types.LeaderInfo>();
+
+			var leaderInfo = leaderInfoDto switch
+			{
+				{ ExternalTcpAddress.Length: > 0 } => new ClientMessage.NotHandled.Types.LeaderInfo(
+					new DnsEndPoint(leaderInfoDto.ExternalTcpAddress, leaderInfoDto.ExternalTcpPort), false,
+					new DnsEndPoint(leaderInfoDto.HttpAddress, leaderInfoDto.HttpPort)),
+				{ ExternalSecureTcpAddress.Length: > 0 } => new ClientMessage.NotHandled.Types.LeaderInfo(
+					new DnsEndPoint(leaderInfoDto.ExternalSecureTcpAddress, leaderInfoDto.ExternalSecureTcpPort), true,
+					new DnsEndPoint(leaderInfoDto.HttpAddress, leaderInfoDto.HttpPort)),
+				_ => null
+			};
+			return new ClientMessage.NotHandled(package.CorrelationId, reason, leaderInfo);
+		}
+
+		private static TcpPackage WrapNotHandled(ClientMessage.NotHandled msg)
+		{
+			var dto = new Client.Messages.NotHandled(msg);
+			return new TcpPackage(TcpCommand.NotHandled, msg.CorrelationId, dto.Serialize());
+		}
+
+		private static TcpMessage.NotAuthenticated UnwrapNotAuthenticated(TcpPackage package, IEnvelope envelope) =>
+			new(package.CorrelationId,
+				Helper.UTF8NoBom.GetString(package.Data.Array, package.Data.Offset, package.Data.Count));
+
+		private static TcpPackage WrapNotAuthenticated(TcpMessage.NotAuthenticated msg) =>
+			new(TcpCommand.NotAuthenticated, msg.CorrelationId,
+				Helper.UTF8NoBom.GetBytes(msg.Reason ?? string.Empty));
 	}
 }

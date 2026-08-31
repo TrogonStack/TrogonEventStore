@@ -50,6 +50,7 @@ using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.TimerService;
 using EventStore.Core.Services.Transport.Grpc;
+using EventStore.Core.Services.Transport.Grpc.Replication;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.Services.Transport.Http.Authentication;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
@@ -207,6 +208,8 @@ public class ClusterVNode<TStreamId> :
 	private readonly Func<CancellationToken, Task> _start;
 	private readonly INodeHttpClientFactory _nodeHttpClientFactory;
 	private readonly EventStoreClusterClientCache _eventStoreClusterClientCache;
+	private readonly GrpcReplicaServiceSupervisor _grpcReplicaServiceSupervisor;
+	private readonly TcpRequestForwardingService _tcpRequestForwardingService;
 	private ThreadPoolBacklogMonitor _threadPoolBacklogMonitor;
 
 	private int _stopCalled;
@@ -1018,7 +1021,7 @@ public class ClusterVNode<TStreamId> :
 				{
 					var intTcpService = new TcpService(_mainQueue, NodeInfo.InternalTcp, _workersHandler,
 						TcpServiceType.Internal, TcpSecurityType.Normal,
-						new InternalTcpDispatcher(TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs)),
+						new TcpForwardingDispatcher(TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs)),
 						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
 						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
 						_authenticationProvider, authorizationGateway, null, null, null,
@@ -1034,7 +1037,7 @@ public class ClusterVNode<TStreamId> :
 				{
 					var intSecTcpService = new TcpService(_mainQueue, NodeInfo.InternalSecureTcp, _workersHandler,
 						TcpServiceType.Internal, TcpSecurityType.Secure,
-						new InternalTcpDispatcher(TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs)),
+						new TcpForwardingDispatcher(TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs)),
 						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
 						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
 						_authenticationProvider, authorizationGateway,
@@ -1131,6 +1134,7 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<SystemMessage.SystemStart>(forwardingService);
 		_mainBus.Subscribe<SystemMessage.RequestForwardingTimerTick>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.NotHandled>(forwardingService);
+		_mainBus.Subscribe<TcpMessage.NotAuthenticated>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.WriteEventsCompleted>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.TransactionStartCompleted>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.TransactionWriteCompleted>(forwardingService);
@@ -1542,7 +1546,6 @@ public class ClusterVNode<TStreamId> :
 
 		// LEADER REPLICATION
 		var leaderReplicationService = new LeaderReplicationService(_mainQueue, NodeInfo.InstanceId, Db,
-			_workersHandler,
 			epochManager, options.Cluster.ClusterSize,
 			options.Cluster.UnsafeAllowSurplusNodes,
 			_queueStatsManager);
@@ -1558,21 +1561,41 @@ public class ClusterVNode<TStreamId> :
 			_mainBus.Subscribe<ReplicationTrackingMessage.ReplicatedTo>(leaderReplicationService);
 			monitoringInnerBus.Subscribe<ReplicationMessage.GetReplicationStats>(leaderReplicationService);
 
-			// REPLICA REPLICATION
-			var replicaService = new ReplicaService(_mainQueue, Db, epochManager, _workersHandler,
-				_authenticationProvider, authorizationGateway,
-				GossipAdvertiseInfo.InternalTcp ?? GossipAdvertiseInfo.InternalSecureTcp,
-				options.Cluster.ReadOnlyReplica,
-				!disableInternalTcpTls, _internalServerCertificateValidator,
-				_certificateSelector,
-				TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
-				TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
-				TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs));
-			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(replicaService);
-			_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(replicaService);
-			_mainBus.Subscribe<ReplicationMessage.SubscribeToLeader>(replicaService);
-			_mainBus.Subscribe<ReplicationMessage.AckLogPosition>(replicaService);
-			_mainBus.Subscribe<ClientMessage.TcpForwardMessage>(replicaService);
+			_grpcReplicaServiceSupervisor = new GrpcReplicaServiceSupervisor(
+				_mainQueue,
+				new GrpcReplicaServiceFactory(
+					new ReplicationGrpcClientFactory(uriScheme, _nodeHttpClientFactory),
+					new ReplicaSubscriptionDataSource(Db, epochManager),
+					NodeInfo.InstanceId,
+					options.Cluster.ReadOnlyReplica
+						? ReplicaPromotability.NonPromotable
+						: ReplicaPromotability.Promotable),
+				GossipAdvertiseInfo.HttpEndPoint,
+				AddTask);
+			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(_grpcReplicaServiceSupervisor);
+			_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(_grpcReplicaServiceSupervisor);
+			_mainBus.Subscribe<ReplicationMessage.SubscribeToLeader>(_grpcReplicaServiceSupervisor);
+			_mainBus.Subscribe<ReplicationMessage.AckLogPosition>(_grpcReplicaServiceSupervisor);
+
+			_tcpRequestForwardingService = new TcpRequestForwardingService(
+				_mainQueue,
+				new TcpForwardingConnectionFactory(
+					_mainQueue,
+					_workersHandler,
+					_authenticationProvider,
+					authorizationGateway,
+					_internalServerCertificateValidator,
+					_certificateSelector,
+					new TcpForwardingConnectionSettings(
+						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
+						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
+						TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs))),
+				disableInternalTcpTls ? TcpForwardingTransport.Plaintext : TcpForwardingTransport.Tls,
+				TcpRequestForwardingService.DefaultReconnectDelay);
+			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(_tcpRequestForwardingService);
+			_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(_tcpRequestForwardingService);
+			_mainBus.Subscribe<ClientMessage.TcpForwardMessage>(_tcpRequestForwardingService);
+			_mainBus.Subscribe<TcpRequestForwardingMessage.Reconnect>(_tcpRequestForwardingService);
 		}
 		else
 		{
@@ -1774,6 +1797,7 @@ public class ClusterVNode<TStreamId> :
 			TelemetryServiceIdentity.ForComponent(options.GetComponentName()),
 			nodeInformationProvider,
 			options.Cluster.DiscoverViaDns ? options.Cluster.ClusterDns : null,
+			isSingleNode ? ReplicationAvailability.Unavailable : ReplicationAvailability.Available,
 			ConfigureNodeServices,
 			ConfigureNode);
 
@@ -2033,6 +2057,16 @@ public class ClusterVNode<TStreamId> :
 		_reloadConfigSignalRegistration = null;
 		_threadPoolBacklogMonitor?.Dispose();
 		_threadPoolBacklogMonitor = null;
+
+		if (_grpcReplicaServiceSupervisor is not null)
+		{
+			await _grpcReplicaServiceSupervisor.DisposeAsync();
+		}
+
+		if (_tcpRequestForwardingService is not null)
+		{
+			await _tcpRequestForwardingService.DisposeAsync();
+		}
 
 		foreach (var subsystem in _subsystems ?? [])
 		{

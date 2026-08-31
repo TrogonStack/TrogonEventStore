@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNext;
-using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.LogAbstraction;
@@ -14,11 +11,7 @@ using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Replication;
 using EventStore.Core.Services.Storage.EpochManager;
-using EventStore.Core.Services.Transport.Tcp;
-using EventStore.Core.Tests.Authentication;
-using EventStore.Core.Tests.Authorization;
 using EventStore.Core.Tests.Helpers;
-using EventStore.Core.Tests.Services.Transport.Tcp;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
@@ -31,14 +24,9 @@ namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 public abstract class
 	WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
-	private const int _connectionPendingSendBytesThreshold = 10 * 1024;
-	private const int _connectionQueueSizeThreshold = 50000;
-
 	protected int ClusterSize = 3;
 	protected SynchronousScheduler Publisher = new("publisher");
-	protected SynchronousScheduler TcpSendPublisher = new("tcpSend");
 	protected LeaderReplicationService Service;
-	protected ConcurrentQueue<TcpMessage.TcpSend> TcpSends = new ConcurrentQueue<TcpMessage.TcpSend>();
 	protected LogFormatAbstractor<TStreamId> _logFormat;
 	protected Guid LeaderId = Guid.NewGuid();
 
@@ -55,8 +43,6 @@ public abstract class
 		var indexDirectory = GetFilePathFor("index");
 		_logFormat =
 			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
-
-		TcpSendPublisher.Subscribe(new AdHocHandler<TcpMessage.TcpSend>(msg => TcpSends.Enqueue(msg)));
 
 		DbConfig = CreateDbConfig();
 		Db = new TFChunkDb(DbConfig);
@@ -83,7 +69,6 @@ public abstract class
 			Publisher,
 			LeaderId,
 			Db,
-			TcpSendPublisher,
 			EpochManager,
 			ClusterSize,
 			false,
@@ -112,24 +97,14 @@ public abstract class
 			null, DateTime.UtcNow);
 	}
 
-	public async ValueTask<(Guid, TcpConnectionManager)> AddSubscription(Guid replicaId, bool isPromotable,
+	public async ValueTask<(Guid, TestReplicationSession)> AddSubscription(Guid replicaId, bool isPromotable,
 		Epoch[] epochs, long logPosition, CancellationToken token = default)
 	{
-		var tcpConn = new DummyTcpConnection() { ConnectionId = replicaId };
-
-		var manager = new TcpConnectionManager(
-			"Test Subscription Connection manager", TcpServiceType.External, new ClientTcpDispatcher(2_000),
-			new SynchronousScheduler(), tcpConn, new SynchronousScheduler(),
-			new InternalAuthenticationProvider(InMemoryBus.CreateTest(),
-				new Core.Helpers.IODispatcher(new SynchronousScheduler(), new NoopEnvelope()),
-				new StubPasswordHashAlgorithm(), 1, false, DefaultData.DefaultUserOptions),
-			new AuthorizationGateway(new TestAuthorizationProvider()),
-			TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), (man, err) => { },
-			_connectionPendingSendBytesThreshold, _connectionQueueSizeThreshold);
+		var session = new TestReplicationSession(replicaId);
 		var subRequest = new ReplicationMessage.ReplicaSubscriptionRequest(
 			Guid.NewGuid(),
 			new NoopEnvelope(),
-			manager,
+			session,
 			ReplicationSubscriptionVersions.V_CURRENT,
 			logPosition,
 			Guid.NewGuid(),
@@ -140,24 +115,10 @@ public abstract class
 			isPromotable);
 		await Service.As<IAsyncHandle<ReplicationMessage.ReplicaSubscriptionRequest>>()
 			.HandleAsync(subRequest, token);
-		return (tcpConn.ConnectionId, manager);
+		return (session.ConnectionId, session);
 	}
 
 	public abstract Task When(CancellationToken token = default);
-
-	public TcpMessage.TcpSend[] GetTcpSendsFor(TcpConnectionManager connection)
-	{
-		var sentMessages = new List<TcpMessage.TcpSend>();
-		while (TcpSends.TryDequeue(out var msg))
-		{
-			if (msg.ConnectionManager == connection)
-			{
-				sentMessages.Add(msg);
-			}
-		}
-
-		return sentMessages.ToArray();
-	}
 
 	private TFChunkDbConfig CreateDbConfig()
 	{

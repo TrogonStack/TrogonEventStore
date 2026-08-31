@@ -8,19 +8,6 @@ namespace EventStore.Core.Services.Transport.Tcp
 		Ping = 0x03,
 		Pong = 0x04,
 
-		FollowerAssignment = 0x07,
-		CloneAssignment = 0x08,
-		DropSubscription = 0x09,
-
-		SubscribeReplica = 0x10,
-		ReplicaLogPositionAck = 0x11,
-		CreateChunk = 0x12,
-		RawChunkBulk = 0x13,
-		DataChunkBulk = 0x14,
-		ReplicaSubscriptionRetry = 0x15,
-		ReplicaSubscribed = 0x16,
-		LeaderReplicatedTo = 0x17,
-
 		// CLIENT COMMANDS
 		//        CreateStream = 0x80,
 		//        CreateStreamCompleted = 0x81,

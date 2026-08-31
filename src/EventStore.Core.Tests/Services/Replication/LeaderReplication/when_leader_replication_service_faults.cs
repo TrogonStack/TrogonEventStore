@@ -54,7 +54,6 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 				publisher,
 				leaderId,
 				db,
-				new SynchronousScheduler("tcpSend"),
 				new FakeEpochManager(),
 				clusterSize: 3,
 				unsafeAllowSurplusNodes: false,

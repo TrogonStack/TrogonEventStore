@@ -37,6 +37,7 @@ public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV1 :
 	{
 		_replicationLogPosition = 4000;
 		_writerLogPosition = 3000;
+		ReplicaSession1.SetSentReplicationPosition(_replicationLogPosition);
 		Service.Handle(
 			new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, _replicationLogPosition, _writerLogPosition));
 	}
@@ -49,5 +50,68 @@ public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV1 :
 
 		Assert.AreEqual(ReplicaId, commit.SubscriptionId);
 		Assert.AreEqual(_writerLogPosition, commit.ReplicationLogPosition);
+	}
+}
+
+[TestFixture]
+public class WhenReplicationServiceReceivesNegativeReplicaLogPositionAck : WithReplicationService
+{
+	public override void When() =>
+		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, -1, 0));
+
+	[Test]
+	public void acknowledgement_is_rejected_before_quorum_publication()
+	{
+		Assert.That(ReplicaWriteAcks, Is.Empty);
+		Assert.That(ReplicaSession1.IsClosed, Is.True);
+	}
+}
+
+[TestFixture]
+public class WhenReplicationServiceReceivesWriterAheadReplicaLogPositionAck : WithReplicationService
+{
+	public override void When() =>
+		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, 0, 1));
+
+	[Test]
+	public void acknowledgement_is_rejected_before_quorum_publication()
+	{
+		Assert.That(ReplicaWriteAcks, Is.Empty);
+		Assert.That(ReplicaSession1.IsClosed, Is.True);
+	}
+}
+
+[TestFixture]
+public class WhenReplicationServiceReceivesUnsentReplicaLogPositionAck : WithReplicationService
+{
+	public override void When()
+	{
+		ReplicaSession1.SetSentReplicationPosition(0);
+		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, 1, 0));
+	}
+
+	[Test]
+	public void acknowledgement_is_rejected_before_quorum_publication()
+	{
+		Assert.That(ReplicaWriteAcks, Is.Empty);
+		Assert.That(ReplicaSession1.IsClosed, Is.True);
+	}
+}
+
+[TestFixture]
+public class WhenReplicationServiceReceivesRegressingReplicaLogPositionAck : WithReplicationService
+{
+	public override void When()
+	{
+		ReplicaSession1.SetSentReplicationPosition(100);
+		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, 100, 90));
+		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, 99, 89));
+	}
+
+	[Test]
+	public void regressing_acknowledgement_is_rejected_before_another_quorum_publication()
+	{
+		Assert.That(ReplicaWriteAcks, Has.Exactly(1).Items);
+		Assert.That(ReplicaSession1.IsClosed, Is.True);
 	}
 }
