@@ -15,7 +15,9 @@ def attributes:
   | {
       service: $service,
       traceId,
+      spanId,
       name,
+      links: (.links // []),
       attributes: (.attributes | attributes)
     }
 ] as $spans
@@ -23,7 +25,28 @@ def attributes:
     traceId: .[0].traceId,
     services: (map(.service) | unique)
   })) as $traces
-| if any($spans[]; .service == "trogon-eventstore-client-dotnet") then .
+| def linked_receives($consumer; $producer):
+    [
+      $spans[]
+      | select(
+          .service == $consumer
+          and .attributes["messaging.operation.type"] == "receive"
+          and any(.links[]?;
+            . as $link
+            | any($spans[];
+                .service == $producer
+                and (
+                  ($producer == "trogon-eventstore-client-dotnet"
+                    and .attributes["db.operation.name"] == "append")
+                  or ($producer == "trogon-eventstore-client-rust"
+                    and (.attributes["db.operation.name"] == "append_to_stream"
+                      or .attributes["db.operation.name"] == "batch_append_to_stream"))
+                )
+                and .traceId == $link.traceId
+                and .spanId == $link.spanId))
+        )
+    ];
+  if any($spans[]; .service == "trogon-eventstore-client-dotnet") then .
   else error("missing C# client spans") end
 | if any($spans[]; .service == "trogon-eventstore-client-rust") then .
   else error("missing Rust client spans") end
@@ -45,10 +68,10 @@ def attributes:
     .service == "trogon-eventstore-client-rust"
     and .attributes["messaging.system"] == "trogoneventstore") then .
   else error("missing Rust messaging semantic convention attributes") end
-| if any($traces[];
-    (.services | index("trogon-eventstore-client-dotnet"))
-    and (.services | index("trogon-eventstore-client-rust"))) then .
-  else error("client consumer traces do not continue the producing client trace") end
+| if (linked_receives("trogon-eventstore-client-dotnet"; "trogon-eventstore-client-rust") | length) > 0 then .
+  else error("C# client receive spans do not link to the Rust creation context") end
+| if (linked_receives("trogon-eventstore-client-rust"; "trogon-eventstore-client-dotnet") | length) > 0 then .
+  else error("Rust client receive spans do not link to the C# creation context") end
 | if any($traces[];
     (.services | index("trogon-eventstore-client-dotnet"))
     and (.services | index("eventstore"))) then .
@@ -60,12 +83,8 @@ def attributes:
 | {
     spans: ($spans | length),
     services: ($spans | map(.service) | unique),
-    sharedClientTraces: (
-      $traces
-      | map(select(
-          (.services | index("trogon-eventstore-client-dotnet"))
-          and (.services | index("trogon-eventstore-client-rust"))
-        ))
-      | length
+    linkedClientReceives: (
+      (linked_receives("trogon-eventstore-client-dotnet"; "trogon-eventstore-client-rust") | length)
+      + (linked_receives("trogon-eventstore-client-rust"; "trogon-eventstore-client-dotnet") | length)
     )
   }
