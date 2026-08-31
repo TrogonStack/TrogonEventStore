@@ -11,16 +11,18 @@ resolve_ref() {
 	client=$1
 	ref=$(jq -er --arg client "$client" '.[$client]' "$config")
 	case "$ref" in
+	main)
+		;;
 	????????????????????????????????????????)
 		case "$ref" in
 		*[!0-9a-f]*)
-			echo "Client revision for $client is not a full commit SHA" >&2
+			echo "Client revision for $client is not main or a full lowercase commit SHA" >&2
 			exit 1
 			;;
 		esac
 		;;
 	*)
-		echo "Client revision for $client is not a full commit SHA" >&2
+		echo "Client revision for $client is not main or a full lowercase commit SHA" >&2
 		exit 1
 		;;
 	esac
