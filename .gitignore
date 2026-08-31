@@ -475,3 +475,5 @@ MigrationBackup/
 certs/
 /es-gencert-cli
 .temp/
+/.github/compatibility/artifacts/
+/.github/compatibility/clients/

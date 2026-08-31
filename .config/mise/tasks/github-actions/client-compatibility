@@ -1,0 +1,223 @@
+#!/bin/sh
+#MISE description="Run the cross-client compatibility gate"
+
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../../../.." && pwd)
+phase=${1:?client compatibility phase is required}
+config="$root/.github/compatibility/clients.json"
+
+resolve_ref() {
+	client=$1
+	ref=$(jq -er --arg client "$client" '.[$client]' "$config")
+	case "$ref" in
+	????????????????????????????????????????)
+		case "$ref" in
+		*[!0-9a-f]*)
+			echo "Client revision for $client is not a full commit SHA" >&2
+			exit 1
+			;;
+		esac
+		;;
+	*)
+		echo "Client revision for $client is not a full commit SHA" >&2
+		exit 1
+		;;
+	esac
+	printf '%s=%s\n' "$client" "$ref" >>"${GITHUB_OUTPUT:?GITHUB_OUTPUT is required}"
+}
+
+case "$phase" in
+refs)
+	resolve_ref dotnet
+	resolve_ref rust
+	;;
+run)
+	compatibility_dir="$root/.github/compatibility"
+	dotnet_root=${TROGON_EVENTSTORE_DOTNET_ROOT:-$compatibility_dir/clients/dotnet}
+	rust_root=${TROGON_EVENTSTORE_RUST_ROOT:-$compatibility_dir/clients/rust}
+	dotnet_project="$dotnet_root/compatibility/TrogonEventStore.Client.Compatibility/TrogonEventStore.Client.Compatibility.csproj"
+	rust_manifest="$rust_root/Cargo.toml"
+	artifacts="$compatibility_dir/artifacts"
+	server_port=${TROGON_EVENTSTORE_COMPATIBILITY_PORT:-2113}
+	otlp_port=${TROGON_EVENTSTORE_COMPATIBILITY_OTLP_PORT:-4317}
+	server_uri="esdb://admin:changeit@127.0.0.1:$server_port?tls=false"
+	otlp_endpoint=http://127.0.0.1:$otlp_port
+	run_id=${TROGON_EVENTSTORE_RUN_ID:-compatibility-$(date +%s)}
+	compose="docker compose -f $compatibility_dir/docker-compose.yml"
+
+	test -f "$dotnet_project"
+	test -f "$rust_manifest"
+	rm -rf "$artifacts"
+	mkdir -p "$artifacts"
+	chmod 0777 "$artifacts"
+
+	mise exec -- dotnet build "$dotnet_project" --configuration Release
+	mise exec -- cargo test \
+		--manifest-path "$rust_manifest" \
+		--package trogon-eventstore \
+		--test compatibility \
+		--no-run
+
+	cleanup() {
+		$compose down --volumes --remove-orphans
+	}
+	trap cleanup EXIT HUP INT TERM
+	$compose up --detach
+
+	for attempt in $(seq 1 60); do
+		if curl --silent --fail "http://127.0.0.1:$server_port/-/readiness" >/dev/null; then
+			break
+		fi
+		if [ "$attempt" -eq 60 ]; then
+			$compose logs server collector
+			exit 1
+		fi
+		sleep 1
+	done
+
+	run_dotnet() {
+		command=$1
+		stream=$2
+		group=${3-}
+		ready_file=${4-}
+		TROGON_EVENTSTORE_URI="$server_uri" \
+		TROGON_EVENTSTORE_RUN_ID="$run_id" \
+		TROGON_EVENTSTORE_READY_FILE="$ready_file" \
+		OTEL_EXPORTER_OTLP_ENDPOINT="$otlp_endpoint" \
+			mise exec -- dotnet run \
+				--no-build \
+				--project "$dotnet_project" \
+				--configuration Release \
+				-- "$command" "$stream" ${group:+"$group"}
+	}
+
+	run_rust() {
+		command=$1
+		stream=$2
+		group=${3-}
+		ready_file=${4-}
+		TROGON_EVENTSTORE_URI="$server_uri" \
+		TROGON_EVENTSTORE_RUN_ID="$run_id" \
+		TROGON_EVENTSTORE_STREAM="$stream" \
+		TROGON_EVENTSTORE_GROUP="$group" \
+		TROGON_EVENTSTORE_COMMAND="$command" \
+		TROGON_EVENTSTORE_READY_FILE="$ready_file" \
+		OTEL_EXPORTER_OTLP_ENDPOINT="$otlp_endpoint" \
+			mise exec -- cargo test \
+				--manifest-path "$rust_manifest" \
+				--package trogon-eventstore \
+				--test compatibility \
+				cross_client_compatibility \
+				-- --exact --ignored --nocapture
+	}
+
+	assert_result() {
+		result_file=$1
+		command=$2
+		producer=$3
+		sed -n '/^{.*}$/p' "$result_file" | jq -e -s \
+			--arg command "$command" \
+			--arg producer "$producer" \
+			--arg run_id "$run_id" \
+			'any(.[]; .command == $command and .producer == $producer and .runId == $run_id)' \
+			>/dev/null
+	}
+
+	wait_until_ready() {
+		ready_file=$1
+		process_id=$2
+		output_file=$3
+		for attempt in $(seq 1 150); do
+			if [ -f "$ready_file" ]; then
+				return
+			fi
+			if ! kill -0 "$process_id" 2>/dev/null; then
+				wait "$process_id" || true
+				cat "$output_file"
+				exit 1
+			fi
+			sleep 0.2
+		done
+		cat "$output_file"
+		exit 1
+	}
+
+	dotnet_to_rust="$run_id-dotnet-to-rust"
+	rust_to_dotnet="$run_id-rust-to-dotnet"
+	dotnet_batch_to_rust="$run_id-dotnet-batch-to-rust"
+	rust_batch_to_dotnet="$run_id-rust-batch-to-dotnet"
+
+	run_dotnet write "$dotnet_to_rust" >"$artifacts/dotnet-write.json"
+	run_rust read "$dotnet_to_rust" >"$artifacts/rust-read.log" 2>&1
+	assert_result "$artifacts/rust-read.log" read dotnet
+
+	run_rust write "$rust_to_dotnet" >"$artifacts/rust-write.log" 2>&1
+	run_dotnet read "$rust_to_dotnet" >"$artifacts/dotnet-read.json"
+	assert_result "$artifacts/dotnet-read.json" read rust
+
+	run_dotnet batch-write "$dotnet_batch_to_rust" >"$artifacts/dotnet-batch-write.json"
+	run_rust read "$dotnet_batch_to_rust" >"$artifacts/rust-read-batch.log" 2>&1
+	assert_result "$artifacts/rust-read-batch.log" read dotnet
+
+	run_rust batch-write "$rust_batch_to_dotnet" >"$artifacts/rust-batch-write.log" 2>&1
+	run_dotnet read "$rust_batch_to_dotnet" >"$artifacts/dotnet-read-batch.json"
+	assert_result "$artifacts/dotnet-read-batch.json" read rust
+
+	dotnet_to_rust_subscription="$run_id-dotnet-to-rust-subscription"
+	rust_subscription_ready="$artifacts/rust-subscription.ready"
+	run_rust subscribe "$dotnet_to_rust_subscription" "" "$rust_subscription_ready" \
+		>"$artifacts/rust-subscribe.log" 2>&1 &
+	rust_subscription_pid=$!
+	wait_until_ready "$rust_subscription_ready" "$rust_subscription_pid" "$artifacts/rust-subscribe.log"
+	run_dotnet write "$dotnet_to_rust_subscription" >"$artifacts/dotnet-subscription-write.json"
+	wait "$rust_subscription_pid"
+	assert_result "$artifacts/rust-subscribe.log" subscribe dotnet
+
+	rust_to_dotnet_subscription="$run_id-rust-to-dotnet-subscription"
+	dotnet_subscription_ready="$artifacts/dotnet-subscription.ready"
+	run_dotnet subscribe "$rust_to_dotnet_subscription" "" "$dotnet_subscription_ready" \
+		>"$artifacts/dotnet-subscribe.json" 2>&1 &
+	dotnet_subscription_pid=$!
+	wait_until_ready "$dotnet_subscription_ready" "$dotnet_subscription_pid" "$artifacts/dotnet-subscribe.json"
+	run_rust write "$rust_to_dotnet_subscription" >"$artifacts/rust-subscription-write.log" 2>&1
+	wait "$dotnet_subscription_pid"
+	assert_result "$artifacts/dotnet-subscribe.json" subscribe rust
+
+	dotnet_to_rust_persistent="$run_id-dotnet-to-rust-persistent"
+	dotnet_to_rust_group="$run_id-dotnet-to-rust-group"
+	run_dotnet create-persistent-subscription "$dotnet_to_rust_persistent" "$dotnet_to_rust_group" \
+		>"$artifacts/dotnet-create-persistent.json"
+	rust_persistent_ready="$artifacts/rust-persistent.ready"
+	run_rust consume-persistent-subscription "$dotnet_to_rust_persistent" "$dotnet_to_rust_group" "$rust_persistent_ready" \
+		>"$artifacts/rust-consume-persistent.log" 2>&1 &
+	rust_persistent_pid=$!
+	wait_until_ready "$rust_persistent_ready" "$rust_persistent_pid" "$artifacts/rust-consume-persistent.log"
+	run_dotnet write "$dotnet_to_rust_persistent" >"$artifacts/dotnet-persistent-write.json"
+	wait "$rust_persistent_pid"
+	assert_result "$artifacts/rust-consume-persistent.log" consume-persistent-subscription dotnet
+
+	rust_to_dotnet_persistent="$run_id-rust-to-dotnet-persistent"
+	rust_to_dotnet_group="$run_id-rust-to-dotnet-group"
+	run_rust create-persistent-subscription "$rust_to_dotnet_persistent" "$rust_to_dotnet_group" \
+		>"$artifacts/rust-create-persistent.log" 2>&1
+	dotnet_persistent_ready="$artifacts/dotnet-persistent.ready"
+	run_dotnet consume-persistent-subscription "$rust_to_dotnet_persistent" "$rust_to_dotnet_group" "$dotnet_persistent_ready" \
+		>"$artifacts/dotnet-consume-persistent.json" 2>&1 &
+	dotnet_persistent_pid=$!
+	wait_until_ready "$dotnet_persistent_ready" "$dotnet_persistent_pid" "$artifacts/dotnet-consume-persistent.json"
+	run_rust write "$rust_to_dotnet_persistent" >"$artifacts/rust-persistent-write.log" 2>&1
+	wait "$dotnet_persistent_pid"
+	assert_result "$artifacts/dotnet-consume-persistent.json" consume-persistent-subscription rust
+
+	sleep 6
+	test -s "$artifacts/traces.json"
+	jq -s -f "$compatibility_dir/verify-telemetry.jq" "$artifacts/traces.json" \
+		>"$artifacts/telemetry-summary.json"
+	cat "$artifacts/telemetry-summary.json"
+	;;
+*)
+	echo "Unsupported client compatibility phase: $phase" >&2
+	exit 2
+	;;
+esac
