@@ -102,7 +102,9 @@ public class GrpcReplicaServiceFactoryTests
 		public RecordingHttpMessageHandler Handler { get; } = new();
 		public string[] AdditionalCertificateNames { get; private set; }
 
-		public HttpClient CreateHttpClient(string[] additionalCertificateNames)
+		public HttpClient CreateHttpClient(
+			string[] additionalCertificateNames,
+			Action<SocketsHttpHandler> configureSocketsHttpHandler = null)
 		{
 			AdditionalCertificateNames = additionalCertificateNames;
 			return new HttpClient(Handler);

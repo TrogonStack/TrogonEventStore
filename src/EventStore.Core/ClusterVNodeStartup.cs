@@ -13,6 +13,7 @@ using EventStore.Core.Messages;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Grpc.Cluster;
+using EventStore.Core.Services.Transport.Grpc.Forwarding;
 using EventStore.Core.Services.Transport.Grpc.Replication;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.TransactionLog.Chunks;
@@ -180,6 +181,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			ep.MapGrpcService<NodeInformation>();
 			ep.MapGrpcService<ServerFeatures>();
 			ep.MapGrpcService<ReplicationService>();
+			ep.MapGrpcService<ForwardingService>();
 
 			// enable redaction service on unix sockets only
 			ep.MapGrpcService<Redaction>().AddEndpointFilter(async (c, next) =>
@@ -238,6 +240,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				_mainQueue,
 				_authorizationProvider,
 				availability: _replicationAvailability))
+			.AddSingleton(new ForwardingService(
+				_mainQueue,
+				_authorizationProvider,
+				_authenticationProvider))
 
 			.AddOpenTelemetry()
 			.WithMetrics(meterOptions => ConfigureMetrics(
@@ -280,6 +286,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				}
 			})
 			.AddServiceOptions<Streams<TStreamId>>(options =>
+				options.MaxReceiveMessageSize = TFConsts.EffectiveMaxLogRecordSize)
+			.AddServiceOptions<ForwardingService>(options =>
 				options.MaxReceiveMessageSize = TFConsts.EffectiveMaxLogRecordSize)
 			.Services
 			.AddHealthChecks()

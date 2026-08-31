@@ -82,6 +82,7 @@ public class LegacyPolicySelectorFactory(
 		policy.Add(Operations.Node.Gossip.Update, isSystem);
 		policy.Add(Operations.Node.Gossip.Read, isSystem);
 		policy.Add(ReplicationOperations.Connect, isSystem);
+		policy.Add(ForwardingOperations.Connect, isSystem);
 
 		policy.AddMatchAnyAssertion(Operations.Node.Shutdown, Grant.Allow, OperationsOrAdmins);
 		policy.AddMatchAnyAssertion(Operations.Node.ReloadConfiguration, Grant.Allow, OperationsOrAdmins);

@@ -1095,7 +1095,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			return ValueTask.FromException(ex);
 		}
 
-		return _outputBus.DispatchAsync(new ClientMessage.TcpForwardMessage(msg), token);
+		return _outputBus.DispatchAsync(new ClientMessage.ForwardMessage(msg), token);
 	}
 
 	private void DenyRequestBecauseNotLeader(Guid correlationId, IEnvelope envelope)

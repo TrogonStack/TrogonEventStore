@@ -66,7 +66,7 @@ public class CompositeAuthenticationProvider(IReadOnlyList<IAuthenticationProvid
 
 	private static string SelectScheme(AuthenticationRequest authenticationRequest)
 	{
-		if (!string.IsNullOrWhiteSpace(authenticationRequest.GetToken("jwt")))
+		if (!string.IsNullOrWhiteSpace(authenticationRequest.GetToken(AuthenticationTokenKeys.Jwt)))
 		{
 			return "Bearer";
 		}

@@ -13,12 +13,14 @@ public class NodeHttpClientFactory(
 	Func<X509Certificate> clientCertificateSelector) : INodeHttpClientFactory
 {
 
-	public HttpClient CreateHttpClient(string[] additionalCertificateNames)
+	public HttpClient CreateHttpClient(
+		string[] additionalCertificateNames,
+		Action<SocketsHttpHandler> configureSocketsHttpHandler = null)
 	{
-		HttpMessageHandler httpMessageHandler;
+		SocketsHttpHandler socketsHttpHandler;
 		if (uriScheme == Uri.UriSchemeHttps)
 		{
-			var socketsHttpHandler = new SocketsHttpHandler
+			socketsHttpHandler = new SocketsHttpHandler
 			{
 				SslOptions = {
 					CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
@@ -36,14 +38,13 @@ public class NodeHttpClientFactory(
 				},
 				PooledConnectionLifetime = ESConsts.HttpClientConnectionLifeTime
 			};
-
-			httpMessageHandler = socketsHttpHandler;
 		}
 		else
 		{
-			httpMessageHandler = new SocketsHttpHandler();
+			socketsHttpHandler = new SocketsHttpHandler();
 		}
 
-		return new HttpClient(httpMessageHandler);
+		configureSocketsHttpHandler?.Invoke(socketsHttpHandler);
+		return new HttpClient(socketsHttpHandler);
 	}
 }
