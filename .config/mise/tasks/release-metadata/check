@@ -40,6 +40,13 @@ fi
 
 git -C "$root" cat-file -e "$bootstrap_sha^{commit}"
 
+release_subjects=$(git -C "$root" log --format=%s "$bootstrap_sha..HEAD")
+if ! printf '%s\n' "$release_subjects" |
+	grep -Eq '^(feat|fix)(\([A-Za-z0-9][A-Za-z0-9._/-]*\))?!?: .+'; then
+	echo "The release bootstrap range must contain a release-driving conventional commit." >&2
+	exit 1
+fi
+
 jq -e '
 	.packages["."]."release-type" == "simple" and
 	.packages["."]."include-component-in-tag" == false and
