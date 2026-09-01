@@ -76,7 +76,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install task runner
-        uses: jdx/mise-action@v4.2.3
+        uses: jdx/mise-action@v4.3.0
         with:
           version: 2026.8.2
           install: false
