@@ -5,6 +5,7 @@ using System.Net;
 using System.Security.Claims;
 using System.Threading;
 using EventStore.Common.Utils;
+using EventStore.Core.Authentication;
 using EventStore.Core.Data;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
@@ -58,8 +59,8 @@ public static partial class ClientMessage
 		public readonly bool RequireLeader;
 
 		public readonly ClaimsPrincipal User;
-		public string Login => Tokens?.GetValueOrDefault("uid");
-		public string Password => Tokens?.GetValueOrDefault("pwd");
+		public string Login => Tokens?.GetValueOrDefault(AuthenticationTokenKeys.Username);
+		public string Password => Tokens?.GetValueOrDefault(AuthenticationTokenKeys.Password);
 		public readonly IReadOnlyDictionary<string, string> Tokens;
 
 		protected WriteRequestMessage(Guid internalCorrId,
@@ -150,11 +151,11 @@ public static partial class ClientMessage
 	}
 
 	[DerivedMessage(CoreMessage.Client)]
-	public partial class TcpForwardMessage : Message
+	public partial class ForwardMessage : Message
 	{
 		public readonly Message Message;
 
-		public TcpForwardMessage(Message message)
+		public ForwardMessage(Message message)
 		{
 			Ensure.NotNull(message, "message");
 
@@ -356,8 +357,8 @@ public static partial class ClientMessage
 
 		public TransactionStart(Guid internalCorrId, Guid correlationId, IEnvelope envelope, bool requireLeader,
 			string eventStreamId, long expectedVersion, ClaimsPrincipal user,
-			IReadOnlyDictionary<string, string> tokens = null)
-			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, CancellationToken.None)
+			IReadOnlyDictionary<string, string> tokens = null, CancellationToken cancellationToken = default)
+			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, cancellationToken)
 		{
 			Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
 			if (expectedVersion < Data.ExpectedVersion.MinValue ||
@@ -402,8 +403,9 @@ public static partial class ClientMessage
 		public readonly Event[] Events;
 
 		public TransactionWrite(Guid internalCorrId, Guid correlationId, IEnvelope envelope, bool requireLeader,
-			long transactionId, Event[] events, ClaimsPrincipal user, IReadOnlyDictionary<string, string> tokens = null)
-			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, CancellationToken.None)
+			long transactionId, Event[] events, ClaimsPrincipal user, IReadOnlyDictionary<string, string> tokens = null,
+			CancellationToken cancellationToken = default)
+			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, cancellationToken)
 		{
 			Ensure.Nonnegative(transactionId, "transactionId");
 			Ensure.NotNull(events, "events");
@@ -442,8 +444,9 @@ public static partial class ClientMessage
 		public readonly long TransactionId;
 
 		public TransactionCommit(Guid internalCorrId, Guid correlationId, IEnvelope envelope, bool requireLeader,
-			long transactionId, ClaimsPrincipal user, IReadOnlyDictionary<string, string> tokens = null)
-			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, CancellationToken.None)
+			long transactionId, ClaimsPrincipal user, IReadOnlyDictionary<string, string> tokens = null,
+			CancellationToken cancellationToken = default)
+			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, cancellationToken)
 		{
 			Ensure.Nonnegative(transactionId, "transactionId");
 			TransactionId = transactionId;
@@ -508,7 +511,8 @@ public static partial class ClientMessage
 
 		private TransactionCommitCompleted(Guid correlationId, long transactionId, OperationResult result,
 			string message,
-			long firstEventNumber, long lastEventNumber, IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures)
+			long firstEventNumber, long lastEventNumber, long preparePosition, long commitPosition,
+			IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures)
 		{
 			CorrelationId = correlationId;
 			TransactionId = transactionId;
@@ -516,13 +520,15 @@ public static partial class ClientMessage
 			Message = message;
 			FirstEventNumber = firstEventNumber;
 			LastEventNumber = lastEventNumber;
+			PreparePosition = preparePosition;
+			CommitPosition = commitPosition;
 			ConsistencyCheckFailures = consistencyCheckFailures ?? Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		public TransactionCommitCompleted WithCorrelationId(Guid newCorrId)
 		{
 			return new TransactionCommitCompleted(newCorrId, TransactionId, Result, Message, FirstEventNumber,
-				LastEventNumber, ConsistencyCheckFailures);
+				LastEventNumber, PreparePosition, CommitPosition, ConsistencyCheckFailures);
 		}
 	}
 

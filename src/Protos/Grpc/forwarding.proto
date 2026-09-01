@@ -1,0 +1,197 @@
+syntax = "proto3";
+
+package event_store.forwarding;
+
+import "google/protobuf/empty.proto";
+import "shared.proto";
+
+service RequestForwarding {
+	rpc Forward (stream FollowerFrame) returns (stream LeaderFrame);
+}
+
+message FollowerFrame {
+	oneof payload {
+		OpenSession open = 1;
+		ForwardRequest request = 2;
+	}
+}
+
+message LeaderFrame {
+	ForwardResponse response = 1;
+}
+
+message OpenSession {
+	event_store.client.UUID follower_instance_id = 1;
+	event_store.client.UUID session_id = 2;
+	int64 connection_generation = 3;
+}
+
+message ForwardRequest {
+	event_store.client.UUID request_id = 1;
+	ForwardedIdentity identity = 2;
+	oneof payload {
+		WriteEvents write_events = 3;
+		TransactionStart transaction_start = 4;
+		TransactionWrite transaction_write = 5;
+		TransactionCommit transaction_commit = 6;
+		DeleteStream delete_stream = 7;
+	}
+}
+
+message ForwardedIdentity {
+	oneof identity {
+		google.protobuf.Empty trusted_system = 1;
+		string bearer_token = 2;
+		UserPassword user_password = 3;
+		google.protobuf.Empty anonymous = 4;
+	}
+}
+
+message UserPassword {
+	string username = 1;
+	string password = 2;
+}
+
+message ForwardResponse {
+	event_store.client.UUID request_id = 1;
+	oneof payload {
+		WriteEventsCompleted write_events = 2;
+		TransactionStartCompleted transaction_start = 3;
+		TransactionWriteCompleted transaction_write = 4;
+		TransactionCommitCompleted transaction_commit = 5;
+		DeleteStreamCompleted delete_stream = 6;
+		NotHandled not_handled = 7;
+		NotAuthenticated not_authenticated = 8;
+	}
+}
+
+message Event {
+	event_store.client.UUID event_id = 1;
+	string event_type = 2;
+	bool is_json = 3;
+	bytes data = 4;
+	bytes metadata = 5;
+	bool is_property_metadata = 6;
+}
+
+message WriteEvents {
+	string event_stream_id = 1;
+	int64 expected_version = 2;
+	repeated Event events = 3;
+	bool require_leader = 4;
+}
+
+message TransactionStart {
+	string event_stream_id = 1;
+	int64 expected_version = 2;
+	bool require_leader = 3;
+}
+
+message TransactionWrite {
+	int64 transaction_id = 1;
+	repeated Event events = 2;
+	bool require_leader = 3;
+}
+
+message TransactionCommit {
+	int64 transaction_id = 1;
+	bool require_leader = 2;
+}
+
+message DeleteStream {
+	string event_stream_id = 1;
+	int64 expected_version = 2;
+	bool hard_delete = 3;
+	bool require_leader = 4;
+}
+
+enum OperationResult {
+	Success = 0;
+	PrepareTimeout = 1;
+	CommitTimeout = 2;
+	ForwardTimeout = 3;
+	WrongExpectedVersion = 4;
+	StreamDeleted = 5;
+	InvalidTransaction = 6;
+	AccessDenied = 7;
+}
+
+message ConsistencyCheckFailure {
+	int32 stream_index = 1;
+	int64 expected_version = 2;
+	int64 current_version = 3;
+	optional bool is_soft_deleted = 4;
+}
+
+message WriteEventsCompleted {
+	OperationResult result = 1;
+	string message = 2;
+	int64 first_event_number = 3;
+	int64 last_event_number = 4;
+	int64 prepare_position = 5;
+	int64 commit_position = 6;
+	int64 current_version = 7;
+	repeated ConsistencyCheckFailure consistency_check_failures = 8;
+}
+
+message TransactionStartCompleted {
+	int64 transaction_id = 1;
+	OperationResult result = 2;
+	string message = 3;
+}
+
+message TransactionWriteCompleted {
+	int64 transaction_id = 1;
+	OperationResult result = 2;
+	string message = 3;
+}
+
+message TransactionCommitCompleted {
+	int64 transaction_id = 1;
+	OperationResult result = 2;
+	string message = 3;
+	int64 first_event_number = 4;
+	int64 last_event_number = 5;
+	int64 prepare_position = 6;
+	int64 commit_position = 7;
+	repeated ConsistencyCheckFailure consistency_check_failures = 8;
+}
+
+message DeleteStreamCompleted {
+	OperationResult result = 1;
+	string message = 2;
+	int64 prepare_position = 3;
+	int64 commit_position = 4;
+	int64 current_version = 5;
+	repeated ConsistencyCheckFailure consistency_check_failures = 6;
+}
+
+message NotHandled {
+	NotHandledReason reason = 1;
+	oneof detail {
+		string description = 2;
+		LeaderInfo leader_info = 3;
+	}
+}
+
+enum NotHandledReason {
+	NotReady = 0;
+	TooBusy = 1;
+	NotLeader = 2;
+	IsReadOnly = 3;
+}
+
+message LeaderInfo {
+	EndPoint external_tcp = 1;
+	bool is_secure = 2;
+	EndPoint http = 3;
+}
+
+message EndPoint {
+	string address = 1;
+	uint32 port = 2;
+}
+
+message NotAuthenticated {
+	string reason = 1;
+}

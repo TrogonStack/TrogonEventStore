@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Exceptions;
+using EventStore.Core.Authentication;
 using EventStore.Plugins.Authentication;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols;
@@ -68,7 +69,7 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 	{
 		try
 		{
-			var token = authenticationRequest.GetToken("jwt");
+			var token = authenticationRequest.GetToken(AuthenticationTokenKeys.Jwt);
 			if (string.IsNullOrWhiteSpace(token))
 			{
 				authenticationRequest.Unauthorized();

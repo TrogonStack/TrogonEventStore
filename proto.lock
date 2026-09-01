@@ -2175,6 +2175,666 @@
       }
     },
     {
+      "protopath": "Grpc:/:forwarding.proto",
+      "def": {
+        "enums": [
+          {
+            "name": "OperationResult",
+            "enum_fields": [
+              {
+                "name": "Success"
+              },
+              {
+                "name": "PrepareTimeout",
+                "integer": 1
+              },
+              {
+                "name": "CommitTimeout",
+                "integer": 2
+              },
+              {
+                "name": "ForwardTimeout",
+                "integer": 3
+              },
+              {
+                "name": "WrongExpectedVersion",
+                "integer": 4
+              },
+              {
+                "name": "StreamDeleted",
+                "integer": 5
+              },
+              {
+                "name": "InvalidTransaction",
+                "integer": 6
+              },
+              {
+                "name": "AccessDenied",
+                "integer": 7
+              }
+            ]
+          },
+          {
+            "name": "NotHandledReason",
+            "enum_fields": [
+              {
+                "name": "NotReady"
+              },
+              {
+                "name": "TooBusy",
+                "integer": 1
+              },
+              {
+                "name": "NotLeader",
+                "integer": 2
+              },
+              {
+                "name": "IsReadOnly",
+                "integer": 3
+              }
+            ]
+          }
+        ],
+        "messages": [
+          {
+            "name": "FollowerFrame",
+            "fields": [
+              {
+                "id": 1,
+                "name": "open",
+                "type": "OpenSession"
+              },
+              {
+                "id": 2,
+                "name": "request",
+                "type": "ForwardRequest"
+              }
+            ]
+          },
+          {
+            "name": "LeaderFrame",
+            "fields": [
+              {
+                "id": 1,
+                "name": "response",
+                "type": "ForwardResponse"
+              }
+            ]
+          },
+          {
+            "name": "OpenSession",
+            "fields": [
+              {
+                "id": 1,
+                "name": "follower_instance_id",
+                "type": "event_store.client.UUID"
+              },
+              {
+                "id": 2,
+                "name": "session_id",
+                "type": "event_store.client.UUID"
+              },
+              {
+                "id": 3,
+                "name": "connection_generation",
+                "type": "int64"
+              }
+            ]
+          },
+          {
+            "name": "ForwardRequest",
+            "fields": [
+              {
+                "id": 1,
+                "name": "request_id",
+                "type": "event_store.client.UUID"
+              },
+              {
+                "id": 2,
+                "name": "identity",
+                "type": "ForwardedIdentity"
+              },
+              {
+                "id": 3,
+                "name": "write_events",
+                "type": "WriteEvents"
+              },
+              {
+                "id": 4,
+                "name": "transaction_start",
+                "type": "TransactionStart"
+              },
+              {
+                "id": 5,
+                "name": "transaction_write",
+                "type": "TransactionWrite"
+              },
+              {
+                "id": 6,
+                "name": "transaction_commit",
+                "type": "TransactionCommit"
+              },
+              {
+                "id": 7,
+                "name": "delete_stream",
+                "type": "DeleteStream"
+              }
+            ]
+          },
+          {
+            "name": "ForwardedIdentity",
+            "fields": [
+              {
+                "id": 1,
+                "name": "trusted_system",
+                "type": "google.protobuf.Empty"
+              },
+              {
+                "id": 2,
+                "name": "bearer_token",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "user_password",
+                "type": "UserPassword"
+              },
+              {
+                "id": 4,
+                "name": "anonymous",
+                "type": "google.protobuf.Empty"
+              }
+            ]
+          },
+          {
+            "name": "UserPassword",
+            "fields": [
+              {
+                "id": 1,
+                "name": "username",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "password",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "name": "ForwardResponse",
+            "fields": [
+              {
+                "id": 1,
+                "name": "request_id",
+                "type": "event_store.client.UUID"
+              },
+              {
+                "id": 2,
+                "name": "write_events",
+                "type": "WriteEventsCompleted"
+              },
+              {
+                "id": 3,
+                "name": "transaction_start",
+                "type": "TransactionStartCompleted"
+              },
+              {
+                "id": 4,
+                "name": "transaction_write",
+                "type": "TransactionWriteCompleted"
+              },
+              {
+                "id": 5,
+                "name": "transaction_commit",
+                "type": "TransactionCommitCompleted"
+              },
+              {
+                "id": 6,
+                "name": "delete_stream",
+                "type": "DeleteStreamCompleted"
+              },
+              {
+                "id": 7,
+                "name": "not_handled",
+                "type": "NotHandled"
+              },
+              {
+                "id": 8,
+                "name": "not_authenticated",
+                "type": "NotAuthenticated"
+              }
+            ]
+          },
+          {
+            "name": "Event",
+            "fields": [
+              {
+                "id": 1,
+                "name": "event_id",
+                "type": "event_store.client.UUID"
+              },
+              {
+                "id": 2,
+                "name": "event_type",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "is_json",
+                "type": "bool"
+              },
+              {
+                "id": 4,
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "id": 5,
+                "name": "metadata",
+                "type": "bytes"
+              },
+              {
+                "id": 6,
+                "name": "is_property_metadata",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "WriteEvents",
+            "fields": [
+              {
+                "id": 1,
+                "name": "event_stream_id",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "expected_version",
+                "type": "int64"
+              },
+              {
+                "id": 3,
+                "name": "events",
+                "type": "Event",
+                "is_repeated": true
+              },
+              {
+                "id": 4,
+                "name": "require_leader",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "TransactionStart",
+            "fields": [
+              {
+                "id": 1,
+                "name": "event_stream_id",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "expected_version",
+                "type": "int64"
+              },
+              {
+                "id": 3,
+                "name": "require_leader",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "TransactionWrite",
+            "fields": [
+              {
+                "id": 1,
+                "name": "transaction_id",
+                "type": "int64"
+              },
+              {
+                "id": 2,
+                "name": "events",
+                "type": "Event",
+                "is_repeated": true
+              },
+              {
+                "id": 3,
+                "name": "require_leader",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "TransactionCommit",
+            "fields": [
+              {
+                "id": 1,
+                "name": "transaction_id",
+                "type": "int64"
+              },
+              {
+                "id": 2,
+                "name": "require_leader",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "DeleteStream",
+            "fields": [
+              {
+                "id": 1,
+                "name": "event_stream_id",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "expected_version",
+                "type": "int64"
+              },
+              {
+                "id": 3,
+                "name": "hard_delete",
+                "type": "bool"
+              },
+              {
+                "id": 4,
+                "name": "require_leader",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "ConsistencyCheckFailure",
+            "fields": [
+              {
+                "id": 1,
+                "name": "stream_index",
+                "type": "int32"
+              },
+              {
+                "id": 2,
+                "name": "expected_version",
+                "type": "int64"
+              },
+              {
+                "id": 3,
+                "name": "current_version",
+                "type": "int64"
+              },
+              {
+                "id": 4,
+                "name": "is_soft_deleted",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "WriteEventsCompleted",
+            "fields": [
+              {
+                "id": 1,
+                "name": "result",
+                "type": "OperationResult"
+              },
+              {
+                "id": 2,
+                "name": "message",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "first_event_number",
+                "type": "int64"
+              },
+              {
+                "id": 4,
+                "name": "last_event_number",
+                "type": "int64"
+              },
+              {
+                "id": 5,
+                "name": "prepare_position",
+                "type": "int64"
+              },
+              {
+                "id": 6,
+                "name": "commit_position",
+                "type": "int64"
+              },
+              {
+                "id": 7,
+                "name": "current_version",
+                "type": "int64"
+              },
+              {
+                "id": 8,
+                "name": "consistency_check_failures",
+                "type": "ConsistencyCheckFailure",
+                "is_repeated": true
+              }
+            ]
+          },
+          {
+            "name": "TransactionStartCompleted",
+            "fields": [
+              {
+                "id": 1,
+                "name": "transaction_id",
+                "type": "int64"
+              },
+              {
+                "id": 2,
+                "name": "result",
+                "type": "OperationResult"
+              },
+              {
+                "id": 3,
+                "name": "message",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "name": "TransactionWriteCompleted",
+            "fields": [
+              {
+                "id": 1,
+                "name": "transaction_id",
+                "type": "int64"
+              },
+              {
+                "id": 2,
+                "name": "result",
+                "type": "OperationResult"
+              },
+              {
+                "id": 3,
+                "name": "message",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "name": "TransactionCommitCompleted",
+            "fields": [
+              {
+                "id": 1,
+                "name": "transaction_id",
+                "type": "int64"
+              },
+              {
+                "id": 2,
+                "name": "result",
+                "type": "OperationResult"
+              },
+              {
+                "id": 3,
+                "name": "message",
+                "type": "string"
+              },
+              {
+                "id": 4,
+                "name": "first_event_number",
+                "type": "int64"
+              },
+              {
+                "id": 5,
+                "name": "last_event_number",
+                "type": "int64"
+              },
+              {
+                "id": 6,
+                "name": "prepare_position",
+                "type": "int64"
+              },
+              {
+                "id": 7,
+                "name": "commit_position",
+                "type": "int64"
+              },
+              {
+                "id": 8,
+                "name": "consistency_check_failures",
+                "type": "ConsistencyCheckFailure",
+                "is_repeated": true
+              }
+            ]
+          },
+          {
+            "name": "DeleteStreamCompleted",
+            "fields": [
+              {
+                "id": 1,
+                "name": "result",
+                "type": "OperationResult"
+              },
+              {
+                "id": 2,
+                "name": "message",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "prepare_position",
+                "type": "int64"
+              },
+              {
+                "id": 4,
+                "name": "commit_position",
+                "type": "int64"
+              },
+              {
+                "id": 5,
+                "name": "current_version",
+                "type": "int64"
+              },
+              {
+                "id": 6,
+                "name": "consistency_check_failures",
+                "type": "ConsistencyCheckFailure",
+                "is_repeated": true
+              }
+            ]
+          },
+          {
+            "name": "NotHandled",
+            "fields": [
+              {
+                "id": 1,
+                "name": "reason",
+                "type": "NotHandledReason"
+              },
+              {
+                "id": 2,
+                "name": "description",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "leader_info",
+                "type": "LeaderInfo"
+              }
+            ]
+          },
+          {
+            "name": "LeaderInfo",
+            "fields": [
+              {
+                "id": 1,
+                "name": "external_tcp",
+                "type": "EndPoint"
+              },
+              {
+                "id": 2,
+                "name": "is_secure",
+                "type": "bool"
+              },
+              {
+                "id": 3,
+                "name": "http",
+                "type": "EndPoint"
+              }
+            ]
+          },
+          {
+            "name": "EndPoint",
+            "fields": [
+              {
+                "id": 1,
+                "name": "address",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "port",
+                "type": "uint32"
+              }
+            ]
+          },
+          {
+            "name": "NotAuthenticated",
+            "fields": [
+              {
+                "id": 1,
+                "name": "reason",
+                "type": "string"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "name": "RequestForwarding",
+            "rpcs": [
+              {
+                "name": "Forward",
+                "in_type": "FollowerFrame",
+                "out_type": "LeaderFrame",
+                "in_streamed": true,
+                "out_streamed": true
+              }
+            ]
+          }
+        ],
+        "imports": [
+          {
+            "path": "google/protobuf/empty.proto"
+          },
+          {
+            "path": "shared.proto"
+          }
+        ],
+        "package": {
+          "name": "event_store.forwarding"
+        }
+      }
+    },
+    {
       "protopath": "Grpc:/:gossip.proto",
       "def": {
         "enums": [

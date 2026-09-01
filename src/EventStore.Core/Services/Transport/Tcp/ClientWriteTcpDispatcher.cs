@@ -7,6 +7,7 @@ using System.Security.Principal;
 using System.Threading;
 using EventStore.Client.Messages;
 using EventStore.Common.Utils;
+using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.DelegatedAuthentication;
 using EventStore.Core.Data;
 using EventStore.Core.Helpers;
@@ -129,15 +130,15 @@ namespace EventStore.Core.Services.Transport.Tcp
 					continue;
 				}
 
-				var jwtClaim = dci.FindFirst("jwt");
+				var jwtClaim = dci.FindFirst(AuthenticationTokenKeys.Jwt);
 				if (jwtClaim != null)
 				{
 					return new TcpPackage(command, TcpFlags.Authenticated, msg.InternalCorrId, jwtClaim.Value,
 						dto.Serialize());
 				}
 
-				var uidClaim = dci.FindFirst("uid");
-				var pwdClaim = dci.FindFirst("pwd");
+				var uidClaim = dci.FindFirst(AuthenticationTokenKeys.Username);
+				var pwdClaim = dci.FindFirst(AuthenticationTokenKeys.Password);
 
 				if (uidClaim != null && pwdClaim != null)
 				{

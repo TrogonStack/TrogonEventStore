@@ -413,6 +413,7 @@ public class LegacyPolicyVerification
 			yield return CreateOperation(Operations.Node.Elections.LeaderIsResigningOk);
 			yield return CreateOperation(Operations.Node.Gossip.Read);
 			yield return CreateOperation(new OperationDefinition("node/replication", "connect"));
+			yield return CreateOperation(new OperationDefinition("node/forwarding", "connect"));
 		}
 
 		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AdminOperations()

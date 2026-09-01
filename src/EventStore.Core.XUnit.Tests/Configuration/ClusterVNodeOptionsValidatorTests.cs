@@ -61,6 +61,53 @@ public class ClusterVNodeOptionsValidatorTests
 		});
 	}
 
+	[Theory]
+	[InlineData(0)]
+	[InlineData(999)]
+	public void grpc_keep_alive_interval_must_be_supported_by_http2_transport(int interval)
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Grpc = new()
+			{
+				KeepAliveInterval = interval,
+			}
+		};
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => ClusterVNodeOptionsValidator.Validate(options));
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(999)]
+	public void grpc_keep_alive_timeout_must_be_supported_by_http2_transport(int timeout)
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Grpc = new()
+			{
+				KeepAliveTimeout = timeout,
+			}
+		};
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => ClusterVNodeOptionsValidator.Validate(options));
+	}
+
+	[Fact]
+	public void grpc_keep_alive_values_accept_the_http2_transport_minimum()
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Grpc = new()
+			{
+				KeepAliveInterval = 1_000,
+				KeepAliveTimeout = 1_000,
+			}
+		};
+
+		ClusterVNodeOptionsValidator.Validate(options);
+	}
+
 	[Fact]
 	public void archiver_not_compatible_with_unsafe_ignore_hard_delete()
 	{

@@ -12,6 +12,9 @@ namespace EventStore.Core;
 
 public static class ClusterVNodeOptionsValidator
 {
+	private const int MinimumGrpcKeepAliveMilliseconds = 1_000;
+	private const int RecommendedGrpcKeepAliveIntervalMilliseconds = 10_000;
+
 	public static void Validate(ClusterVNodeOptions options)
 	{
 		if (options == null)
@@ -59,22 +62,24 @@ public static class ClusterVNodeOptionsValidator
 				$"{nameof(options.Database.MaxConcurrentReadRequests)} must be greater than or equal to 0.");
 		}
 
-		if (options.Grpc.KeepAliveTimeout < 0)
+		if (options.Grpc.KeepAliveTimeout < MinimumGrpcKeepAliveMilliseconds)
 		{
-			throw new ArgumentOutOfRangeException(
-				$"Invalid {nameof(options.Grpc.KeepAliveTimeout)} {options.Grpc.KeepAliveTimeout}. Please provide a positive integer.");
+			throw new ArgumentOutOfRangeException(nameof(options.Grpc.KeepAliveTimeout),
+				options.Grpc.KeepAliveTimeout,
+				$"{nameof(options.Grpc.KeepAliveTimeout)} must be at least {MinimumGrpcKeepAliveMilliseconds} ms.");
 		}
 
-		if (options.Grpc.KeepAliveInterval < 0)
+		if (options.Grpc.KeepAliveInterval < MinimumGrpcKeepAliveMilliseconds)
 		{
-			throw new ArgumentOutOfRangeException(
-				$"Invalid {nameof(options.Grpc.KeepAliveInterval)} {options.Grpc.KeepAliveInterval}. Please provide a positive integer.");
+			throw new ArgumentOutOfRangeException(nameof(options.Grpc.KeepAliveInterval),
+				options.Grpc.KeepAliveInterval,
+				$"{nameof(options.Grpc.KeepAliveInterval)} must be at least {MinimumGrpcKeepAliveMilliseconds} ms.");
 		}
 
-		if (options.Grpc.KeepAliveInterval >= 0 && options.Grpc.KeepAliveInterval < 10)
+		if (options.Grpc.KeepAliveInterval < RecommendedGrpcKeepAliveIntervalMilliseconds)
 		{
 			Log.Warning(
-				$"Specified {nameof(options.Grpc.KeepAliveInterval)} of {options.Grpc.KeepAliveInterval} is less than recommended 10_000 ms.");
+				$"Specified {nameof(options.Grpc.KeepAliveInterval)} of {options.Grpc.KeepAliveInterval} is less than recommended {RecommendedGrpcKeepAliveIntervalMilliseconds} ms.");
 		}
 
 		if (options.Application.MaxAppendSize > TFConsts.EffectiveMaxLogRecordSize)

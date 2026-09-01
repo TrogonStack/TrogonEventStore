@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EventStore.Common.Utils;
+using EventStore.Core.Authentication;
 
 namespace EventStore.Core.Services.Transport.Tcp
 {
@@ -38,8 +39,12 @@ namespace EventStore.Core.Services.Transport.Tcp
 		public IReadOnlyDictionary<string, string> Tokens => (_login, _authToken) switch
 		{
 			(null, null) => NotAuthenticated,
-			(null, _) => new Dictionary<string, string> { ["jwt"] = _authToken },
-			_ => new Dictionary<string, string> { ["uid"] = _login, ["pwd"] = _password }
+			(null, _) => new Dictionary<string, string> { [AuthenticationTokenKeys.Jwt] = _authToken },
+			_ => new Dictionary<string, string>
+			{
+				[AuthenticationTokenKeys.Username] = _login,
+				[AuthenticationTokenKeys.Password] = _password
+			}
 		};
 
 		public static TcpPackage FromArraySegment(ArraySegment<byte> data)

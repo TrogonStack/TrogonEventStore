@@ -94,6 +94,9 @@
 		<Protobuf Include="..\Protos\Grpc\replication.proto" GrpcServices="Both" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
 			<Link>Services\Transport\Grpc\Protos\replication.proto</Link>
 		</Protobuf>
+		<Protobuf Include="..\Protos\Grpc\forwarding.proto" GrpcServices="Both" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
+			<Link>Services\Transport\Grpc\Protos\forwarding.proto</Link>
+		</Protobuf>
 	</ItemGroup>
 	<ItemGroup>
 		<Folder Include="Services\Transport\Tcp\protos\" />
