@@ -1,0 +1,52 @@
+#!/bin/sh
+#MISE description="Verify synchronized server release metadata"
+
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../../../.." && pwd)
+manifest="$root/.release-please-manifest.json"
+config="$root/release-please-config.json"
+props="$root/src/Directory.Build.props"
+runtime_properties="$root/src/EventStore.Common/Utils/version.properties"
+
+manifest_version=$(jq -er '."."' "$manifest")
+file_version=$(tr -d '\r\n' <"$root/version.txt")
+props_version=$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "$props")
+props_suffix=$(sed -n 's:.*<VersionSuffix>\([^<]*\)</VersionSuffix>.*:\1:p' "$props")
+runtime_suffix=$(sed -n 's/^version_suffix=//p' "$runtime_properties")
+bootstrap_sha=$(jq -er '."bootstrap-sha"' "$config")
+
+if ! printf '%s\n' "$manifest_version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+	echo "The release manifest must contain a stable semantic version." >&2
+	exit 1
+fi
+
+if [ "$manifest_version" != "$file_version" ] || [ "$manifest_version" != "$props_version" ]; then
+	echo "Release versions must match across the manifest, version.txt, and Directory.Build.props." >&2
+	exit 1
+fi
+
+if ! grep -Eq '<VersionSuffix([[:space:]]*/>|></VersionSuffix>)' "$props" ||
+	! grep -q '^version_suffix=$' "$runtime_properties" ||
+	[ -n "$props_suffix" ] || [ -n "$runtime_suffix" ]; then
+	echo "Stable release metadata cannot carry a prerelease suffix." >&2
+	exit 1
+fi
+
+if ! printf '%s\n' "$bootstrap_sha" | grep -Eq '^[0-9a-f]{40}$'; then
+	echo "The release bootstrap must be a full lowercase commit SHA." >&2
+	exit 1
+fi
+
+git -C "$root" cat-file -e "$bootstrap_sha^{commit}"
+
+jq -e '
+	.packages["."]."release-type" == "simple" and
+	.packages["."]."include-component-in-tag" == false and
+	.packages["."]."include-v-in-tag" == true and
+	.packages["."]."include-v-in-release-name" == false and
+	any(.packages["."]."extra-files"[];
+		.type == "xml" and
+		.path == "src/Directory.Build.props" and
+		.xpath == "//VersionPrefix")
+' "$config" >/dev/null

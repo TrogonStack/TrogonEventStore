@@ -2,10 +2,6 @@ name: Common
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
   merge_group:
     types:
       - checks_requested
@@ -16,10 +12,6 @@ on:
       - release/v*
     tags:
       - v*
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -130,6 +122,24 @@ jobs:
         run: |
           ./protolock.sh status --uptodate
 
+  release-metadata:
+    runs-on: ubuntu-latest
+    name: Release Metadata
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install task runner
+        uses: jdx/mise-action@v4.3.0
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
+      - name: Verify release metadata
+        run: mise run --skip-tools release-metadata:check
+
   archive-storage-contract:
     runs-on: ubuntu-latest
     name: Archive Storage Contract
@@ -224,3 +234,22 @@ jobs:
           DOCKER_BUILDKIT: 1
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mise run --skip-tools github-actions:docker-compose-smoke
+
+  required:
+    name: Common CI
+    if: ${{ always() }}
+    needs:
+      - semantic-conventions
+      - csharp-quality
+      - vulnerability-scan
+      - protolock
+      - release-metadata
+      - archive-storage-contract
+      - docker-compose
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require successful jobs
+        env:
+          REQUIRED_JOBS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success")' <<< "$REQUIRED_JOBS"

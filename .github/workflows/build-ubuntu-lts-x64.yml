@@ -2,10 +2,6 @@ name: Ubuntu LTS X64
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
   merge_group:
     types:
       - checks_requested
@@ -15,10 +11,6 @@ on:
       - release/v*
     tags:
       - v*
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
 
 jobs:
   build:
@@ -28,3 +20,16 @@ jobs:
       os: ubuntu-24.04
       arch: x64
     secrets: inherit
+
+  required:
+    name: X64 CI
+    if: ${{ always() }}
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require successful jobs
+        env:
+          REQUIRED_JOBS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success")' <<< "$REQUIRED_JOBS"
