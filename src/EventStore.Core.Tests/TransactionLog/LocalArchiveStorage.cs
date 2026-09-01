@@ -29,7 +29,9 @@ public sealed class LocalArchiveStorage(
 		}
 
 		Span<byte> buffer = stackalloc byte[sizeof(long)];
-		using var handle = File.OpenHandle(checkpointPath);
+		using var handle = File.OpenHandle(
+			checkpointPath,
+			share: FileShare.ReadWrite | FileShare.Delete);
 		if (RandomAccess.Read(handle, buffer, fileOffset: 0L) != buffer.Length)
 		{
 			throw new EndOfStreamException();
@@ -115,9 +117,25 @@ public sealed class LocalArchiveStorage(
 	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
 	{
 		var checkpointPath = Path.Combine(archivePath, archiveCheckpointFile);
+		var checkpointTempPath = $"{checkpointPath}.{Guid.NewGuid():N}.tmp";
 		Span<byte> buffer = stackalloc byte[sizeof(long)];
 		BinaryPrimitives.WriteInt64LittleEndian(buffer, checkpoint);
-		File.WriteAllBytes(checkpointPath, buffer.ToArray());
+		try
+		{
+			File.WriteAllBytes(checkpointTempPath, buffer.ToArray());
+			if (File.Exists(checkpointPath))
+			{
+				File.Replace(checkpointTempPath, checkpointPath, destinationBackupFileName: null);
+			}
+			else
+			{
+				File.Move(checkpointTempPath, checkpointPath);
+			}
+		}
+		finally
+		{
+			File.Delete(checkpointTempPath);
+		}
 		return ValueTask.FromResult(true);
 	}
 
