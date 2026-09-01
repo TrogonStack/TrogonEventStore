@@ -6,16 +6,29 @@ set -eu
 : "${GITHUB_OUTPUT:?GITHUB_OUTPUT is required}"
 : "${EVENT_NAME:?EVENT_NAME is required}"
 
-if [ "$EVENT_NAME" = pull_request ]; then
-	: "${BASE_SHA:?BASE_SHA is required for pull requests}"
-	: "${HEAD_SHA:?HEAD_SHA is required for pull requests}"
-	base=$BASE_SHA
-	head=$HEAD_SHA
-else
-	: "${BEFORE_SHA:?BEFORE_SHA is required for push events}"
-	: "${CURRENT_SHA:?CURRENT_SHA is required for push events}"
-	base=$BEFORE_SHA
-	head=$CURRENT_SHA
-fi
+case "$EVENT_NAME" in
+	pull_request)
+		: "${BASE_SHA:?BASE_SHA is required for pull requests}"
+		: "${HEAD_SHA:?HEAD_SHA is required for pull requests}"
+		base=$BASE_SHA
+		head=$HEAD_SHA
+		;;
+	merge_group)
+		: "${MERGE_GROUP_BASE_SHA:?MERGE_GROUP_BASE_SHA is required for merge groups}"
+		: "${MERGE_GROUP_HEAD_SHA:?MERGE_GROUP_HEAD_SHA is required for merge groups}"
+		base=$MERGE_GROUP_BASE_SHA
+		head=$MERGE_GROUP_HEAD_SHA
+		;;
+	push)
+		: "${BEFORE_SHA:?BEFORE_SHA is required for push events}"
+		: "${CURRENT_SHA:?CURRENT_SHA is required for push events}"
+		base=$BEFORE_SHA
+		head=$CURRENT_SHA
+		;;
+	*)
+		echo "Unsupported event '$EVENT_NAME'." >&2
+		exit 1
+		;;
+esac
 
 printf 'base=%s\nhead=%s\n' "$base" "$head" >>"$GITHUB_OUTPUT"
