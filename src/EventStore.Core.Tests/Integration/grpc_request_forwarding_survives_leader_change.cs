@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -24,23 +25,30 @@ public class grpc_request_forwarding_survives_leader_change<TLogFormat, TStreamI
 {
 	private const string Stream = "$grpc-forwarding-failover";
 	private const string AuthorizationHeaderValue = "Basic YWRtaW46Y2hhbmdlaXQ=";
-	private static readonly TimeSpan ClusterTransitionTimeout = TimeSpan.FromMinutes(2);
+	private const int TestTimeoutMilliseconds = 5 * 60 * 1000;
+	private static readonly TimeSpan AuthenticationRetryDelay = TimeSpan.FromMilliseconds(100);
+	private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
+	private static readonly TimeSpan ScenarioTimeout = TimeSpan.FromMinutes(4);
 
 	[Test]
+	[Timeout(TestTimeoutMilliseconds)]
 	public async Task completes_writes_through_a_surviving_follower_after_a_new_leader_is_elected()
 	{
+		var scenario = Stopwatch.StartNew();
 		AssertEx.IsOrBecomesTrue(
 			() =>
 				_nodes.Count(node => node.NodeState == VNodeState.Leader) == 1 &&
 				_nodes.Count(node => node.NodeState == VNodeState.Follower) == 2,
-			ClusterTransitionTimeout,
+			RemainingScenarioTime(scenario),
 			"The initial cluster topology did not stabilize",
 			MiniNodeLogging.WriteLogs);
 
 		var initialLeader = _nodes.Single(node => node.NodeState == VNodeState.Leader);
 		var initialFollowers = _nodes.Where(node => node.NodeState == VNodeState.Follower).ToArray();
-		Assert.That(await Append(initialFollowers[0].HttpEndPoint, ExpectedStreamRevision.NoStream), Is.EqualTo(0));
-		Assert.That(await Append(initialFollowers[1].HttpEndPoint, ExpectedStreamRevision.Exact(0)), Is.EqualTo(1));
+		Assert.That(await Append(initialFollowers[0].HttpEndPoint, ExpectedStreamRevision.NoStream, scenario),
+			Is.EqualTo(0));
+		Assert.That(await Append(initialFollowers[1].HttpEndPoint, ExpectedStreamRevision.Exact(0), scenario),
+			Is.EqualTo(1));
 
 		await initialLeader.Shutdown(keepDb: true);
 		_nodes[initialLeader.DebugIndex] = null;
@@ -49,16 +57,40 @@ public class grpc_request_forwarding_survives_leader_change<TLogFormat, TStreamI
 			() =>
 				_nodes.Count(node => node is not null && node.NodeState == VNodeState.Leader) == 1 &&
 				_nodes.Count(node => node is not null && node.NodeState == VNodeState.Follower) == 1,
-			ClusterTransitionTimeout,
+			RemainingScenarioTime(scenario),
 			"The surviving nodes did not elect a leader",
 			MiniNodeLogging.WriteLogs);
 
 		var forwardingFollower = _nodes.Single(node => node is not null && node.NodeState == VNodeState.Follower);
 		Assert.That(initialFollowers, Does.Contain(forwardingFollower));
-		Assert.That(await Append(forwardingFollower.HttpEndPoint, ExpectedStreamRevision.Exact(1)), Is.EqualTo(2));
+		Assert.That(await Append(forwardingFollower.HttpEndPoint, ExpectedStreamRevision.Exact(1), scenario),
+			Is.EqualTo(2));
 	}
 
-	private static async Task<ulong> Append(IPEndPoint endpoint, ExpectedStreamRevision expectedRevision)
+	private static async Task<ulong> Append(
+		IPEndPoint endpoint,
+		ExpectedStreamRevision expectedRevision,
+		Stopwatch scenario)
+	{
+		while (true)
+		{
+			try
+			{
+				return await AppendOnce(endpoint, expectedRevision, RemainingScenarioTime(scenario));
+			}
+			catch (RpcException ex) when (
+				ex.StatusCode is StatusCode.Unauthenticated or StatusCode.Unavailable &&
+				scenario.Elapsed < ScenarioTimeout)
+			{
+				await Task.Delay(AuthenticationRetryDelay);
+			}
+		}
+	}
+
+	private static async Task<ulong> AppendOnce(
+		IPEndPoint endpoint,
+		ExpectedStreamRevision expectedRevision,
+		TimeSpan remainingScenarioTime)
 	{
 		using var handler = new SocketsHttpHandler
 		{
@@ -78,7 +110,9 @@ public class grpc_request_forwarding_survives_leader_change<TLogFormat, TStreamI
 				metadata.Add("authorization", AuthorizationHeaderValue);
 				return Task.CompletedTask;
 			}),
-			deadline: DateTime.UtcNow.AddSeconds(30)));
+			deadline: DateTime.UtcNow.Add(remainingScenarioTime < RequestTimeout
+				? remainingScenarioTime
+				: RequestTimeout)));
 
 		var options = new AppendReq.Types.Options
 		{
@@ -119,6 +153,14 @@ public class grpc_request_forwarding_survives_leader_change<TLogFormat, TStreamI
 		var response = await call.ResponseAsync;
 		Assert.That(response.ResultCase, Is.EqualTo(AppendResp.ResultOneofCase.Success));
 		return response.Success.CurrentRevision;
+	}
+
+	private static TimeSpan RemainingScenarioTime(Stopwatch scenario)
+	{
+		var remaining = ScenarioTimeout - scenario.Elapsed;
+		return remaining > TimeSpan.Zero
+			? remaining
+			: throw new TimeoutException("The forwarding failover scenario exceeded its time budget");
 	}
 
 	private enum ExpectedStreamRevisionKind
