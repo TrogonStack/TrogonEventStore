@@ -15,7 +15,7 @@ using EventStore.Core.Metrics;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Replication;
 using EventStore.Core.Services.Storage;
-using EventStore.Core.Services.Transport.Tcp;
+using EventStore.Core.Services.Transport.Grpc.Replication;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Tests.Services.ElectionsService;
 using EventStore.Core.Tests.Services.Storage;
@@ -122,31 +122,6 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			inputBus: subscribeBus,
 			outputBus: publishBus);
 
-		var port = PortsHelper.GetAvailablePort(IPAddress.Loopback);
-		var networkSendBus = new SynchronousScheduler("networkSendBus");
-		var dispatcher = new InternalTcpDispatcher(writeTimeout: TimeSpan.FromSeconds(5));
-
-		var tcpService = new TcpService(
-			publisher: publishBus,
-			serverEndPoint: new IPEndPoint(IPAddress.Loopback, port),
-			networkSendQueue: networkSendBus,
-			serviceType: TcpServiceType.Internal,
-			dispatcher: dispatcher,
-			securityType: TcpSecurityType.Normal,
-			heartbeatInterval: TimeSpan.FromSeconds(1),
-			heartbeatTimeout: TimeSpan.FromSeconds(5),
-			authProvider: new PassthroughAuthenticationProvider(),
-			authorizationGateway: new AuthorizationGateway(new PassthroughAuthorizationProvider()),
-			certificateSelector: null,
-			intermediatesSelector: null,
-			sslClientCertValidator: null,
-			connectionPendingSendBytesThreshold: 1_000_000,
-			connectionQueueSizeThreshold: 1_000);
-
-		subscribeBus.Subscribe<SystemMessage.SystemInit>(tcpService);
-		subscribeBus.Subscribe<SystemMessage.SystemStart>(tcpService);
-		subscribeBus.Subscribe<SystemMessage.BecomeShuttingDown>(tcpService);
-
 		var leaderInstanceId = Guid.NewGuid();
 		var epochManager = new FakeEpochManager();
 
@@ -154,14 +129,14 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			publisher: publishBus,
 			instanceId: leaderInstanceId,
 			db: db,
-			tcpSendPublisher: networkSendBus,
 			epochManager: epochManager,
 			clusterSize: ClusterSize,
 			unsafeAllowSurplusNodes: false,
 			queueStatsManager: new QueueStatsManager());
 
-		var tcpSendService = new TcpSendService();
-		networkSendBus.Subscribe(tcpSendService);
+		var grpcService = new ReplicationService(
+			publishBus,
+			new PassthroughAuthorizationProvider());
 
 		subscribeBus.Subscribe<SystemMessage.SystemStart>(leaderReplicationService);
 		subscribeBus.Subscribe<SystemMessage.StateChangeMessage>(leaderReplicationService);
@@ -175,13 +150,14 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			Db = db,
 			Publisher = publishBus,
 			ReplicationService = leaderReplicationService,
+			GrpcService = grpcService,
 			EpochManager = epochManager,
 			MemberInfo = MemberInfo.ForVNode(
 				instanceId: leaderInstanceId,
 				timeStamp: DateTime.Now,
 				state: VNodeState.Leader,
 				isAlive: true,
-				internalTcpEndPoint: new IPEndPoint(IPAddress.Loopback, port),
+				internalTcpEndPoint: FakeEndPoint,
 				internalSecureTcpEndPoint: null,
 				externalTcpEndPoint: null,
 				externalSecureTcpEndPoint: null,
@@ -217,39 +193,25 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			outputBus: publishBus);
 
 		var epochManager = new FakeEpochManager();
-		var networkSendBus = new SynchronousScheduler("networkSendBus");
-
-		var replicaService = new ReplicaService(
+		var replicaService = new GrpcReplicaServiceSupervisor(
 			publisher: publishBus,
-			db: db,
-			epochManager: epochManager,
-			networkSendQueue: networkSendBus,
-			authProvider: new PassthroughAuthenticationProvider(),
-			authorizationGateway: new AuthorizationGateway(new PassthroughAuthorizationProvider()),
-			internalTcp: FakeEndPoint,
-			isReadOnlyReplica: false,
-			useSsl: false,
-			sslServerCertValidator: null,
-			sslClientCertificateSelector: null,
-			heartbeatTimeout: TimeSpan.FromSeconds(5),
-			heartbeatInterval: TimeSpan.FromSeconds(1),
-			writeTimeout: TimeSpan.FromSeconds(5)
-		);
-
-		var tcpSendService = new TcpSendService();
-		networkSendBus.Subscribe(tcpSendService);
+			factory: new InProcessGrpcReplicaServiceFactory(
+				new InProcessReplicationGrpcClient(leaderInfo.GrpcService),
+				new ReplicaSubscriptionDataSource(db, epochManager),
+				Guid.NewGuid()),
+			advertisedReplicaEndPoint: FakeEndPoint,
+			trackTask: _ => { });
+		_disposables.RegisterForDisposeAsync(replicaService);
 
 		subscribeBus.Subscribe<SystemMessage.StateChangeMessage>(replicaService);
 		subscribeBus.Subscribe<ReplicationMessage.ReconnectToLeader>(replicaService);
 		subscribeBus.Subscribe<ReplicationMessage.SubscribeToLeader>(replicaService);
 		subscribeBus.Subscribe<ReplicationMessage.AckLogPosition>(replicaService);
-		subscribeBus.Subscribe<ClientMessage.TcpForwardMessage>(replicaService);
 
 		return new ReplicaInfo<TStreamId>
 		{
 			Db = db,
 			Publisher = publishBus,
-			ReplicaService = replicaService,
 			EpochManager = epochManager,
 			Writer = writer,
 			GetNumWriterFlushes = () => adhocReplicaController.NumWriterFlushes,
@@ -271,15 +233,16 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 	{
 		_replicaInfo.ResetSubscription();
 		_replicaInfo.ReplicationInterceptor.Reset(pauseReplication: pauseReplication);
+		var stateCorrelationId = Guid.NewGuid();
 		_replicaInfo.Publisher.Publish(new SystemMessage.BecomePreReplica(
-			correlationId: Guid.NewGuid(),
+			correlationId: stateCorrelationId,
 			leaderConnectionCorrelationId: Guid.NewGuid(),
 			leader: _leaderInfo.MemberInfo));
-		_replicaInfo.ConnectionEstablished.WaitOne();
 		_replicaInfo.Publisher.Publish(new ReplicationMessage.SubscribeToLeader(
-			stateCorrelationId: Guid.NewGuid(),
+			stateCorrelationId: stateCorrelationId,
 			leaderId: _leaderInfo.MemberInfo.InstanceId,
 			subscriptionId: Guid.NewGuid()));
+		Assert.That(_replicaInfo.ConnectionEstablished.WaitOne(TimeSpan.FromSeconds(5)), Is.True);
 	}
 
 	private void SetUpLogging()
@@ -302,6 +265,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 	[SetUp]
 	public virtual async Task SetUp()
 	{
+		_disposables = new Scope();
 		var runId = Guid.NewGuid();
 
 		var leaderDb = CreateDb($"leader-{runId}");

@@ -4,7 +4,7 @@ using EventStore.Common.Utils;
 using EventStore.Core.Cluster;
 using EventStore.Core.Data;
 using EventStore.Core.Messaging;
-using EventStore.Core.Services.Transport.Tcp;
+using EventStore.Core.Services.Replication;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.LogRecords;
 using EndPoint = System.Net.EndPoint;
@@ -24,12 +24,13 @@ public static partial class ReplicationMessage
 		public readonly Guid LeaderId;
 		public readonly Guid SubscriptionId;
 		public readonly bool IsPromotable;
+		public readonly Guid ReplicaInstanceId;
 
 		public SubscribeReplica(
 			int version,
 			long logPosition, Guid chunkId, IReadOnlyList<EpochRecord> lastEpochs,
 			EndPoint replicaEndPoint,
-			Guid leaderId, Guid subscriptionId, bool isPromotable)
+			Guid leaderId, Guid subscriptionId, bool isPromotable, Guid replicaInstanceId)
 		{
 
 			Ensure.Nonnegative(version, "version");
@@ -37,6 +38,7 @@ public static partial class ReplicationMessage
 			Ensure.NotNull(lastEpochs, "lastEpochs");
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
+			Ensure.NotEmptyGuid(replicaInstanceId, "replicaInstanceId");
 			Ensure.NotNull(replicaEndPoint, "replicaEndPoint");
 
 			Version = version;
@@ -47,6 +49,7 @@ public static partial class ReplicationMessage
 			LeaderId = leaderId;
 			SubscriptionId = subscriptionId;
 			IsPromotable = isPromotable;
+			ReplicaInstanceId = replicaInstanceId;
 		}
 	}
 
@@ -103,7 +106,7 @@ public static partial class ReplicationMessage
 	{
 		public readonly Guid CorrelationId;
 		public readonly IEnvelope Envelope;
-		public readonly TcpConnectionManager Connection;
+		public readonly IReplicationSession Session;
 
 		public readonly int Version;
 		public readonly long LogPosition;
@@ -116,7 +119,7 @@ public static partial class ReplicationMessage
 
 		public ReplicaSubscriptionRequest(Guid correlationId,
 			IEnvelope envelope,
-			TcpConnectionManager connection,
+			IReplicationSession session,
 			int version,
 			long logPosition,
 			Guid chunkId,
@@ -128,7 +131,7 @@ public static partial class ReplicationMessage
 		{
 			Ensure.NotEmptyGuid(correlationId, "correlationId");
 			Ensure.NotNull(envelope, "envelope");
-			Ensure.NotNull(connection, "connection");
+			Ensure.NotNull(session, "session");
 			Ensure.Nonnegative(version, "version");
 			Ensure.Nonnegative(logPosition, "logPosition");
 			Ensure.NotNull(lastEpochs, "lastEpochs");
@@ -139,7 +142,7 @@ public static partial class ReplicationMessage
 			Version = version;
 			CorrelationId = correlationId;
 			Envelope = envelope;
-			Connection = connection;
+			Session = session;
 			LogPosition = logPosition;
 			ChunkId = chunkId;
 			LastEpochs = lastEpochs;
@@ -452,6 +455,7 @@ public static partial class ReplicationMessage
 		public readonly long SubscriptionPosition;
 		public readonly byte[] DataBytes;
 		public readonly bool CompleteChunk;
+		public readonly long? ChunkEndPosition;
 
 		public DataChunkBulk(Guid leaderId,
 			Guid subscriptionId,
@@ -460,12 +464,42 @@ public static partial class ReplicationMessage
 			long subscriptionPosition,
 			byte[] dataBytes,
 			bool completeChunk)
+			: this(leaderId, subscriptionId, chunkStartNumber, chunkEndNumber, subscriptionPosition, dataBytes,
+				completeChunk, null)
+		{
+		}
+
+		public DataChunkBulk(Guid leaderId,
+			Guid subscriptionId,
+			int chunkStartNumber,
+			int chunkEndNumber,
+			long subscriptionPosition,
+			byte[] dataBytes,
+			bool completeChunk,
+			long chunkEndPosition)
+			: this(leaderId, subscriptionId, chunkStartNumber, chunkEndNumber, subscriptionPosition, dataBytes,
+				completeChunk, (long?)chunkEndPosition)
+		{
+		}
+
+		private DataChunkBulk(Guid leaderId,
+			Guid subscriptionId,
+			int chunkStartNumber,
+			int chunkEndNumber,
+			long subscriptionPosition,
+			byte[] dataBytes,
+			bool completeChunk,
+			long? chunkEndPosition)
 		{
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			Ensure.NotNull(dataBytes, "rawBytes");
 			Ensure.Nonnegative(dataBytes.Length,
 				"dataBytes.Length"); // we CAN send empty dataBytes array here, unlike as with completed chunks
+			if (chunkEndPosition.HasValue)
+			{
+				Ensure.Nonnegative(chunkEndPosition.Value, "chunkEndPosition");
+			}
 
 			LeaderId = leaderId;
 			SubscriptionId = subscriptionId;
@@ -474,6 +508,7 @@ public static partial class ReplicationMessage
 			SubscriptionPosition = subscriptionPosition;
 			DataBytes = dataBytes;
 			CompleteChunk = completeChunk;
+			ChunkEndPosition = chunkEndPosition;
 		}
 
 		public override string ToString()

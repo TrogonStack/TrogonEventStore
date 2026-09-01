@@ -13,6 +13,7 @@ using EventStore.Core.Messages;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Grpc.Cluster;
+using EventStore.Core.Services.Transport.Grpc.Replication;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins;
@@ -62,6 +63,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly string _clusterDns;
+	private readonly ReplicationAvailability _replicationAvailability;
 
 	public ClusterVNodeStartup(
 		IReadOnlyList<IPlugableComponent> plugableComponents,
@@ -79,6 +81,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		TelemetryServiceIdentity telemetryServiceIdentity,
 		NodeInformationProvider nodeInformationProvider,
 		string clusterDns,
+		ReplicationAvailability replicationAvailability,
 		Func<IServiceCollection, IServiceCollection> configureNodeServices,
 		Action<IApplicationBuilder> configureNode)
 	{
@@ -115,6 +118,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_nodeInformationProvider =
 			nodeInformationProvider ?? throw new ArgumentNullException(nameof(nodeInformationProvider));
 		_clusterDns = clusterDns;
+		_replicationAvailability = replicationAvailability;
 		_configureNodeServices =
 			configureNodeServices ?? throw new ArgumentNullException(nameof(configureNodeServices));
 		_configureNode = configureNode ?? throw new ArgumentNullException(nameof(configureNode));
@@ -175,6 +179,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			ep.MapGrpcService<Monitoring>();
 			ep.MapGrpcService<NodeInformation>();
 			ep.MapGrpcService<ServerFeatures>();
+			ep.MapGrpcService<ReplicationService>();
 
 			// enable redaction service on unix sockets only
 			ep.MapGrpcService<Redaction>().AddEndpointFilter(async (c, next) =>
@@ -229,6 +234,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddSingleton(new NodeInformation(_nodeInformationProvider, _authorizationProvider))
 			.AddSingleton(new Redaction(_mainQueue, _authorizationProvider))
 			.AddSingleton<ServerFeatures>()
+			.AddSingleton(new ReplicationService(
+				_mainQueue,
+				_authorizationProvider,
+				availability: _replicationAvailability))
 
 			.AddOpenTelemetry()
 			.WithMetrics(meterOptions => ConfigureMetrics(

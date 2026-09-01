@@ -211,6 +211,7 @@ namespace EventStore.Core.Services
 				case ClientMessage.PersistentSubscriptionNackEvents _:
 				case ClientMessage.UnsubscribeFromStream _:
 				case ClientMessage.NotHandled _:
+				case TcpMessage.NotAuthenticated _:
 				case ClientMessage.WriteEventsCompleted _:
 				case ClientMessage.TransactionStartCompleted _:
 				case ClientMessage.TransactionWriteCompleted _:

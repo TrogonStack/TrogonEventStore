@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package event_store.replication;
+
+import "shared.proto";
+
+service Replication {
+	rpc Replicate (stream ReplicaFrame) returns (stream LeaderFrame);
+}
+
+message ReplicaFrame {
+	oneof payload {
+		SubscribeReplica subscribe = 1;
+		ReplicaLogPositionAck acknowledgement = 2;
+	}
+}
+
+message LeaderFrame {
+	oneof payload {
+		ReplicaSubscriptionRetry retry = 1;
+		ReplicaSubscribed subscribed = 2;
+		CreateChunk create_chunk = 3;
+		RawChunkBulk raw_chunk_bulk = 4;
+		DataChunkBulk data_chunk_bulk = 5;
+		FollowerAssignment follower_assignment = 6;
+		CloneAssignment clone_assignment = 7;
+		DropSubscription drop_subscription = 8;
+		ReplicatedTo replicated_to = 9;
+	}
+}
+
+message GrpcEndPoint {
+	string address = 1;
+	uint32 port = 2;
+}
+
+message Epoch {
+	int64 epoch_position = 1;
+	int32 epoch_number = 2;
+	event_store.client.UUID epoch_id = 3;
+}
+
+message SubscribeReplica {
+	int32 version = 1;
+	int64 log_position = 2;
+	event_store.client.UUID chunk_id = 3;
+	repeated Epoch last_epochs = 4;
+	GrpcEndPoint advertised_endpoint = 5;
+	event_store.client.UUID leader_id = 6;
+	event_store.client.UUID subscription_id = 7;
+	bool is_promotable = 8;
+	event_store.client.UUID replica_instance_id = 9;
+}
+
+message ReplicaLogPositionAck {
+	event_store.client.UUID subscription_id = 1;
+	int64 replication_log_position = 2;
+	int64 writer_log_position = 3;
+}
+
+message ReplicaSubscriptionRetry {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+}
+
+message ReplicaSubscribed {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+	int64 subscription_position = 3;
+}
+
+message CreateChunk {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+	bytes chunk_header_bytes = 3;
+	int32 file_size = 4;
+	bool is_scavenged_chunk = 5;
+	bytes transform_header_bytes = 6;
+}
+
+message RawChunkBulk {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+	int32 chunk_start_number = 3;
+	int32 chunk_end_number = 4;
+	int32 raw_position = 5;
+	bytes raw_bytes = 6;
+	bool complete_chunk = 7;
+}
+
+message DataChunkBulk {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+	int32 chunk_start_number = 3;
+	int32 chunk_end_number = 4;
+	int64 subscription_position = 5;
+	bytes data_bytes = 6;
+	bool complete_chunk = 7;
+}
+
+message FollowerAssignment {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+}
+
+message CloneAssignment {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+}
+
+message DropSubscription {
+	event_store.client.UUID leader_id = 1;
+	event_store.client.UUID subscription_id = 2;
+}
+
+message ReplicatedTo {
+	int64 log_position = 1;
+}

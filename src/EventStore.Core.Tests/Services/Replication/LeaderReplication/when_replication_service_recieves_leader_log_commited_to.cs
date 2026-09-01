@@ -18,13 +18,17 @@ public class WhenReplicationServiceRecievesLeaderLogCommitedTo : WithReplication
 	[Test]
 	public void replicated_to_should_be_sent_to_subscriptions()
 	{
-		AssertEx.IsOrBecomesTrue(() => TcpSends.Count > 4, msg: "TcpSend msg not recieved");
-		var sends = TcpSends.Where(tcpSend => tcpSend.Message is ReplicationTrackingMessage.ReplicatedTo).ToList();
-		Assert.AreEqual(4 * 2,
-			sends.Count); //one ReplicatedTo message in sent when the subscription is added and the second one in When()
-		Assert.AreEqual(2, sends.Count(msg => msg.ConnectionManager.ConnectionId == ReplicaSubscriptionId));
-		Assert.AreEqual(2, sends.Count(msg => msg.ConnectionManager.ConnectionId == ReplicaSubscriptionId2));
-		Assert.AreEqual(2, sends.Count(msg => msg.ConnectionManager.ConnectionId == ReadOnlyReplicaSubscriptionId));
-		Assert.AreEqual(2, sends.Count(msg => msg.ConnectionManager.ConnectionId == ReplicaSubscriptionIdV0));
+		var sessions = new[] { ReplicaSession1, ReplicaSession2, ReadOnlyReplicaSession, ReplicaSessionV0 };
+		AssertEx.IsOrBecomesTrue(
+			() => sessions.Sum(session =>
+				session.Messages.Count(message => message is ReplicationTrackingMessage.ReplicatedTo)) == 8,
+			msg: "ReplicatedTo messages not received");
+		Assert.Multiple(() =>
+		{
+			Assert.AreEqual(2, ReplicaSession1.Messages.Count(message => message is ReplicationTrackingMessage.ReplicatedTo));
+			Assert.AreEqual(2, ReplicaSession2.Messages.Count(message => message is ReplicationTrackingMessage.ReplicatedTo));
+			Assert.AreEqual(2, ReadOnlyReplicaSession.Messages.Count(message => message is ReplicationTrackingMessage.ReplicatedTo));
+			Assert.AreEqual(2, ReplicaSessionV0.Messages.Count(message => message is ReplicationTrackingMessage.ReplicatedTo));
+		});
 	}
 }

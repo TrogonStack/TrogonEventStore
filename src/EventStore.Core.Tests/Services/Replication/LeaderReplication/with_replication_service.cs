@@ -3,19 +3,14 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNext;
-using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Replication;
-using EventStore.Core.Services.Transport.Tcp;
-using EventStore.Core.Tests.Authentication;
-using EventStore.Core.Tests.Authorization;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Tests.Services.ElectionsService;
-using EventStore.Core.Tests.Services.Transport.Tcp;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
@@ -29,16 +24,12 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 	protected string EventStreamId = "test_stream";
 	protected int ClusterSize = 3;
 	protected SynchronousScheduler Publisher = new("publisher");
-	protected SynchronousScheduler TcpSendPublisher = new("tcpSend");
 	protected LeaderReplicationService Service;
 
 	protected ConcurrentQueue<ReplicationTrackingMessage.ReplicaWriteAck> ReplicaWriteAcks = new();
 
 	protected ConcurrentQueue<SystemMessage.VNodeConnectionLost> ReplicaLostMessages = new();
 
-	protected ConcurrentQueue<TcpMessage.TcpSend> TcpSends = new();
-	private int _connectionPendingSendBytesThreshold = 10 * 1024;
-	private int _connectionQueueSizeThreshold = 50000;
 	protected Guid LeaderId = Guid.NewGuid();
 	protected Guid ReplicaId = Guid.NewGuid();
 	protected Guid ReplicaId2 = Guid.NewGuid();
@@ -50,10 +41,10 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 	protected Guid ReadOnlyReplicaSubscriptionId;
 	protected Guid ReplicaSubscriptionIdV0;
 
-	protected TcpConnectionManager ReplicaManager1;
-	protected TcpConnectionManager ReplicaManager2;
-	protected TcpConnectionManager ReadOnlyReplicaManager;
-	protected TcpConnectionManager ReplicaManagerV0;
+	protected TestReplicationSession ReplicaSession1;
+	protected TestReplicationSession ReplicaSession2;
+	protected TestReplicationSession ReadOnlyReplicaSession;
+	protected TestReplicationSession ReplicaSessionV0;
 
 	protected TFChunkDbConfig DbConfig;
 
@@ -65,8 +56,6 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 			new AdHocHandler<ReplicationTrackingMessage.ReplicaWriteAck>(msg => ReplicaWriteAcks.Enqueue(msg)));
 		Publisher.Subscribe(
 			new AdHocHandler<SystemMessage.VNodeConnectionLost>(msg => ReplicaLostMessages.Enqueue(msg)));
-		TcpSendPublisher.Subscribe(new AdHocHandler<TcpMessage.TcpSend>(msg => TcpSends.Enqueue(msg)));
-
 		DbConfig = CreateDbConfig();
 		var db = new TFChunkDb(DbConfig);
 		await db.Open();
@@ -74,7 +63,6 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 			publisher: Publisher,
 			instanceId: LeaderId,
 			db: db,
-			tcpSendPublisher: TcpSendPublisher,
 			epochManager: new FakeEpochManager(),
 			clusterSize: ClusterSize,
 			unsafeAllowSurplusNodes: false,
@@ -83,13 +71,13 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 		Service.Handle(new SystemMessage.SystemStart());
 		Service.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
-		(ReplicaSubscriptionId, ReplicaManager1) =
+		(ReplicaSubscriptionId, ReplicaSession1) =
 			await AddSubscription(ReplicaId, ReplicationSubscriptionVersions.V_CURRENT, true);
-		(ReplicaSubscriptionId2, ReplicaManager2) =
+		(ReplicaSubscriptionId2, ReplicaSession2) =
 			await AddSubscription(ReplicaId2, ReplicationSubscriptionVersions.V_CURRENT, true);
-		(ReadOnlyReplicaSubscriptionId, ReadOnlyReplicaManager) =
+		(ReadOnlyReplicaSubscriptionId, ReadOnlyReplicaSession) =
 			await AddSubscription(ReadOnlyReplicaId, ReplicationSubscriptionVersions.V_CURRENT, false);
-		(ReplicaSubscriptionIdV0, ReplicaManagerV0) =
+		(ReplicaSubscriptionIdV0, ReplicaSessionV0) =
 			await AddSubscription(ReplicaIdV0, ReplicationSubscriptionVersions.V0, true);
 
 		When();
@@ -102,24 +90,14 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 		Service.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), true, true));
 	}
 
-	private async ValueTask<(Guid, TcpConnectionManager)> AddSubscription(Guid replicaId, int version,
+	private async ValueTask<(Guid, TestReplicationSession)> AddSubscription(Guid replicaId, int version,
 		bool isPromotable, CancellationToken token = default)
 	{
-		var tcpConn = new DummyTcpConnection() { ConnectionId = replicaId };
-
-		var manager = new TcpConnectionManager(
-			"Test Subscription Connection manager", TcpServiceType.External, new ClientTcpDispatcher(2000),
-			new SynchronousScheduler(), tcpConn, new SynchronousScheduler(),
-			new InternalAuthenticationProvider(InMemoryBus.CreateTest(),
-				new Core.Helpers.IODispatcher(new SynchronousScheduler(), new NoopEnvelope()),
-				new StubPasswordHashAlgorithm(), 1, false, DefaultData.DefaultUserOptions),
-			new AuthorizationGateway(new TestAuthorizationProvider()),
-			TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), (man, err) => { },
-			_connectionPendingSendBytesThreshold, _connectionQueueSizeThreshold);
+		var session = new TestReplicationSession(replicaId);
 		var subRequest = new ReplicationMessage.ReplicaSubscriptionRequest(
 			Guid.NewGuid(),
 			new NoopEnvelope(),
-			manager,
+			session,
 			version,
 			0,
 			Guid.NewGuid(),
@@ -129,7 +107,7 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 			replicaId,
 			isPromotable);
 		await Service.As<IAsyncHandle<ReplicationMessage.ReplicaSubscriptionRequest>>().HandleAsync(subRequest, token);
-		return (tcpConn.ConnectionId, manager);
+		return (session.ConnectionId, session);
 	}
 
 	public abstract void When();

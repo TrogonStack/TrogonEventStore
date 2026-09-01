@@ -9,8 +9,8 @@ public class when_replication_service_has_replica_disconnected : WithReplication
 
 	public override void When()
 	{
-		ReplicaManager1.Stop();
-		AssertEx.IsOrBecomesTrue(() => ReplicaManager1.IsClosed);
+		ReplicaSession1.Close("Test requested disconnection.");
+		AssertEx.IsOrBecomesTrue(() => ReplicaSession1.IsClosed);
 
 		//trigger main processing loop
 		var writePos = DbConfig.WriterCheckpoint.Read();
