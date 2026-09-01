@@ -2,10 +2,6 @@ name: Ubuntu LTS Container
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
   merge_group:
     types:
       - checks_requested
@@ -15,10 +11,6 @@ on:
       - release/v*
     tags:
       - v*
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -142,3 +134,18 @@ jobs:
     with:
       image-artifact-name: eventstore-image-noble-linux-x64
     secrets: inherit
+
+  required:
+    name: Container CI
+    if: ${{ always() }}
+    needs:
+      - build-images
+      - test
+      - client-compatibility
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require successful jobs
+        env:
+          REQUIRED_JOBS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success")' <<< "$REQUIRED_JOBS"

@@ -22,7 +22,7 @@ public static class VersionInfo
 	public static string CommitSha { get; private set; } = ThisAssembly.Git.Commit;
 	public static string Timestamp { get; private set; } = ThisAssembly.Git.CommitDate;
 
-	public static string Text => $"EventStoreDB version {Version} {Edition} ({BuildId}/{CommitSha})";
+	public static string Text => $"TrogonEventStore version {Version} {Edition} ({BuildId}/{CommitSha})";
 
 	static VersionInfo()
 	{

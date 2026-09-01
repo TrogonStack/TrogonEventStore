@@ -3,23 +3,26 @@
 		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
 		<DebugType Condition=" '$(Configuration)' == 'Debug' ">full</DebugType>
 		<DebugType Condition=" '$(Configuration)' == 'Release' ">pdbonly</DebugType>
-		<Authors>Event Store Ltd</Authors>
-		<PackageIconUrl>ouro.png</PackageIconUrl>
+		<Authors>Straw Hat, LLC</Authors>
+		<Company>Straw Hat, LLC</Company>
+		<PackageIcon>trogon-logo.png</PackageIcon>
 		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-		<PackageProjectUrl>https://eventstore.com</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/TrogonStack/TrogonEventStore</PackageProjectUrl>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<Copyright>Copyright 2012-2024 Event Store Ltd</Copyright>
-		<PackageReleaseNotes>https://eventstore.com/blog/</PackageReleaseNotes>
+		<Copyright>Copyright 2011-2024, Event Store Ltd; Copyright 2025-2026, Straw Hat, LLC</Copyright>
+		<PackageReleaseNotes>https://github.com/TrogonStack/TrogonEventStore/releases</PackageReleaseNotes>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/TrogonStack/TrogonEventStore</RepositoryUrl>
 		<TargetFramework>net10.0</TargetFramework>
 		<LangVersion>14.0</LangVersion>
 		<Platforms>AnyCPU;x64;ARM64</Platforms>
 		<IsPackable>false</IsPackable>
-		<VersionPrefix>24.10.0</VersionPrefix>
-		<VersionSuffix>prerelease</VersionSuffix>
+		<VersionPrefix>0.0.1</VersionPrefix>
+		<VersionSuffix></VersionSuffix>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
 		<None Include="..\..\NOTICE.html" Pack="true" PackagePath="\" />
-		<None Include="..\..\ouro.png" Pack="true" PackagePath="\" />
+		<None Include="..\..\trogon-logo.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 </Project>

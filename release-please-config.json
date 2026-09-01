@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "10b210b00594fb80a99730991a91b29699094e44",
+  "group-pull-request-title-pattern": "chore${scope}: release${component} ${version}",
+  "signoff": "SHT Bot <61149376+sht-bot@users.noreply.github.com>",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "TrogonEventStore",
+      "component": "TrogonEventStore",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "include-v-in-release-name": false,
+      "pull-request-title-pattern": "chore${scope}: release${component} ${version}",
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "src/Directory.Build.props",
+          "xpath": "//VersionPrefix"
+        }
+      ]
+    }
+  }
+}
