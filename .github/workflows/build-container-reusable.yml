@@ -34,37 +34,37 @@ jobs:
     name: ${{ format('{0} / {1}', inputs.container-runtime, inputs.test-group-name) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Install task runner
         id: mise
-        uses: jdx/mise-action@v4.3.0
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
           version: 2026.8.2
           install: false
           cache: false
       - name: Install net10.0
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
         if: ${{ inputs.mode != 'test-only' }}
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
         if: ${{ inputs.mode != 'test-only' }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
         if: ${{ inputs.mode != 'test-only' }}
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         if: ${{ inputs.mode != 'test-only' }}
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         if: ${{ inputs.mode != 'test-only' }}
         with:
           context: .
@@ -84,7 +84,7 @@ jobs:
         if: ${{ inputs.mode != 'test-only' }}
         run: mise run --skip-tools github-actions:container -- verify
       - name: Build Test Container
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         if: ${{ inputs.mode != 'test-only' }}
         with:
           context: .
@@ -105,7 +105,7 @@ jobs:
         if: ${{ inputs.mode == 'build-only' }}
         run: mise run --skip-tools github-actions:container -- export-runtime
       - name: Publish Test Container
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ inputs.mode == 'build-only' }}
         with:
           name: ${{ inputs.test-image-artifact-name }}
@@ -113,7 +113,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Publish Container
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ inputs.mode == 'build-only' }}
         with:
           name: ${{ inputs.image-artifact-name }}
@@ -121,7 +121,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Download Test Container
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: ${{ inputs.mode == 'test-only' }}
         with:
           name: ${{ inputs.test-image-artifact-name }}
@@ -137,7 +137,7 @@ jobs:
         if: ${{ failure() && steps.mise.outcome == 'success' }}
         run: mise run --skip-tools github-actions:container -- normalize-results
       - name: Publish Test Results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: test-results-${{ inputs.container-runtime }}-${{ inputs.test-group-name }}
