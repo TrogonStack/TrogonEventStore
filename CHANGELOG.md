@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.0.2](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.1...v0.0.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* **ci:** keep master behind architecture gates ([#473](https://github.com/TrogonStack/TrogonEventStore/issues/473)) ([10b210b](https://github.com/TrogonStack/TrogonEventStore/commit/10b210b00594fb80a99730991a91b29699094e44))
+* **release:** keep container version selection explicit ([#477](https://github.com/TrogonStack/TrogonEventStore/issues/477)) ([d7e59d5](https://github.com/TrogonStack/TrogonEventStore/commit/d7e59d5ab93039f6bee2e49b55af57918f91ac90))
+* **release:** seed the initial release proposal ([#475](https://github.com/TrogonStack/TrogonEventStore/issues/475)) ([dd67f1b](https://github.com/TrogonStack/TrogonEventStore/commit/dd67f1b4540a3e2c64f2ff26acfec4a3bbb552c9))
+
 ## [Unreleased]
 
 ## [23.10.3] - 2024-09-18
@@ -1077,4 +1086,4 @@ The changelog below is a summary of the all of the preview releases.
 
 ### Security
 - TLS is enabled by default for internal node communication. Can be disabled by `--disable-internal-tls`.
-- All external HTTP is HTTPS by default. 
+- All external HTTP is HTTPS by default.
