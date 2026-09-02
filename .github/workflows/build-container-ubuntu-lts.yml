@@ -67,17 +67,17 @@ jobs:
       contents: read
     steps:
       - name: Checkout server
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install task runner
-        uses: jdx/mise-action@v4.3.0
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
           version: 2026.8.2
           install: false
           cache: false
       - name: Install net10.0
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
       - name: Install Rust
@@ -90,21 +90,21 @@ jobs:
         id: clients
         run: mise run --skip-tools github-actions:client-compatibility -- refs
       - name: Checkout C# client
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TrogonStack/TrogonEventStore-Client-Dotnet
           ref: ${{ steps.clients.outputs.dotnet }}
           path: .github/compatibility/clients/dotnet
           persist-credentials: false
       - name: Checkout Rust client
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TrogonStack/TrogonEventStore-Client-Rust
           ref: ${{ steps.clients.outputs.rust }}
           path: .github/compatibility/clients/rust
           persist-credentials: false
       - name: Download server image
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: eventstore-image-noble-linux-x64
       - name: Load server image
@@ -112,7 +112,7 @@ jobs:
       - name: Run client compatibility gate
         run: mise run --skip-tools github-actions:client-compatibility -- run
       - name: Publish compatibility evidence
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: client-compatibility
