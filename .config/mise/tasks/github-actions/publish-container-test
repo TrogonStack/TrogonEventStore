@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#MISE description="Verify container tags implied by GitHub refs"
+
+set -euo pipefail
+
+task_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+publish_task="$task_dir/publish-container"
+image=ghcr.io/trogonstack/trogoneventstore
+
+run_publish() {
+	local ref=$1
+	local ref_name=$2
+
+	GITHUB_REF="$ref" \
+		GITHUB_REF_NAME="$ref_name" \
+		IMAGE="$image" \
+		PUBLISH_TASK="$publish_task" \
+		bash -c '
+			docker() {
+				printf "%s\n" "$*"
+			}
+
+			source "$PUBLISH_TASK"
+		'
+}
+
+stable=$(run_publish refs/tags/v0.0.2 v0.0.2)
+expected_stable=$(printf '%s\n' \
+	"tag eventstore $image:0.0.2" \
+	"push $image:0.0.2" \
+	"tag eventstore $image:latest" \
+	"push $image:latest")
+
+if [[ "$stable" != "$expected_stable" ]]; then
+	printf 'Unexpected stable release commands:\n%s\n' "$stable" >&2
+	exit 1
+fi
+
+prerelease=$(run_publish refs/tags/v0.0.3-rc.1 v0.0.3-rc.1)
+expected_prerelease=$(printf '%s\n' \
+	"tag eventstore $image:0.0.3-rc.1" \
+	"push $image:0.0.3-rc.1" \
+	"tag eventstore $image:preview" \
+	"push $image:preview")
+
+if [[ "$prerelease" != "$expected_prerelease" ]]; then
+	printf 'Unexpected prerelease commands:\n%s\n' "$prerelease" >&2
+	exit 1
+fi
