@@ -12,15 +12,13 @@ tags=()
 if [[ "$GITHUB_REF" == refs/heads/master ]]; then
 	tags+=(ci)
 elif [[ "$GITHUB_REF" =~ ^refs/tags/v([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
-	major=${BASH_REMATCH[1]}
-	minor=${BASH_REMATCH[2]}
 	version=${GITHUB_REF_NAME#v}
 	tags+=("$version")
 
 	if [[ "$version" == *-* ]]; then
 		tags+=(preview)
 	else
-		tags+=("$major.$minor" "$major" stable)
+		tags+=(latest)
 	fi
 else
 	echo "Unsupported image publication ref: $GITHUB_REF" >&2
