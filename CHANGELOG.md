@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.0.3](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.2...v0.0.3) (2026-09-03)
+
+
+### Bug Fixes
+
+* **deps:** prevent vulnerable docs resolution ([#479](https://github.com/TrogonStack/TrogonEventStore/issues/479)) ([c7625cf](https://github.com/TrogonStack/TrogonEventStore/commit/c7625cf5d54289b8c6ee748ae04aedd7fbda4673))
+
 ## [0.0.2](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.1...v0.0.2) (2026-09-02)
 
 
