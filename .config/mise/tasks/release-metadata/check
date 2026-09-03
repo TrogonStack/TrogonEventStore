@@ -52,6 +52,7 @@ jq -e '
 	.packages["."]."include-component-in-tag" == false and
 	.packages["."]."include-v-in-tag" == true and
 	.packages["."]."include-v-in-release-name" == false and
+	(.packages["."]."exclude-paths" | type == "array" and index("docs") != null) and
 	any(.packages["."]."extra-files"[];
 		.type == "xml" and
 		.path == "src/Directory.Build.props" and
