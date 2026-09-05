@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.0.3](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.2...v0.0.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* **security:** protect node capacity from password authentication floods ([#483](https://github.com/TrogonStack/TrogonEventStore/issues/483)) ([2df6d31](https://github.com/TrogonStack/TrogonEventStore/commit/2df6d3112b7e7ec287ea7b6f882406e2de04cd38))
+
 ## [0.0.2](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.1...v0.0.2) (2026-09-02)
 
 
