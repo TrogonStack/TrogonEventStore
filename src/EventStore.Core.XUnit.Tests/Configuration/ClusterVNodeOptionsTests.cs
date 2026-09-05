@@ -206,6 +206,57 @@ public class ClusterVNodeOptionsTests
 		options.Unknown.Options.Should().BeEmpty();
 	}
 
+	[Theory]
+	[InlineData("Auth:OAuth:IssuerTypo")]
+	[InlineData("Auth:MethodTypo")]
+	[InlineData("Auth:OAuth:Issuer:Unexpected")]
+	[InlineData("Auth:OAuth:Audiences:0:Unexpected")]
+	[InlineData("Auth:OAuth:Scopes:Unexpected")]
+	public void unknown_options_detects_invalid_authentication_paths(string key)
+	{
+		var configuration = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddSection(EventStoreConfigurationKeys.Prefix, builder => builder
+				.AddInMemoryCollection(new Dictionary<string, string?>
+				{
+					["Auth:OAuth:Issuer"] = "https://identity.example.com",
+					[key] = "unexpected"
+				}))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.UnknownOptionsDetected.Should().BeTrue();
+		options.Unknown.Options.Select(option => option.Item1).Should().Contain(key);
+	}
+
+	[Fact]
+	public void unknown_options_accepts_current_authentication_shape_and_legacy_provider_setting()
+	{
+		var configuration = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddSection(EventStoreConfigurationKeys.Prefix, builder => builder
+				.AddInMemoryCollection(new Dictionary<string, string?>
+				{
+					["AuthenticationType"] = "internal",
+					["auth:authenticationtype"] = "internal",
+					["auth:methods:0"] = "password",
+					["auth:oauth:issuer"] = "https://identity.example.com",
+					["auth:oauth:audiences:0"] = "eventstore",
+					["auth:oauth:scopes:0"] = "openid",
+					["auth:oauth:requirehttpsmetadata"] = "true",
+					["auth:oauth:clockskewseconds"] = "30",
+					["Plugins:Custom:Arbitrary"] = "allowed"
+				}))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.UnknownOptionsDetected.Should().BeFalse();
+		options.Auth.OAuth.Issuer.Should().Be("https://identity.example.com");
+		options.Auth.Methods.Should().Equal("password");
+	}
+
 	[Fact]
 	public void validation_should_return_error_when_default_password_options_pass_through_command_line()
 	{

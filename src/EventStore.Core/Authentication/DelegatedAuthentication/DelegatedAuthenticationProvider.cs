@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -16,9 +17,22 @@ public class DelegatedAuthenticationProvider(IAuthenticationProvider inner) : Au
 	Version = inner.Version,
 	DiagnosticsName = inner.DiagnosticsName,
 	DiagnosticsTags = inner.DiagnosticsTags
-})
+}), ISessionAuthenticationProvider
 {
 	public IAuthenticationProvider Inner { get; } = inner;
+
+	public void AuthenticateSession(AuthenticationRequest authenticationRequest)
+	{
+		if (Inner is ISessionAuthenticationProvider provider)
+			provider.AuthenticateSession(authenticationRequest);
+		else
+			authenticationRequest.Unauthorized();
+	}
+
+	public Task<ClaimsPrincipal> ValidateSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken) =>
+		Inner is ISessionAuthenticationProvider provider
+			? provider.ValidateSessionAsync(principal, cancellationToken)
+			: Task.FromResult<ClaimsPrincipal>(null);
 
 	public override Task Initialize() => Inner.Initialize();
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -10,10 +11,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core;
 using EventStore.Core.Authentication.OAuth;
+using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EventStore.ClusterNode.Components.Services;
 
@@ -24,7 +27,7 @@ internal static class OAuthBrowserFlowEndpoints
 		ClusterVNodeOptions.OAuthOptions options)
 	{
 		app.MapGet(options.CodeChallengePath, (HttpContext context, OAuthBrowserFlowService service) =>
-			Results.Json(service.CreateCodeChallenge(context), OAuthBrowserFlowService.JsonOptions));
+			service.HandleCodeChallenge(context));
 
 		app.MapGet(options.RedirectPath, async (
 			HttpContext context,
@@ -48,8 +51,16 @@ public sealed class OAuthBrowserFlowService(
 	private static readonly TimeSpan ChallengeLifetime = TimeSpan.FromMinutes(5);
 	private readonly IDataProtector _challengeProtector = dataProtectionProvider.CreateProtector("EventStore.ClusterNode.Components.Services.OAuthBrowserFlowService.Pkce");
 
+	public IResult HandleCodeChallenge(HttpContext context) =>
+		context.Request.IsHttps
+			? Results.Json(CreateCodeChallenge(context), JsonOptions)
+			: ErrorRedirect("https_required", "");
+
 	public OAuthCodeChallenge CreateCodeChallenge(HttpContext context)
 	{
+		if (!context.Request.IsHttps)
+			throw new InvalidOperationException("OAuth browser authentication requires HTTPS.");
+
 		var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
 		var challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
 		var correlationId = Base64Url(RandomNumberGenerator.GetBytes(32));
@@ -58,12 +69,14 @@ public sealed class OAuthBrowserFlowService(
 		context.Response.Cookies.Append(
 			ChallengeCookieName,
 			_challengeProtector.Protect(JsonSerializer.Serialize(payload, JsonOptions)),
-			ChallengeCookieOptions(context.Request));
+			ChallengeCookieOptions(ChallengeLifetime));
 		return new OAuthCodeChallenge(correlationId, challenge, "S256");
 	}
 
 	public async Task<IResult> HandleCallback(HttpContext context, CancellationToken cancellationToken)
 	{
+		if (!context.Request.IsHttps)
+			return ErrorRedirect("https_required", "");
 		var code = context.Request.Query["code"].ToString();
 		var state = context.Request.Query["state"].ToString();
 		var providerError = context.Request.Query["error"].ToString();
@@ -115,8 +128,21 @@ public sealed class OAuthBrowserFlowService(
 			return ErrorRedirect("invalid_token", returnUrl);
 		}
 
-		UiCredentialCookie.Delete(context.Response);
-		UiCredentialCookie.AppendOAuthToken(context.Response, token);
+		var request = new HttpAuthenticationRequest(context, token);
+		context.RequestServices.GetRequiredService<IAuthenticationProvider>().Authenticate(request);
+		HttpAuthenticationRequestStatus status;
+		ClaimsPrincipal principal;
+		try
+		{
+			(status, principal) = await request.AuthenticateAsync().WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+		}
+		catch (TimeoutException)
+		{
+			return ErrorRedirect("invalid_token", returnUrl);
+		}
+		if (status != HttpAuthenticationRequestStatus.Authenticated)
+			return ErrorRedirect("invalid_token", returnUrl);
+		await UiSessionAuthentication.SignInAsync(context, principal, token);
 		return Results.Redirect(adminUiEnabled ? SignInLocation(returnUrl) : DirectReturnLocation(returnUrl));
 	}
 
@@ -225,6 +251,8 @@ public sealed class OAuthBrowserFlowService(
 			if (document.RootElement.TryGetProperty("redirect_uri", out var redirectUriElement))
 			{
 				redirectUri = NormalizeRedirectUri(redirectUriElement.GetString() ?? "");
+				if (string.IsNullOrWhiteSpace(redirectUri))
+					return false;
 			}
 
 			return !string.IsNullOrWhiteSpace(correlationId);
@@ -247,8 +275,7 @@ public sealed class OAuthBrowserFlowService(
 			return "";
 		}
 
-		if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
-			!uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
+		if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
 		{
 			return "";
 		}
@@ -271,15 +298,12 @@ public sealed class OAuthBrowserFlowService(
 			: returnUrl;
 
 	private void DeleteChallengeCookie(HttpContext context) =>
-		context.Response.Cookies.Delete(ChallengeCookieName, ChallengeCookieOptions(context.Request, maxAge: null));
+		context.Response.Cookies.Delete(ChallengeCookieName, ChallengeCookieOptions(maxAge: null));
 
-	private CookieOptions ChallengeCookieOptions(HttpRequest request) =>
-		ChallengeCookieOptions(request, ChallengeLifetime);
-
-	private CookieOptions ChallengeCookieOptions(HttpRequest request, TimeSpan? maxAge) => new()
+	private static CookieOptions ChallengeCookieOptions(TimeSpan? maxAge) => new()
 	{
 		HttpOnly = true,
-		Secure = request.IsHttps,
+		Secure = true,
 		SameSite = SameSiteMode.Lax,
 		Path = "/",
 		MaxAge = maxAge

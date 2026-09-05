@@ -527,6 +527,29 @@ making the database authentication method explicit, so password and OAuth access
 Authentication is applied to all HTTP endpoints by default, except `/-/liveness`, `/-/readiness`, static web
 content, and redirects.
 
+### Management UI sessions
+
+Browser sign-in uses ASP.NET Core cookie authentication with a protected session identifier. Passwords are
+used only when signing in; they are not retained in the browser or the session store. OAuth access tokens
+remain in the node's memory and are validated on subsequent requests. Sessions expire after 15 minutes
+without automatic renewal. Signing out revokes the server-side ticket, including copies of its cookie.
+Existing credential cookies are discarded and require a new sign-in after upgrading.
+
+Browser sign-in requires HTTPS to the node, including when an ingress or reverse proxy terminates public
+TLS. Configure TLS on the upstream connection as well. `DisableTls` does not enable browser sessions over
+HTTP. Session cookies are Secure, HttpOnly, host-only, and SameSite=Lax. Cookie authentication is limited
+to `/ui`; gRPC clients continue to supply their own credentials. UI mutations require antiforgery tokens.
+
+Sessions are held in a bounded, node-local memory store. A node restart, store eviction, or connection to
+a different node requires signing in again. Use a node-specific management address or session affinity
+at the ingress. Sharing Data Protection keys alone does not share the session store.
+
+Each password session is checked against the latest local user record on every request. Password changes,
+role changes, disabling, or deleting the account invalidate its previous sessions as those changes replicate
+to each node. A node that cannot validate the account rejects the session. Forwarded writes are revalidated
+by the leader over the authenticated TLS connection between nodes. During a rolling upgrade, use the
+leader's UI for writes until all nodes support session forwarding.
+
 ### Authentication methods
 
 Use `Auth:Methods` to choose the authentication methods enabled by the node. If `Auth:Methods` is not set, the

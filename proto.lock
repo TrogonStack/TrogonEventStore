@@ -2343,6 +2343,26 @@
                 "id": 4,
                 "name": "anonymous",
                 "type": "google.protobuf.Empty"
+              },
+              {
+                "id": 5,
+                "name": "local_session",
+                "type": "LocalSession"
+              }
+            ]
+          },
+          {
+            "name": "LocalSession",
+            "fields": [
+              {
+                "id": 1,
+                "name": "username",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "user_event_id",
+                "type": "event_store.client.UUID"
               }
             ]
           },

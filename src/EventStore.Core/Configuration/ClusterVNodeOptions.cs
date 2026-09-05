@@ -721,19 +721,52 @@ public partial record ClusterVNodeOptions
 			static IEnumerable<string> FindUnknownKeys(IConfiguration configuration,
 				IReadOnlySet<string> knownKeys)
 			{
+				var auth = configuration.GetSection(nameof(Auth));
 				var unknownKeys = configuration
 					.AsEnumerable()
 					.Select(kvp => kvp.Key)
+					.Where(key => !key.Equals(auth.Path, StringComparison.OrdinalIgnoreCase)
+						&& !key.StartsWith(auth.Path + ":", StringComparison.OrdinalIgnoreCase))
 					.Where(key => key != EventStoreConfigurationKeys.Prefix
 								  && !knownKeys.Contains(EventStoreConfigurationKeys.Normalize(key)))
 					.ToList();
 
 				var unknownSections = FindUnknownSections(unknownKeys);
 
-				// only report top level unknown keys. plugins, metrics, etc will use nested keys.
-				// in the future we may report unknown keys in nested sections but it is out of scope for now.
+				// Plugins and metrics own their nested configuration, but Auth is a server-owned schema.
 				return unknownKeys
-					.Where(key => !unknownSections.Any(key.StartsWith));
+					.Where(key => !unknownSections.Any(key.StartsWith))
+					.Concat(FindUnknownAuthKeys(auth, typeof(AuthOptions)));
+			}
+
+			static IEnumerable<string> FindUnknownAuthKeys(IConfigurationSection section, Type type)
+			{
+				foreach (var child in section.GetChildren())
+				{
+					Type? childType;
+					if (type.IsArray)
+					{
+						childType = child.Key.All(char.IsAsciiDigit) && int.TryParse(child.Key, out _)
+							? type.GetElementType()
+							: null;
+					}
+					else
+					{
+						childType = type == typeof(string) || type.IsValueType
+							? null
+							: type.GetProperties().FirstOrDefault(property =>
+								property.Name.Equals(child.Key, StringComparison.OrdinalIgnoreCase))?.PropertyType;
+					}
+
+					if (childType is null)
+					{
+						yield return child.Path;
+						continue;
+					}
+
+					foreach (var unknownKey in FindUnknownAuthKeys(child, childType))
+						yield return unknownKey;
+				}
 			}
 
 			static HashSet<string> FindUnknownSections(IEnumerable<string> keys)

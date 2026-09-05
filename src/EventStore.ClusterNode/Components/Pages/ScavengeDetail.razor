@@ -50,6 +50,7 @@ else
 			@if (Page.CanStop)
 			{
 				<form method="post" action="/ui/operations/scavenge/stop" data-admin-command data-confirm="Stop this scavenge?">
+					<Microsoft.AspNetCore.Components.Forms.AntiforgeryToken />
 					<input name="scavengeId" type="hidden" value="@Page.ScavengeId" />
 					<button class="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-black text-red-800 transition hover:bg-red-100" type="submit">Stop scavenge</button>
 				</form>

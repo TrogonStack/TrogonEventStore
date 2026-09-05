@@ -207,8 +207,12 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		services = services
 			.AddRouting()
-			.AddAuthentication(o => o
-				.AddScheme<EventStoreAuthenticationHandler>("es auth", displayName: null))
+			.AddAuthentication(o =>
+			{
+				o.DefaultAuthenticateScheme = "es auth";
+				o.DefaultChallengeScheme = "es auth";
+				o.AddScheme<EventStoreAuthenticationHandler>("es auth", displayName: null);
+			})
 			.Services
 			.AddAuthorization()
 			.AddAntiforgery()

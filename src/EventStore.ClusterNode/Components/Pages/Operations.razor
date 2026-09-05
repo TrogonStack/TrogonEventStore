@@ -85,6 +85,7 @@ else
 			}
 
 			<form class="mt-5 grid gap-4 rounded-[1.5rem] border border-es-ink/10 bg-white/70 p-5 md:grid-cols-5" method="post" action="/ui/operations/scavenge/start" data-admin-command data-confirm="Start a database scavenge?">
+				<Microsoft.AspNetCore.Components.Forms.AntiforgeryToken />
 				<label class="text-sm font-bold text-es-muted">
 					Start chunk
 					<input class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-3 py-2 text-es-ink outline-none focus:border-es-green focus:ring-4 focus:ring-es-green/15" name="startFromChunk" type="number" min="0" value="0" disabled="@(!Page.Scavenge.SupportsScavenge)" />
@@ -162,6 +163,7 @@ else
 											@if (item.CanStop)
 											{
 												<form method="post" action="/ui/operations/scavenge/stop" data-admin-command data-confirm="Stop this scavenge?">
+													<Microsoft.AspNetCore.Components.Forms.AntiforgeryToken />
 													<input name="scavengeId" type="hidden" value="@item.ScavengeId" />
 													<button class="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-black text-red-800 transition hover:bg-red-100" type="submit">Stop</button>
 												</form>
@@ -190,6 +192,7 @@ else
 			<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Node priority</p>
 			<p class="mt-3 text-sm leading-6 text-es-muted">Adjust election priority deliberately during operations work.</p>
 			<form class="mt-5 flex gap-2" method="post" action="/ui/operations/set-priority" data-admin-command data-confirm="Set node priority?">
+				<Microsoft.AspNetCore.Components.Forms.AntiforgeryToken />
 				<input class="min-w-0 flex-1 rounded-2xl border border-es-ink/10 bg-white px-3 py-2 text-es-ink outline-none focus:border-es-green focus:ring-4 focus:ring-es-green/15" name="priority" type="number" value="0" />
 				<button class="rounded-2xl bg-es-ink px-4 py-2 text-sm font-black text-white transition hover:bg-es-green" type="submit">Set</button>
 			</form>
@@ -204,6 +207,7 @@ else
 				<p class="mt-3 max-w-3xl text-sm leading-6">This requests process shutdown and should only be used when the operator intends to stop the node.</p>
 			</div>
 			<form method="post" action="/ui/operations/shutdown" data-admin-command data-admin-no-refresh="true" data-confirm="Shutdown this node?">
+				<Microsoft.AspNetCore.Components.Forms.AntiforgeryToken />
 				<button class="rounded-2xl bg-red-700 px-5 py-3 text-sm font-black text-white shadow-lg shadow-red-900/15 transition hover:bg-red-800" type="submit">Shutdown</button>
 			</form>
 		</div>

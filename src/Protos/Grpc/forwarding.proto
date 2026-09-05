@@ -44,7 +44,13 @@ message ForwardedIdentity {
 		string bearer_token = 2;
 		UserPassword user_password = 3;
 		google.protobuf.Empty anonymous = 4;
+		LocalSession local_session = 5;
 	}
+}
+
+message LocalSession {
+	string username = 1;
+	event_store.client.UUID user_event_id = 2;
 }
 
 message UserPassword {

@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.DelegatedAuthentication;
 using EventStore.Core.Authorization;
 using EventStore.Core.Bus;
@@ -239,6 +240,73 @@ public class ForwardingServiceTests
 			Assert.That(published!.User, Is.SameAs(authenticatedUser));
 			Assert.That(published.Tokens, Is.EqualTo(tokens));
 		});
+	}
+
+	[TestCase(true)]
+	[TestCase(false)]
+	public async Task session_identity_requires_current_account_validation(bool isValid)
+	{
+		using var certificate = CreateCertificate("node");
+		var stamp = Guid.NewGuid();
+		var sessionUser = new ClaimsPrincipal(new LocalSessionClaimsIdentity([
+			new Claim(ClaimTypes.Name, "writer"), new Claim("es:session-security-stamp", stamp.ToString("N")),
+			new Claim(ClaimTypes.Role, "$admins")
+		]));
+		var validatedUser = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "writer")], "ES-Legacy"));
+		var authentication = new RecordingSessionAuthenticationProvider(isValid ? validatedUser : null);
+		var publisher = new CapturingPublisher(message => ReplySuccess((ClientMessage.WriteRequestMessage)message));
+		var response = new CapturingStreamWriter<Proto.LeaderFrame>();
+		var service = new ForwardingService(publisher, new CapturingAuthorizationProvider(), authentication);
+
+		await service.Forward(new EnumerableStreamReader<Proto.FollowerFrame>([
+			OpenFrame(), WriteEventsFrame(sessionUser), WriteEventsFrame(sessionUser)
+		]), response, new TestServerCallContext(certificate));
+
+		Assert.That(authentication.CallCount, Is.EqualTo(2));
+		Assert.That(authentication.Principal!.Identity!.Name, Is.EqualTo("writer"));
+		Assert.That(authentication.Principal.FindFirst("es:session-security-stamp")!.Value, Is.EqualTo(stamp.ToString("N")));
+		Assert.That(authentication.Principal.IsInRole("$admins"), Is.False);
+		if (isValid)
+		{
+			Assert.That(publisher.Messages, Has.Count.EqualTo(2));
+			Assert.That(publisher.Messages.Cast<ClientMessage.WriteEvents>().Select(message => message.User),
+				Is.All.SameAs(validatedUser));
+			Assert.That(publisher.Messages.Cast<ClientMessage.WriteEvents>().Select(message => message.Tokens), Is.All.Null);
+		}
+		else
+		{
+			Assert.That(publisher.Messages, Is.Empty);
+			Assert.That(response.Messages, Has.Count.EqualTo(2));
+			Assert.That(response.Messages.Select(message => message.Response.PayloadCase),
+				Is.All.EqualTo(Proto.ForwardResponse.PayloadOneofCase.NotAuthenticated));
+		}
+	}
+
+	[TestCase(false)]
+	[TestCase(true)]
+	public async Task session_identity_requires_mutual_tls_and_system_identity(bool useNonSystemCertificate)
+	{
+		using var certificate = useNonSystemCertificate ? CreateCertificate("user") : null;
+		var sessionUser = new ClaimsPrincipal(new LocalSessionClaimsIdentity([
+			new Claim(ClaimTypes.Name, "writer"), new Claim("es:session-security-stamp", Guid.NewGuid().ToString("N"))
+		]));
+		var authentication = new RecordingSessionAuthenticationProvider(sessionUser);
+		var publisher = new CapturingPublisher();
+		var response = new CapturingStreamWriter<Proto.LeaderFrame>();
+		var service = new ForwardingService(publisher, new CapturingAuthorizationProvider(), authentication);
+		var context = new TestServerCallContext(certificate);
+		if (useNonSystemCertificate)
+		{
+			context.GetHttpContext().User = sessionUser;
+		}
+
+		await service.Forward(new EnumerableStreamReader<Proto.FollowerFrame>([
+			OpenFrame(), WriteEventsFrame(sessionUser)
+		]), response, context);
+
+		Assert.That(authentication.CallCount, Is.Zero);
+		Assert.That(publisher.Messages, Is.Empty);
+		Assert.That(response.Messages.Single().Response.PayloadCase, Is.EqualTo(Proto.ForwardResponse.PayloadOneofCase.NotAuthenticated));
 	}
 
 	[TestCase(AuthenticationOutcome.Unauthorized, Proto.ForwardResponse.PayloadOneofCase.NotAuthenticated)]
@@ -728,6 +796,23 @@ public class ForwardingServiceTests
 		Unauthorized,
 		Error,
 		NotReady
+	}
+
+	private sealed class RecordingSessionAuthenticationProvider(ClaimsPrincipal? validated) :
+		AuthenticationProviderBase(name: "test"), ISessionAuthenticationProvider
+	{
+		public int CallCount { get; private set; }
+		public ClaimsPrincipal? Principal { get; private set; }
+		public void AuthenticateSession(AuthenticationRequest authenticationRequest) =>
+			Assert.Fail("Session validation must not authenticate new credentials.");
+		public override void Authenticate(AuthenticationRequest authenticationRequest) =>
+			Assert.Fail("Session validation must not use public credential authentication.");
+		public Task<ClaimsPrincipal> ValidateSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
+		{
+			CallCount++;
+			Principal = principal;
+			return Task.FromResult(validated!);
+		}
 	}
 
 	private sealed class RecordingAuthenticationProvider(
