@@ -59,6 +59,16 @@ All `trogon.eventstore.*` instruments are development semantic conventions. Attr
 
 The failure, unimplemented, and deadline-exceeded counters mirror distinct diagnostic events. They are separate instruments because the source events can overlap for one call and therefore must not be summed as mutually exclusive outcomes.
 
+### Password authentication
+
+| Instrument | Kind | Unit | Attributes | Description |
+| --- | --- | --- | --- | --- |
+| `trogon.eventstore.authentication.password.admitted` | Counter | `{attempt}` | None | Password authentication attempts admitted for processing, regardless of authentication outcome |
+| `trogon.eventstore.authentication.password.rejected` | Counter | `{attempt}` | `trogon.eventstore.authentication.password.rejection.reason` | Attempts rejected because the `rate` or `concurrency` limit was exhausted |
+| `trogon.eventstore.authentication.password.active` | UpDownCounter | `{attempt}` | None | Admitted password authentication attempts still being processed |
+
+These node-local admission metrics do not identify users, client addresses, or credentials. Rejections describe exhausted capacity, not invalid passwords.
+
 ### Queues
 
 | Instrument | Kind | Unit | Attributes | Description |

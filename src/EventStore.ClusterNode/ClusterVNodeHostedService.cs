@@ -251,7 +251,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			var authenticationMethodFactories = new Dictionary<string, AuthenticationProviderFactory> {
 				{
 					AuthenticationMethodNames.Password, new AuthenticationProviderFactory(components =>
-						new InternalAuthenticationProviderFactory(components, _options.DefaultUser))
+						new InternalAuthenticationProviderFactory(components, _options.DefaultUser, _options.Auth.Password))
 				},
 				{
 					AuthenticationMethodNames.OAuth, new AuthenticationProviderFactory(_ =>

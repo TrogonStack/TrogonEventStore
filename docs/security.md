@@ -527,6 +527,42 @@ making the database authentication method explicit, so password and OAuth access
 Authentication is applied to all HTTP endpoints by default, except `/-/liveness`, `/-/readiness`, static web
 content, and redirects.
 
+### Password authentication admission limits
+
+Built-in password authentication shares a node-local admission budget across UI sign-in, HTTP and gRPC
+credentials, TCP authentication, and forwarded credentials. Cached credentials still require password
+verification and use the same budget. Attempts are admitted before account reads, including requests
+for nonexistent accounts, so changing usernames cannot bypass the node-wide limit.
+
+| Setting | Default | Purpose |
+|:--------|--------:|:--------|
+| `Auth:Password:MaxConcurrentAttempts` | 4 | Maximum simultaneous account reads and password checks. |
+| `Auth:Password:AttemptsPerSecond` | 100 | Attempt tokens replenished each second. |
+| `Auth:Password:BurstSize` | 200 | Maximum accumulated attempt tokens. |
+
+All values must be positive, and `BurstSize` must be at least `AttemptsPerSecond` so the bucket can
+hold a full second's replenishment. Invalid limits prevent the password provider from starting.
+There is no waiting queue. When either budget is exhausted, requests
+receive the existing authentication-not-ready response: HTTP returns `503` with `Retry-After`, gRPC
+returns `Unavailable`, TCP returns `NotReady`, and browser sign-in reports that the provider is not
+ready. Clients should use bounded retries with backoff and jitter.
+
+Limits are shared by all password users on a node, not per account or per IP address. They do not lock
+accounts or provide distributed brute-force protection. Use ingress abuse controls and network access
+restrictions as well. Size the limits under representative load; cached API password checks also count,
+and each node has an independent budget. Changing these settings requires a restart.
+
+Custom authentication plugins own their admission controls. Certificate authentication, OAuth validation,
+and validation of established UI sessions do not consume the password budget. Cancelling a caller does not
+stop an account read or password hash already in progress. Its concurrency permit remains held until the
+operation completes or the account read times
+out, so cancellation cannot allow more password work than the configured limit.
+
+The `EventStore.Core` meter exports `trogon.eventstore.authentication.password.admitted`,
+`trogon.eventstore.authentication.password.rejected`, and `trogon.eventstore.authentication.password.active`.
+Rejections distinguish rate exhaustion from concurrency exhaustion without recording usernames,
+credentials, or client addresses.
+
 ### Management UI sessions
 
 Browser sign-in uses ASP.NET Core cookie authentication with a protected session identifier. Passwords are

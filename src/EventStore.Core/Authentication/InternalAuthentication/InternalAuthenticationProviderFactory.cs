@@ -12,13 +12,17 @@ public class InternalAuthenticationProviderFactory : IAuthenticationProviderFact
 	private readonly IODispatcher _dispatcher;
 	private readonly Rfc2898PasswordHashAlgorithm _passwordHashAlgorithm;
 	private readonly ClusterVNodeOptions.DefaultUserOptions _defaultUserOptions;
+	private readonly ClusterVNodeOptions.PasswordAuthenticationOptions _passwordAuthenticationOptions;
 
-	public InternalAuthenticationProviderFactory(AuthenticationProviderFactoryComponents components, ClusterVNodeOptions.DefaultUserOptions defaultUserOptions)
+	public InternalAuthenticationProviderFactory(AuthenticationProviderFactoryComponents components,
+		ClusterVNodeOptions.DefaultUserOptions defaultUserOptions,
+		ClusterVNodeOptions.PasswordAuthenticationOptions passwordAuthenticationOptions = null)
 	{
 		_components = components;
 		_passwordHashAlgorithm = new();
 		_dispatcher = new(components.MainQueue, components.WorkersQueue);
 		_defaultUserOptions = defaultUserOptions;
+		_passwordAuthenticationOptions = passwordAuthenticationOptions ?? new();
 
 		foreach (var bus in components.WorkerBuses)
 		{
@@ -42,7 +46,8 @@ public class InternalAuthenticationProviderFactory : IAuthenticationProviderFact
 			passwordHashAlgorithm: _passwordHashAlgorithm,
 			cacheSize: ESConsts.CachedPrincipalCount,
 			logFailedAuthenticationAttempts: logFailedAuthenticationAttempts,
-			defaultUserOptions: _defaultUserOptions
+			defaultUserOptions: _defaultUserOptions,
+			passwordAuthenticationOptions: _passwordAuthenticationOptions
 		);
 
 		var passwordChangeNotificationReader = new PasswordChangeNotificationReader(_components.MainQueue, _dispatcher);

@@ -259,6 +259,21 @@ public partial record ClusterVNodeOptions
 		[Description("OAuth authentication options.")]
 		public OAuthOptions OAuth { get; init; } = new();
 
+		[Description("Per-node password authentication admission limits.")]
+		public PasswordAuthenticationOptions Password { get; init; } = new();
+
+	}
+
+	public record PasswordAuthenticationOptions
+	{
+		[Description("Maximum password authentication attempts in flight per node, including account reads. Excess attempts are rejected without queuing.")]
+		public int MaxConcurrentAttempts { get; init; } = 4;
+
+		[Description("Password authentication attempt tokens replenished per second per node.")]
+		public int AttemptsPerSecond { get; init; } = 100;
+
+		[Description("Maximum password authentication burst tokens per node. Must be at least AttemptsPerSecond.")]
+		public int BurstSize { get; init; } = 200;
 	}
 
 	public record OAuthOptions
