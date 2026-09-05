@@ -32,6 +32,21 @@ namespace TrogonEventStore.SemanticConventions
 			"{retry}",
 			"Number of retries initiated by archive operations.",
 			MetricInstrumentKind.Counter);
+		public static MetricDefinition TrogonEventstoreAuthenticationPasswordActive { get; } = new MetricDefinition(
+			"trogon.eventstore.authentication.password.active",
+			"{attempt}",
+			"Number of admitted password authentication attempts still being processed.",
+			MetricInstrumentKind.UpDownCounter);
+		public static MetricDefinition TrogonEventstoreAuthenticationPasswordAdmitted { get; } = new MetricDefinition(
+			"trogon.eventstore.authentication.password.admitted",
+			"{attempt}",
+			"Number of password authentication attempts admitted for processing.",
+			MetricInstrumentKind.Counter);
+		public static MetricDefinition TrogonEventstoreAuthenticationPasswordRejected { get; } = new MetricDefinition(
+			"trogon.eventstore.authentication.password.rejected",
+			"{attempt}",
+			"Number of password authentication attempts rejected by admission limits.",
+			MetricInstrumentKind.Counter);
 		public static MetricDefinition TrogonEventstoreCacheOperationCount { get; } = new MetricDefinition(
 			"trogon.eventstore.cache.operation.count",
 			"{operation}",
@@ -250,6 +265,9 @@ namespace TrogonEventStore.SemanticConventions
 			TrogonEventstoreArchiveFailureCount,
 			TrogonEventstoreArchiveReadDuration,
 			TrogonEventstoreArchiveRetryCount,
+			TrogonEventstoreAuthenticationPasswordActive,
+			TrogonEventstoreAuthenticationPasswordAdmitted,
+			TrogonEventstoreAuthenticationPasswordRejected,
 			TrogonEventstoreCacheOperationCount,
 			TrogonEventstoreCacheResourceCount,
 			TrogonEventstoreCacheResourceSize,

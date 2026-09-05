@@ -35,6 +35,28 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void password_authentication_limits_are_recognized_as_nested_options()
+	{
+		var configuration = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddSection(EventStoreConfigurationKeys.Prefix, builder => builder
+				.AddInMemoryCollection(new Dictionary<string, string?>
+				{
+					["Auth:Password:MaxConcurrentAttempts"] = "2",
+					["Auth:Password:AttemptsPerSecond"] = "10",
+					["Auth:Password:BurstSize"] = "20"
+				}))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.UnknownOptionsDetected.Should().BeFalse();
+		options.Auth.Password.MaxConcurrentAttempts.Should().Be(2);
+		options.Auth.Password.AttemptsPerSecond.Should().Be(10);
+		options.Auth.Password.BurstSize.Should().Be(20);
+	}
+
+	[Fact]
 	public void confirm_suggested_option()
 	{
 		var options = GetOptions("--cluster-sze 3");
@@ -209,6 +231,7 @@ public class ClusterVNodeOptionsTests
 	[Theory]
 	[InlineData("Auth:OAuth:IssuerTypo")]
 	[InlineData("Auth:MethodTypo")]
+	[InlineData("Auth:Password:BurstSizeTypo")]
 	[InlineData("Auth:OAuth:Issuer:Unexpected")]
 	[InlineData("Auth:OAuth:Audiences:0:Unexpected")]
 	[InlineData("Auth:OAuth:Scopes:Unexpected")]

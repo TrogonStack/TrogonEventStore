@@ -4,6 +4,19 @@ groups:
     stability: development
     brief: Attributes used by TrogonEventStore metrics.
     attributes:
+      - id: trogon.eventstore.authentication.password.rejection.reason
+        type:
+          members:
+            - id: rate
+              value: rate
+              stability: development
+              brief: The password authentication rate limit was exhausted.
+            - id: concurrency
+              value: concurrency
+              stability: development
+              brief: All password authentication concurrency permits were in use.
+        stability: development
+        brief: The exhausted password authentication admission limit.
       - id: trogon.eventstore.activity.name
         type: string
         stability: development
@@ -105,6 +118,30 @@ groups:
         brief: Load average sampling period.
         examples: [1m, 5m, 15m]
 
+  - id: metric.trogon.eventstore.authentication.password.admitted
+    type: metric
+    stability: development
+    brief: Number of password authentication attempts admitted for processing.
+    metric_name: trogon.eventstore.authentication.password.admitted
+    instrument: counter
+    unit: "{attempt}"
+  - id: metric.trogon.eventstore.authentication.password.rejected
+    type: metric
+    stability: development
+    brief: Number of password authentication attempts rejected by admission limits.
+    metric_name: trogon.eventstore.authentication.password.rejected
+    instrument: counter
+    unit: "{attempt}"
+    attributes:
+      - ref: trogon.eventstore.authentication.password.rejection.reason
+        requirement_level: required
+  - id: metric.trogon.eventstore.authentication.password.active
+    type: metric
+    stability: development
+    brief: Number of admitted password authentication attempts still being processed.
+    metric_name: trogon.eventstore.authentication.password.active
+    instrument: updowncounter
+    unit: "{attempt}"
   - id: metric.trogon.eventstore.component.status
     type: metric
     stability: development

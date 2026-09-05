@@ -9,6 +9,7 @@ namespace TrogonEventStore.SemanticConventions
 	{
 		public const string ActivityName = "trogon.eventstore.activity.name";
 		public const string ActivityOutcome = "trogon.eventstore.activity.outcome";
+		public const string AuthenticationPasswordRejectionReason = "trogon.eventstore.authentication.password.rejection.reason";
 		public const string CacheName = "trogon.eventstore.cache.name";
 		public const string CacheResource = "trogon.eventstore.cache.resource";
 		public const string CacheResult = "trogon.eventstore.cache.result";
@@ -32,6 +33,7 @@ namespace TrogonEventStore.SemanticConventions
 		{
 			ActivityName,
 			ActivityOutcome,
+			AuthenticationPasswordRejectionReason,
 			CacheName,
 			CacheResource,
 			CacheResult,

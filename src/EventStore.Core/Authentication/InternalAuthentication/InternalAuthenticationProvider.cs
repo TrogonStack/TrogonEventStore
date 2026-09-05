@@ -24,6 +24,7 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 	readonly IODispatcher _ioDispatcher;
 	readonly bool _logFailedAuthenticationAttempts;
 	readonly PasswordHashAlgorithm _passwordHashAlgorithm;
+	readonly PasswordAuthenticationLimiter _passwordAuthenticationLimiter;
 
 	readonly LRUCache<string, (string hash, string salt, ClaimsPrincipal principal)> _userPasswordsCache;
 
@@ -33,13 +34,16 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 		ISubscriber subscriber, IODispatcher ioDispatcher,
 		PasswordHashAlgorithm passwordHashAlgorithm,
 		int cacheSize, bool logFailedAuthenticationAttempts,
-		ClusterVNodeOptions.DefaultUserOptions defaultUserOptions
+		ClusterVNodeOptions.DefaultUserOptions defaultUserOptions,
+		ClusterVNodeOptions.PasswordAuthenticationOptions passwordAuthenticationOptions = null
 	) : base(name: "internal", diagnosticsName: "InternalAuthentication")
 	{
 		_ioDispatcher = ioDispatcher;
 		_passwordHashAlgorithm = passwordHashAlgorithm;
 		_userPasswordsCache = new LRUCache<string, (string, string, ClaimsPrincipal)>("UserPasswords", cacheSize);
 		_logFailedAuthenticationAttempts = logFailedAuthenticationAttempts;
+		_passwordAuthenticationLimiter = new(passwordAuthenticationOptions ?? new());
+		subscriber.Subscribe<SystemMessage.BecomeShutdown>(new ShutdownHandler(_passwordAuthenticationLimiter));
 
 		var userManagement = new UserManagementService(
 			ioDispatcher: ioDispatcher,
@@ -66,28 +70,43 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 	public void Handle(InternalAuthenticationProviderMessages.ResetPasswordCache message) =>
 		_userPasswordsCache.Remove(message.LoginName);
 
-	public override void Authenticate(AuthenticationRequest authenticationRequest)
+	public override void Authenticate(AuthenticationRequest authenticationRequest) => Authenticate(authenticationRequest, useCache: true);
+
+	public void AuthenticateSession(AuthenticationRequest authenticationRequest) => Authenticate(authenticationRequest, useCache: false);
+
+	void Authenticate(AuthenticationRequest authenticationRequest, bool useCache)
 	{
-		if (_userPasswordsCache.TryGet(authenticationRequest.Name, out var cached))
+		var lease = authenticationRequest.HasValidClientCertificate ? null : _passwordAuthenticationLimiter.TryAcquire();
+		if (!authenticationRequest.HasValidClientCertificate && lease is null)
 		{
-			AuthenticateCached(authenticationRequest, cached.hash, cached.salt, cached.principal);
+			authenticationRequest.NotReady();
+			return;
 		}
-		else
+
+		try
 		{
-			AuthenticateSession(authenticationRequest);
+			if (useCache && _userPasswordsCache.TryGet(authenticationRequest.Name, out var cached))
+			{
+				AuthenticateCached(authenticationRequest, cached.hash, cached.salt, cached.principal);
+			}
+			else
+			{
+				var handler = new AuthReadResponseHandler(this, authenticationRequest, lease);
+				_ioDispatcher.ReadBackward($"$user-{authenticationRequest.Name}", -1, 1, false,
+					SystemAccounts.System, handler, Guid.NewGuid());
+				lease = null;
+			}
+		}
+		finally
+		{
+			lease?.Dispose();
 		}
 	}
 
-	public void AuthenticateSession(AuthenticationRequest authenticationRequest) =>
-		_ioDispatcher.ReadBackward(
-			streamId: $"$user-{authenticationRequest.Name}",
-			fromEventNumber: -1,
-			maxCount: 1,
-			resolveLinks: false,
-			principal: SystemAccounts.System,
-			handler: new AuthReadResponseHandler(self: this, request: authenticationRequest),
-			corrId: Guid.NewGuid()
-		);
+	sealed class ShutdownHandler(PasswordAuthenticationLimiter limiter) : IHandle<SystemMessage.BecomeShutdown>
+	{
+		public void Handle(SystemMessage.BecomeShutdown message) => limiter.Dispose();
+	}
 
 	public override IReadOnlyList<string> GetSupportedAuthenticationSchemes() => ["Basic", "UserCertificate"];
 
@@ -210,13 +229,16 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 
 	public override Task Initialize() => _tcs.Task;
 
-	class AuthReadResponseHandler(InternalAuthenticationProvider self, AuthenticationRequest request) : IReadStreamEventsBackwardHandler
+	class AuthReadResponseHandler(InternalAuthenticationProvider self, AuthenticationRequest request, IDisposable lease) : IReadStreamEventsBackwardHandler
 	{
+		int _completed;
 		public bool HandlesAlt => true;
 		public bool HandlesTimeout => true;
 
 		public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted completed)
 		{
+			if (Interlocked.Exchange(ref _completed, 1) != 0)
+				return;
 			try
 			{
 				if (completed.Result == ReadStreamResult.StreamDeleted ||
@@ -268,10 +290,17 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 			{
 				request.Unauthorized();
 			}
+			finally
+			{
+				lease?.Dispose();
+			}
 		}
 
 		public void Handle(ClientMessage.NotHandled notHandled)
 		{
+			if (Interlocked.Exchange(ref _completed, 1) != 0)
+				return;
+			using var acquired = lease;
 			if (self._logFailedAuthenticationAttempts)
 			{
 				Logger.Warning(
@@ -285,6 +314,9 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 
 		public void Timeout()
 		{
+			if (Interlocked.Exchange(ref _completed, 1) != 0)
+				return;
+			using var acquired = lease;
 			if (self._logFailedAuthenticationAttempts)
 			{
 				Logger.Warning("Authentication Failed for {Id}: {Reason}", request.Id, "Timeout.");

@@ -83,6 +83,7 @@ public class MetricNamesTests
 			{
 				"trogon.eventstore.activity.name",
 				"trogon.eventstore.activity.outcome",
+				"trogon.eventstore.authentication.password.rejection.reason",
 				"trogon.eventstore.cache.name",
 				"trogon.eventstore.cache.resource",
 				"trogon.eventstore.cache.result",
