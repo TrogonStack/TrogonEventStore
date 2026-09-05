@@ -160,22 +160,19 @@
 
 	private async Task SignInUser() {
 		try {
-			var result = await Security.Validate(Input.Username, Input.Password);
+			var context = HttpContextAccessor.HttpContext;
+			if (context is null) {
+				Message = "The sign-in response is no longer available.";
+				return;
+			}
+			var result = await Security.SignInAsync(context, Input.Username, Input.Password);
+			Input.Password = "";
 			if (!result.Success) {
 				DisplayedOAuthError = "";
 				Message = result.Message;
 				return;
 			}
 
-			var context = HttpContextAccessor.HttpContext;
-			if (context is null) {
-				DisplayedOAuthError = "";
-				Message = "The sign-in response is no longer available.";
-				return;
-			}
-
-			UiCredentialCookie.DeleteOAuthToken(context.Response);
-			UiCredentialCookie.AppendBasic(context.Response, new UiCredentials(Input.Username.Trim(), Input.Password));
 		} catch (OperationCanceledException) {
 			DisplayedOAuthError = "";
 			Message = "Sign-in was canceled.";

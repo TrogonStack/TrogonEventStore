@@ -1,89 +1,6 @@
 (function () {
 	"use strict";
 
-	var originalFetch = window.fetch;
-
-	function readCookie(name) {
-		var prefix = name + "=";
-		var parts = document.cookie ? document.cookie.split(";") : [];
-		for (var i = 0; i < parts.length; i++) {
-			var part = parts[i].trim();
-			if (part.indexOf(prefix) !== 0)
-				continue;
-
-			return part.substring(prefix.length);
-		}
-
-		return "";
-	}
-
-	function safeDecode(value) {
-		try {
-			return decodeURIComponent(value);
-		} catch (_) {
-			return value;
-		}
-	}
-
-	function isHeaderSafe(value) {
-		return value && !/[\r\n]/.test(value);
-	}
-
-	function readAuthorization() {
-		var token = safeDecode(readCookie("oauth_token"));
-		if (isHeaderSafe(token))
-			return "Bearer " + token;
-
-		var raw = safeDecode(readCookie("es-creds"));
-		if (!raw)
-			return "";
-
-		try {
-			var parsed = JSON.parse(raw);
-			var credentials = parsed && typeof parsed.credentials === "string" ? parsed.credentials : "";
-			if (!isHeaderSafe(credentials))
-				return "";
-
-			return "Basic " + credentials;
-		} catch (_) {
-			return "";
-		}
-	}
-
-	function sameOrigin(input) {
-		var url = new URL(input instanceof Request ? input.url : input, window.location.href);
-		return url.origin === window.location.origin;
-	}
-
-	function addAuthorization(input, init) {
-		var authorization = readAuthorization();
-		if (!authorization || !sameOrigin(input))
-			return init;
-
-		var options = init ? Object.assign({}, init) : {};
-		var headers = new Headers(options.headers || (input instanceof Request ? input.headers : undefined));
-		if (!headers.has("Authorization"))
-			headers.set("Authorization", authorization);
-		options.headers = headers;
-		return options;
-	}
-
-	if (originalFetch) {
-		window.fetch = function (input, init) {
-			return originalFetch(input, addAuthorization(input, init));
-		};
-	}
-
-	function clearCookie(name) {
-		var secure = window.location.protocol === "https:" ? "; secure" : "";
-		document.cookie = name + "=; max-age=0; path=/; SameSite=Lax" + secure;
-	}
-
-	function clearReadableAuthCookies() {
-		clearCookie("es-creds");
-		clearCookie("oauth_token");
-	}
-
 	function setStatus(message) {
 		var status = document.querySelector("[data-ui-oauth-status]");
 		if (!status)
@@ -113,7 +30,7 @@
 				throw new Error("The configured provider does not advertise an OAuth browser flow.");
 
 			var baseUrl = window.location.protocol + "//" + window.location.host;
-			var challengeResponse = await originalFetch(baseUrl + properties.code_challenge_uri);
+			var challengeResponse = await window.fetch(baseUrl + properties.code_challenge_uri);
 			if (!challengeResponse.ok)
 				throw new Error("Code challenge endpoint returned " + challengeResponse.status + " " + challengeResponse.statusText);
 
@@ -134,36 +51,11 @@
 				"&code_challenge_method=" + encodeURIComponent(challenge.code_challenge_method) +
 				"&state=" + encodeURIComponent(state);
 
-			if (returnUrl)
-				sessionStorage.setItem("eventstore-ui-return-url", returnUrl);
-
 			window.location.href = target;
 		} catch (error) {
 			setStatus(error && error.message ? error.message : "Unable to start the browser sign-in flow.");
 		}
 	}
-
-	document.addEventListener("DOMContentLoaded", function () {
-		if (document.querySelector("[data-ui-clear-auth]"))
-			clearReadableAuthCookies();
-
-		if (window.location.pathname !== "/ui/signin")
-			return;
-
-		var returnUrl = sessionStorage.getItem("eventstore-ui-return-url");
-		if (!readAuthorization())
-			return;
-
-		if (returnUrl) {
-			sessionStorage.removeItem("eventstore-ui-return-url");
-			window.location.href = returnUrl;
-			return;
-		}
-
-		var query = new URLSearchParams(window.location.search);
-		if (query.has("code") || query.has("state"))
-			window.location.href = "/ui";
-	});
 
 	document.addEventListener("click", function (event) {
 		var button = event.target.closest("[data-ui-oauth-signin]");
@@ -173,8 +65,4 @@
 		event.preventDefault();
 		beginOAuthSignIn(button);
 	});
-
-	window.EventStoreUiAuth = {
-		readAuthorization: readAuthorization
-	};
 }());

@@ -8,7 +8,7 @@
 		var payload = {};
 		var data = new FormData(form);
 		data.forEach(function (value, key) {
-			if (value === "")
+			if (value === "" || key === "__RequestVerificationToken")
 				return;
 
 			if (isNumberField(form, key)) {
@@ -73,13 +73,18 @@
 
 		commandInFlight += 1;
 		try {
+			var antiforgery = form.querySelector('input[name="__RequestVerificationToken"]');
+			if (!antiforgery || !antiforgery.value)
+				throw new Error("The security token is missing. Reload the page before trying again.");
+
 			showStatus(form, "Command in progress...", true);
 			var response = await fetch(form.action, {
 				method: "POST",
 				credentials: "same-origin",
 				headers: {
 					"Accept": "application/json",
-					"Content-Type": "application/json"
+					"Content-Type": "application/json",
+					"RequestVerificationToken": antiforgery.value
 				},
 				body: JSON.stringify(readForm(form))
 			});

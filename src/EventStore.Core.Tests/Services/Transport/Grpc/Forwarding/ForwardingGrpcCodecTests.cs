@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Claims;
 using System.Threading;
+using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.DelegatedAuthentication;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
@@ -205,6 +206,31 @@ public class ForwardingGrpcCodecTests
 		var identity = RoundTripIdentity(message);
 
 		Assert.That(identity, Is.TypeOf<ForwardingIdentity.TrustedSystem>());
+	}
+
+	[Test]
+	public void authenticated_session_identity_is_not_forwarded_as_anonymous()
+	{
+		var stamp = Guid.NewGuid();
+		var user = new ClaimsPrincipal(new LocalSessionClaimsIdentity([
+			new Claim(ClaimTypes.Name, "writer"),
+			new Claim("es:session-security-stamp", stamp.ToString("N"))
+		]));
+
+		Assert.That(RoundTripIdentity(CreateTransactionStart(user)), Is.EqualTo(new ForwardingIdentity.LocalSession("writer", stamp)));
+		Assert.That(ForwardingGrpcCodec.RequiresTls(CreateTransactionStart(user)), Is.True);
+		Assert.That(() => ForwardingGrpcCodec.ToGrpc(CreateTransactionStart(user), ForwardingTransportSecurity.Cleartext),
+			Throws.InvalidOperationException);
+	}
+
+	[Test]
+	public void external_claims_cannot_impersonate_local_session_identity()
+	{
+		var principal = new ClaimsPrincipal(new ClaimsIdentity([
+			new Claim(ClaimTypes.Name, "writer"),
+			new Claim("es:session-security-stamp", Guid.NewGuid().ToString("N"))
+		], "external"));
+		Assert.That(RoundTripIdentity(CreateTransactionStart(principal)), Is.TypeOf<ForwardingIdentity.Anonymous>());
 	}
 
 	[Test]

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
+using EventStore.Core.Authentication;
 using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Http;
 
@@ -37,8 +38,12 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 			properties);
 	}
 
-	public async Task<SecurityCommandResult> Validate(string username, string password)
+	public async Task<SecurityCommandResult> SignInAsync(HttpContext context, string username, string password)
 	{
+		if (!supportsPassword || authenticationProvider is not ISessionAuthenticationProvider sessions)
+			return SecurityCommandResult.Failure("Password browser sign-in is not available.");
+		if (!context.Request.IsHttps)
+			return SecurityCommandResult.Failure("Browser sign-in requires HTTPS.");
 		if (string.IsNullOrWhiteSpace(username))
 		{
 			return SecurityCommandResult.Failure("Enter a username.");
@@ -49,10 +54,16 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 			return SecurityCommandResult.Failure("Enter a password.");
 		}
 
-		var context = new DefaultHttpContext();
 		var request = new HttpAuthenticationRequest(context, username.Trim(), password);
-		authenticationProvider.Authenticate(request);
-		var (status, _) = await request.AuthenticateAsync();
+		sessions.AuthenticateSession(request);
+		var (status, principal) = await request.AuthenticateAsync().WaitAsync(TimeSpan.FromSeconds(5), context.RequestAborted);
+		if (status == HttpAuthenticationRequestStatus.Authenticated)
+		{
+			var current = await sessions.ValidateSessionAsync(principal, context.RequestAborted);
+			if (current is null)
+				return SecurityCommandResult.Failure("The account changed during sign-in. Try again.");
+			await UiSessionAuthentication.SignInAsync(context, current);
+		}
 
 		return status switch
 		{

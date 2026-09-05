@@ -294,6 +294,7 @@ internal static class Program
 					hostedService.Node.Startup.ConfigureServicesOnly(builder.Services);
 					builder.Services.AddHttpContextAccessor();
 					builder.Services.AddDataProtection();
+					builder.Services.AddUiSessionAuthentication();
 					builder.Services.AddRazorComponents();
 					builder.Services.AddScoped<ProjectionBrowserService>();
 					builder.Services.AddSingleton<QueueDashboardService>();

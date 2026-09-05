@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -11,8 +13,22 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EventStore.Core.Authentication;
 
 public class CompositeAuthenticationProvider(IReadOnlyList<IAuthenticationProvider> providers)
-	: AuthenticationProviderBase(name: "methods", diagnosticsName: "CompositeAuthentication")
+	: AuthenticationProviderBase(name: "methods", diagnosticsName: "CompositeAuthentication"), ISessionAuthenticationProvider
 {
+	public void AuthenticateSession(AuthenticationRequest authenticationRequest)
+	{
+		var provider = providers.FirstOrDefault(candidate =>
+			candidate.GetSupportedAuthenticationSchemes()?.Contains("Basic", StringComparer.OrdinalIgnoreCase) == true);
+		if (provider is ISessionAuthenticationProvider sessions)
+			sessions.AuthenticateSession(authenticationRequest);
+		else
+			authenticationRequest.Unauthorized();
+	}
+
+	public Task<ClaimsPrincipal> ValidateSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken) =>
+		providers.OfType<ISessionAuthenticationProvider>().FirstOrDefault()?.ValidateSessionAsync(principal, cancellationToken)
+		?? Task.FromResult<ClaimsPrincipal>(null);
+
 	public override Task Initialize() =>
 		Task.WhenAll(providers.Select(provider => provider.Initialize()));
 

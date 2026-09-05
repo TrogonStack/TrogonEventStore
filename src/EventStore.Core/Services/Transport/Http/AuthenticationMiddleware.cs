@@ -14,11 +14,14 @@ public class AuthenticationMiddleware : IMiddleware
 {
 	private readonly IAuthenticationProvider _authenticationProvider;
 	private readonly IReadOnlyList<IHttpAuthenticationProvider> _httpAuthenticationProviders;
+	private readonly IUiSessionAuthenticator _uiSessionAuthenticator;
 
-	public AuthenticationMiddleware(IReadOnlyList<IHttpAuthenticationProvider> httpAuthenticationProviders, IAuthenticationProvider authenticationProvider)
+	public AuthenticationMiddleware(IReadOnlyList<IHttpAuthenticationProvider> httpAuthenticationProviders, IAuthenticationProvider authenticationProvider,
+		IUiSessionAuthenticator uiSessionAuthenticator = null)
 	{
 		_httpAuthenticationProviders = httpAuthenticationProviders;
 		_authenticationProvider = authenticationProvider;
+		_uiSessionAuthenticator = uiSessionAuthenticator;
 	}
 
 	public async Task InvokeAsync(HttpContext context, RequestDelegate next)
@@ -42,6 +45,24 @@ public class AuthenticationMiddleware : IMiddleware
 
 	private async Task HandleAsHttpAsync(HttpContext context, RequestDelegate next)
 	{
+		if (_uiSessionAuthenticator is not null &&
+			context.Request.Path.StartsWithSegments("/ui") &&
+			!context.Request.Headers.ContainsKey("Authorization"))
+		{
+			var sessionPrincipal = await _uiSessionAuthenticator.AuthenticateAsync(context);
+			if (sessionPrincipal?.Identity?.IsAuthenticated == true)
+			{
+				context.User = sessionPrincipal;
+				if (!await _uiSessionAuthenticator.ValidateRequestAsync(context))
+				{
+					context.Response.StatusCode = StatusCodes.Status400BadRequest;
+					return;
+				}
+				await next(context);
+				return;
+			}
+		}
+
 		if (!TrySelectProvider(context, out var authenticationRequest))
 		{
 			await AddHttp1ChallengeHeaders(context);

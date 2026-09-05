@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Net.Http.Headers;
 
 namespace EventStore.ClusterNode.Components.Services;
 
@@ -8,10 +7,10 @@ public sealed class UiCredentialsMiddleware(RequestDelegate next)
 {
 	public Task InvokeAsync(HttpContext context)
 	{
-		if (!context.Request.Headers.ContainsKey(HeaderNames.Authorization) &&
-			UiCredentialCookie.TryReadAuthorization(context.Request, out var scheme, out var value))
+		if (context.Request.Cookies.ContainsKey(UiCredentialCookie.BasicCookieName) ||
+			context.Request.Cookies.ContainsKey(UiCredentialCookie.OAuthCookieName))
 		{
-			context.Request.Headers.Authorization = $"{scheme} {value}";
+			UiCredentialCookie.DeleteLegacyCookies(context.Response);
 		}
 
 		return next(context);

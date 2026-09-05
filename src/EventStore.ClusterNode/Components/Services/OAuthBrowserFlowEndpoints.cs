@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -10,10 +11,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core;
 using EventStore.Core.Authentication.OAuth;
+using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EventStore.ClusterNode.Components.Services;
 
@@ -64,6 +67,8 @@ public sealed class OAuthBrowserFlowService(
 
 	public async Task<IResult> HandleCallback(HttpContext context, CancellationToken cancellationToken)
 	{
+		if (!context.Request.IsHttps)
+			return ErrorRedirect("https_required", "");
 		var code = context.Request.Query["code"].ToString();
 		var state = context.Request.Query["state"].ToString();
 		var providerError = context.Request.Query["error"].ToString();
@@ -115,8 +120,21 @@ public sealed class OAuthBrowserFlowService(
 			return ErrorRedirect("invalid_token", returnUrl);
 		}
 
-		UiCredentialCookie.Delete(context.Response);
-		UiCredentialCookie.AppendOAuthToken(context.Response, token);
+		var request = new HttpAuthenticationRequest(context, token);
+		context.RequestServices.GetRequiredService<IAuthenticationProvider>().Authenticate(request);
+		HttpAuthenticationRequestStatus status;
+		ClaimsPrincipal principal;
+		try
+		{
+			(status, principal) = await request.AuthenticateAsync().WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+		}
+		catch (TimeoutException)
+		{
+			return ErrorRedirect("invalid_token", returnUrl);
+		}
+		if (status != HttpAuthenticationRequestStatus.Authenticated)
+			return ErrorRedirect("invalid_token", returnUrl);
+		await UiSessionAuthentication.SignInAsync(context, principal, token);
 		return Results.Redirect(adminUiEnabled ? SignInLocation(returnUrl) : DirectReturnLocation(returnUrl));
 	}
 

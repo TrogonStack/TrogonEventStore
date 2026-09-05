@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
@@ -15,8 +16,9 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Authentication.InternalAuthentication;
 
-public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandle<InternalAuthenticationProviderMessages.ResetPasswordCache>
+public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandle<InternalAuthenticationProviderMessages.ResetPasswordCache>, ISessionAuthenticationProvider
 {
+	public const string SessionSecurityStampClaimType = "es:session-security-stamp";
 	static readonly ILogger Logger = Serilog.Log.ForContext<InternalAuthenticationProvider>();
 
 	readonly IODispatcher _ioDispatcher;
@@ -72,22 +74,24 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 		}
 		else
 		{
-			var userStreamId = $"$user-{authenticationRequest.Name}";
-			_ioDispatcher.ReadBackward(
-				streamId: userStreamId,
-				fromEventNumber: -1,
-				maxCount: 1,
-				resolveLinks: false,
-				principal: SystemAccounts.System,
-				handler: new AuthReadResponseHandler(self: this, request: authenticationRequest),
-				corrId: Guid.NewGuid()
-			);
+			AuthenticateSession(authenticationRequest);
 		}
 	}
 
+	public void AuthenticateSession(AuthenticationRequest authenticationRequest) =>
+		_ioDispatcher.ReadBackward(
+			streamId: $"$user-{authenticationRequest.Name}",
+			fromEventNumber: -1,
+			maxCount: 1,
+			resolveLinks: false,
+			principal: SystemAccounts.System,
+			handler: new AuthReadResponseHandler(self: this, request: authenticationRequest),
+			corrId: Guid.NewGuid()
+		);
+
 	public override IReadOnlyList<string> GetSupportedAuthenticationSchemes() => ["Basic", "UserCertificate"];
 
-	void AuthenticateUncached(AuthenticationRequest authenticationRequest, UserData userData)
+	void AuthenticateUncached(AuthenticationRequest authenticationRequest, UserData userData, Guid userEventId)
 	{
 		if (!AuthenticateImpl(authenticationRequest, userData.Hash, userData.Salt))
 		{
@@ -95,19 +99,76 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 			return;
 		}
 
-		var principal = CreatePrincipal(userData);
+		var principal = CreatePrincipal(userData, userEventId);
 		CachePassword(authenticationRequest.Name, userData.Hash, userData.Salt, principal);
 		authenticationRequest.Authenticated(principal);
 	}
 
-	static ClaimsPrincipal CreatePrincipal(UserData userData)
+	static ClaimsPrincipal CreatePrincipal(UserData userData, Guid userEventId)
 	{
 		var claims = userData.Groups
 			.Select(role => new Claim(ClaimTypes.Role, role))
 			.Prepend(new(ClaimTypes.Name, userData.LoginName))
+			.Append(new Claim(SessionSecurityStampClaimType, userEventId.ToString("N")))
 			.ToList();
 
 		return new(new ClaimsIdentity(claims, "ES-Legacy"));
+	}
+
+	public async Task<ClaimsPrincipal> ValidateSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
+	{
+		var loginName = principal?.Identity?.Name;
+		var stamp = principal?.FindFirst(SessionSecurityStampClaimType)?.Value;
+		if (principal?.Identity?.IsAuthenticated != true || string.IsNullOrWhiteSpace(loginName) ||
+			!Guid.TryParseExact(stamp, "N", out var userEventId) || userEventId == Guid.Empty || cancellationToken.IsCancellationRequested)
+		{
+			return null;
+		}
+
+		var completion = new TaskCompletionSource<ClaimsPrincipal>(TaskCreationOptions.RunContinuationsAsynchronously);
+		_ioDispatcher.ReadBackward($"$user-{loginName}", -1, 1, false, SystemAccounts.System,
+			new SessionReadResponseHandler(loginName, userEventId, completion), Guid.NewGuid());
+		try
+		{
+			return await completion.Task.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+		}
+		catch (Exception exception) when (exception is TimeoutException or OperationCanceledException)
+		{
+			return null;
+		}
+	}
+
+	sealed class SessionReadResponseHandler(string loginName, Guid userEventId, TaskCompletionSource<ClaimsPrincipal> completion)
+		: IReadStreamEventsBackwardHandler
+	{
+		public bool HandlesAlt => true;
+		public bool HandlesTimeout => true;
+
+		public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted completed)
+		{
+			ClaimsPrincipal principal = null;
+			try
+			{
+				if (completed.Result == ReadStreamResult.Success && completed.Events.Count == 1 &&
+					completed.Events[0].Event.EventId == userEventId)
+				{
+					var userData = completed.Events[0].Event.Data.ParseJson<UserData>();
+					if (userData.LoginName == loginName && !userData.Disabled)
+					{
+						principal = new ClaimsPrincipal(new LocalSessionClaimsIdentity(CreatePrincipal(userData, userEventId).Claims));
+					}
+				}
+			}
+			catch
+			{
+				principal = null;
+			}
+
+			completion.TrySetResult(principal);
+		}
+
+		public void Handle(ClientMessage.NotHandled notHandled) => completion.TrySetResult(null);
+		public void Timeout() => completion.TrySetResult(null);
 	}
 
 	void CachePassword(string loginName, string hash, string salt, ClaimsPrincipal principal) =>
@@ -200,7 +261,7 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 				}
 				else
 				{
-					self.AuthenticateUncached(request, userData);
+					self.AuthenticateUncached(request, userData, completed.Events[0].Event.EventId);
 				}
 			}
 			catch

@@ -7,6 +7,7 @@ using System.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.DelegatedAuthentication;
+using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
@@ -25,6 +26,7 @@ public abstract record ForwardingIdentity
 	public sealed record TrustedSystem : ForwardingIdentity;
 	public sealed record BearerToken(string Token) : ForwardingIdentity;
 	public sealed record UserPassword(string Username, string Password) : ForwardingIdentity;
+	public sealed record LocalSession(string Username, Guid UserEventId) : ForwardingIdentity;
 	public sealed record Anonymous : ForwardingIdentity;
 }
 
@@ -84,12 +86,14 @@ public static class ForwardingGrpcCodec
 		Proto.ForwardedIdentity.IdentityOneofCase.UserPassword =>
 			new ForwardingIdentity.UserPassword(identity.UserPassword.Username, identity.UserPassword.Password),
 		Proto.ForwardedIdentity.IdentityOneofCase.Anonymous => new ForwardingIdentity.Anonymous(),
+		Proto.ForwardedIdentity.IdentityOneofCase.LocalSession => new ForwardingIdentity.LocalSession(
+			identity.LocalSession.Username, Uuid.FromDto(identity.LocalSession.UserEventId).ToGuid()),
 		_ => throw new ArgumentOutOfRangeException(nameof(identity), identity.IdentityCase,
 			"Unknown forwarded identity")
 	};
 
 	public static bool RequiresTls(ClientMessage.WriteRequestMessage message) =>
-		GetIdentity(message) is ForwardingIdentity.BearerToken or ForwardingIdentity.UserPassword;
+		GetIdentity(message) is ForwardingIdentity.BearerToken or ForwardingIdentity.UserPassword or ForwardingIdentity.LocalSession;
 
 	public static ClientMessage.WriteRequestMessage FromGrpc(
 		Proto.ForwardRequest request,
@@ -268,7 +272,7 @@ public static class ForwardingGrpcCodec
 		}
 
 		var identity = GetIdentity(message);
-		if (identity is ForwardingIdentity.BearerToken or ForwardingIdentity.UserPassword)
+		if (identity is ForwardingIdentity.BearerToken or ForwardingIdentity.UserPassword or ForwardingIdentity.LocalSession)
 		{
 			EnsureCredentialsAreProtected(transportSecurity);
 		}
@@ -294,6 +298,14 @@ public static class ForwardingGrpcCodec
 			ForwardingIdentity.Anonymous => new Proto.ForwardedIdentity
 			{
 				Anonymous = new Google.Protobuf.WellKnownTypes.Empty()
+			},
+			ForwardingIdentity.LocalSession session => new Proto.ForwardedIdentity
+			{
+				LocalSession = new Proto.LocalSession
+				{
+					Username = session.Username,
+					UserEventId = Uuid.FromGuid(session.UserEventId).ToDto()
+				}
 			},
 			_ => throw new ArgumentOutOfRangeException(nameof(identity), identity.GetType().FullName,
 				"Unknown forwarding identity")
@@ -321,6 +333,13 @@ public static class ForwardingGrpcCodec
 				{
 					return new ForwardingIdentity.UserPassword(uid.Value, pwd.Value);
 				}
+			}
+
+			if (message.User.Identities.OfType<LocalSessionClaimsIdentity>().FirstOrDefault() is { Name.Length: > 0 } localSession &&
+				Guid.TryParseExact(localSession.FindFirst(InternalAuthenticationProvider.SessionSecurityStampClaimType)?.Value,
+					"N", out var userEventId) && userEventId != Guid.Empty)
+			{
+				return new ForwardingIdentity.LocalSession(localSession.Name, userEventId);
 			}
 		}
 

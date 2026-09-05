@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using EventStore.Core.Authentication;
+using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Authorization;
 using EventStore.Core.Bus;
 using EventStore.Core.DataStructures;
@@ -221,6 +222,8 @@ public sealed class ForwardingService : Proto.RequestForwarding.RequestForwardin
 				return ForwardedAuthentication.Authenticated(SystemAccounts.System, null);
 			case ForwardingIdentity.Anonymous:
 				return ForwardedAuthentication.Authenticated(SystemAccounts.Anonymous, null);
+			case ForwardingIdentity.LocalSession session:
+				return await AuthenticateSessionAsync(session, context).ConfigureAwait(false);
 			case ForwardingIdentity.BearerToken bearer:
 				return await AuthenticateCredentialsAsync(
 					context,
@@ -236,6 +239,36 @@ public sealed class ForwardingService : Proto.RequestForwarding.RequestForwardin
 					}).ConfigureAwait(false);
 			default:
 				throw RpcExceptions.InvalidArgument("The forwarded identity is invalid.");
+		}
+	}
+
+	private async Task<ForwardedAuthentication> AuthenticateSessionAsync(
+		ForwardingIdentity.LocalSession session,
+		ServerCallContext context)
+	{
+		var httpContext = context.GetHttpContext();
+		if (!httpContext.Request.IsHttps || httpContext.Connection.ClientCertificate is null ||
+			httpContext.User != SystemAccounts.System ||
+			string.IsNullOrWhiteSpace(session.Username) || session.UserEventId == Guid.Empty ||
+			_authenticationProvider is not ISessionAuthenticationProvider provider)
+		{
+			return ForwardedAuthentication.NotAuthenticated("Invalid session authentication.");
+		}
+
+		var principal = new ClaimsPrincipal(new ClaimsIdentity([
+			new Claim(ClaimTypes.Name, session.Username),
+			new Claim(InternalAuthenticationProvider.SessionSecurityStampClaimType, session.UserEventId.ToString("N"))
+		], "ES-SessionForwarding"));
+		try
+		{
+			var validated = await provider.ValidateSessionAsync(principal, context.CancellationToken).ConfigureAwait(false);
+			return validated is null
+				? ForwardedAuthentication.NotAuthenticated("Invalid session authentication.")
+				: ForwardedAuthentication.Authenticated(validated, null);
+		}
+		catch (Exception exception) when (exception is not OperationCanceledException)
+		{
+			return ForwardedAuthentication.NotAuthenticated("Session authentication failed.");
 		}
 	}
 
