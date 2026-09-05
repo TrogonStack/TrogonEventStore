@@ -36,6 +36,8 @@ public class PasswordAuthenticationAdmissionTests<TLogFormat, TStreamId> :
 	[TestCase(1, -1, 1)]
 	[TestCase(1, 1, 0)]
 	[TestCase(1, 1, -1)]
+	[TestCase(1, 100, 1)]
+	[TestCase(1, 2, 1)]
 	public void invalid_limits_fail_before_serving_password_requests(int concurrent, int rate, int burst)
 	{
 		Assert.Throws<InvalidConfigurationException>(() => new InternalAuthenticationProvider(
@@ -46,6 +48,18 @@ public class PasswordAuthenticationAdmissionTests<TLogFormat, TStreamId> :
 				AttemptsPerSecond = rate,
 				BurstSize = burst
 			}));
+	}
+
+	[TestCase(1, 1)]
+	[TestCase(1, 2)]
+	public void burst_at_or_above_replenishment_rate_allows_password_authentication(int rate, int burst)
+	{
+		var provider = new InternalAuthenticationProvider(_bus, _ioDispatcher, new StubPasswordHashAlgorithm(), 1000, false,
+			DefaultData.DefaultUserOptions, new() { MaxConcurrentAttempts = 1, AttemptsPerSecond = rate, BurstSize = burst });
+		var authenticated = 0;
+		provider.Authenticate(new TestAuthenticationRequest("user", "password",
+			() => Assert.Fail("Unauthorized"), _ => authenticated++, () => Assert.Fail("Error"), () => Assert.Fail("Not ready")));
+		Assert.That(authenticated, Is.EqualTo(1));
 	}
 
 	[Test]

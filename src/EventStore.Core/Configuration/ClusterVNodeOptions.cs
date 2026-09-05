@@ -272,7 +272,7 @@ public partial record ClusterVNodeOptions
 		[Description("Password authentication attempt tokens replenished per second per node.")]
 		public int AttemptsPerSecond { get; init; } = 100;
 
-		[Description("Maximum password authentication burst tokens per node.")]
+		[Description("Maximum password authentication burst tokens per node. Must be at least AttemptsPerSecond.")]
 		public int BurstSize { get; init; } = 200;
 	}
 

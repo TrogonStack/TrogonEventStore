@@ -22,6 +22,8 @@ internal sealed class PasswordAuthenticationLimiter : IDisposable
 	{
 		if (options.MaxConcurrentAttempts <= 0 || options.AttemptsPerSecond <= 0 || options.BurstSize <= 0)
 			throw new InvalidConfigurationException("Auth:Password authentication limits must be positive.");
+		if (options.BurstSize < options.AttemptsPerSecond)
+			throw new InvalidConfigurationException("Auth:Password:BurstSize must be greater than or equal to Auth:Password:AttemptsPerSecond.");
 		_concurrency = new(new ConcurrencyLimiterOptions { PermitLimit = options.MaxConcurrentAttempts, QueueLimit = 0 });
 		_attempts = new(new TokenBucketRateLimiterOptions
 		{

@@ -540,7 +540,9 @@ for nonexistent accounts, so changing usernames cannot bypass the node-wide limi
 | `Auth:Password:AttemptsPerSecond` | 100 | Attempt tokens replenished each second. |
 | `Auth:Password:BurstSize` | 200 | Maximum accumulated attempt tokens. |
 
-All values must be positive. There is no waiting queue. When either budget is exhausted, requests
+All values must be positive, and `BurstSize` must be at least `AttemptsPerSecond` so the bucket can
+hold a full second's replenishment. Invalid limits prevent the password provider from starting.
+There is no waiting queue. When either budget is exhausted, requests
 receive the existing authentication-not-ready response: HTTP returns `503` with `Retry-After`, gRPC
 returns `Unavailable`, TCP returns `NotReady`, and browser sign-in reports that the provider is not
 ready. Clients should use bounded retries with backoff and jitter.
