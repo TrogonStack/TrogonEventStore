@@ -151,6 +151,45 @@ public class UiSessionIntegrationTests
 		Assert.That(await _client.GetStringAsync("/ui/me"), Is.EqualTo("anonymous"));
 	}
 
+	[TestCase(true)]
+	[TestCase(false)]
+	public async Task cancelled_password_session_validation_does_not_revoke_cookie(bool alreadyCancelled)
+	{
+		var cookie = await Login();
+		using var cancellation = new CancellationTokenSource();
+		var validationStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		_provider.ValidateSession = async token =>
+		{
+			validationStarted.SetResult();
+			try
+			{
+				await Task.Delay(Timeout.InfiniteTimeSpan, token);
+			}
+			catch (OperationCanceledException)
+			{
+				return null;
+			}
+			return null;
+		};
+		using var scope = _server.Services.CreateScope();
+		var context = new DefaultHttpContext
+		{
+			RequestServices = scope.ServiceProvider,
+			RequestAborted = cancellation.Token
+		};
+		context.Request.Scheme = "https";
+		context.Request.Headers.Cookie = cookie;
+		if (alreadyCancelled)
+			cancellation.Cancel();
+		var authentication = context.AuthenticateAsync(UiSessionAuthentication.Scheme);
+		await validationStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+		cancellation.Cancel();
+		Assert.That(async () => await authentication, Throws.InstanceOf<OperationCanceledException>());
+		Assert.That(context.Response.Headers.SetCookie, Is.Empty);
+		_provider.ValidateSession = null;
+		Assert.That(await _client.GetStringAsync("/ui/me"), Is.EqualTo("admin"));
+	}
+
 	[Test]
 	public async Task csrf_is_required_for_cookie_authenticated_mutations_and_logout_revokes_replay()
 	{
@@ -213,6 +252,7 @@ public class UiSessionIntegrationTests
 		public bool Valid = true;
 		public int PasswordChecks;
 		public int SessionChecks;
+		public Func<CancellationToken, Task<ClaimsPrincipal>> ValidateSession;
 		public SessionProvider() : base("test") { }
 		public void AuthenticateSession(AuthenticationRequest request)
 		{
@@ -229,7 +269,7 @@ public class UiSessionIntegrationTests
 				request.Unauthorized();
 		}
 		public Task<ClaimsPrincipal> ValidateSessionAsync(ClaimsPrincipal principal, CancellationToken cancellationToken) =>
-			Task.FromResult(Valid ? Principal() : null);
+			ValidateSession?.Invoke(cancellationToken) ?? Task.FromResult(Valid ? Principal() : null);
 		private static ClaimsPrincipal Principal() => new(new ClaimsIdentity([
 			new Claim(ClaimTypes.Name, "admin"), new Claim(ClaimTypes.Role, "$admins"),
 			new Claim(InternalAuthenticationProvider.SessionSecurityStampClaimType, "verified-revision")], "test"));

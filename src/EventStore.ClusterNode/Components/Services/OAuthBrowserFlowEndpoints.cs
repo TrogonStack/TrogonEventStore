@@ -27,7 +27,7 @@ internal static class OAuthBrowserFlowEndpoints
 		ClusterVNodeOptions.OAuthOptions options)
 	{
 		app.MapGet(options.CodeChallengePath, (HttpContext context, OAuthBrowserFlowService service) =>
-			Results.Json(service.CreateCodeChallenge(context), OAuthBrowserFlowService.JsonOptions));
+			service.HandleCodeChallenge(context));
 
 		app.MapGet(options.RedirectPath, async (
 			HttpContext context,
@@ -51,8 +51,16 @@ public sealed class OAuthBrowserFlowService(
 	private static readonly TimeSpan ChallengeLifetime = TimeSpan.FromMinutes(5);
 	private readonly IDataProtector _challengeProtector = dataProtectionProvider.CreateProtector("EventStore.ClusterNode.Components.Services.OAuthBrowserFlowService.Pkce");
 
+	public IResult HandleCodeChallenge(HttpContext context) =>
+		context.Request.IsHttps
+			? Results.Json(CreateCodeChallenge(context), JsonOptions)
+			: ErrorRedirect("https_required", "");
+
 	public OAuthCodeChallenge CreateCodeChallenge(HttpContext context)
 	{
+		if (!context.Request.IsHttps)
+			throw new InvalidOperationException("OAuth browser authentication requires HTTPS.");
+
 		var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
 		var challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
 		var correlationId = Base64Url(RandomNumberGenerator.GetBytes(32));
@@ -61,7 +69,7 @@ public sealed class OAuthBrowserFlowService(
 		context.Response.Cookies.Append(
 			ChallengeCookieName,
 			_challengeProtector.Protect(JsonSerializer.Serialize(payload, JsonOptions)),
-			ChallengeCookieOptions(context.Request));
+			ChallengeCookieOptions(ChallengeLifetime));
 		return new OAuthCodeChallenge(correlationId, challenge, "S256");
 	}
 
@@ -243,6 +251,8 @@ public sealed class OAuthBrowserFlowService(
 			if (document.RootElement.TryGetProperty("redirect_uri", out var redirectUriElement))
 			{
 				redirectUri = NormalizeRedirectUri(redirectUriElement.GetString() ?? "");
+				if (string.IsNullOrWhiteSpace(redirectUri))
+					return false;
 			}
 
 			return !string.IsNullOrWhiteSpace(correlationId);
@@ -265,8 +275,7 @@ public sealed class OAuthBrowserFlowService(
 			return "";
 		}
 
-		if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
-			!uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
+		if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
 		{
 			return "";
 		}
@@ -289,15 +298,12 @@ public sealed class OAuthBrowserFlowService(
 			: returnUrl;
 
 	private void DeleteChallengeCookie(HttpContext context) =>
-		context.Response.Cookies.Delete(ChallengeCookieName, ChallengeCookieOptions(context.Request, maxAge: null));
+		context.Response.Cookies.Delete(ChallengeCookieName, ChallengeCookieOptions(maxAge: null));
 
-	private CookieOptions ChallengeCookieOptions(HttpRequest request) =>
-		ChallengeCookieOptions(request, ChallengeLifetime);
-
-	private CookieOptions ChallengeCookieOptions(HttpRequest request, TimeSpan? maxAge) => new()
+	private static CookieOptions ChallengeCookieOptions(TimeSpan? maxAge) => new()
 	{
 		HttpOnly = true,
-		Secure = request.IsHttps,
+		Secure = true,
 		SameSite = SameSiteMode.Lax,
 		Path = "/",
 		MaxAge = maxAge

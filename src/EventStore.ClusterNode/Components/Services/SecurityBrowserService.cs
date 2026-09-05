@@ -56,7 +56,16 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 
 		var request = new HttpAuthenticationRequest(context, username.Trim(), password);
 		sessions.AuthenticateSession(request);
-		var (status, principal) = await request.AuthenticateAsync().WaitAsync(TimeSpan.FromSeconds(5), context.RequestAborted);
+		HttpAuthenticationRequestStatus status;
+		ClaimsPrincipal principal;
+		try
+		{
+			(status, principal) = await request.AuthenticateAsync().WaitAsync(TimeSpan.FromSeconds(5), context.RequestAborted);
+		}
+		catch (TimeoutException)
+		{
+			return SecurityCommandResult.Failure("The authentication provider is not ready yet.");
+		}
 		if (status == HttpAuthenticationRequestStatus.Authenticated)
 		{
 			var current = await sessions.ValidateSessionAsync(principal, context.RequestAborted);

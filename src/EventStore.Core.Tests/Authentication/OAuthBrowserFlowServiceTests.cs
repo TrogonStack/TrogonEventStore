@@ -13,9 +13,13 @@ using EventStore.Core;
 using EventStore.Core.Authentication.OAuth;
 using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -53,6 +57,106 @@ public class OAuthBrowserFlowServiceTests
 			scope.Dispose();
 		_requestScopes.Clear();
 		_services.Dispose();
+	}
+
+	[TestCase(false, true)]
+	[TestCase(false, false)]
+	[TestCase(true, true)]
+	[TestCase(true, false)]
+	public async Task challenge_endpoint_requires_https(bool https, bool adminUiEnabled)
+	{
+		using var service = Service(new TokenHandler(), adminUiEnabled);
+		using var host = await new HostBuilder().ConfigureWebHost(web => web.UseTestServer()
+			.ConfigureServices(services =>
+			{
+				services.AddRouting();
+				services.AddSingleton(service);
+			})
+			.Configure(app =>
+			{
+				app.UseRouting();
+				app.UseEndpoints(endpoints => typeof(OAuthBrowserFlowService).Assembly
+					.GetType("EventStore.ClusterNode.Components.Services.OAuthBrowserFlowEndpoints")!
+					.GetMethod("MapOAuthBrowserFlowEndpoints")!.Invoke(null, [endpoints, Options()]));
+			})).StartAsync();
+		using var client = host.GetTestClient();
+		client.BaseAddress = new Uri(https ? "https://node.example.test" : "http://node.example.test");
+
+		using var response = await client.GetAsync(Options().CodeChallengePath);
+
+		if (https)
+		{
+			Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+			Assert.That(response.Headers.GetValues("Set-Cookie").Single(), Does.Contain("secure"));
+			Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("code_challenge"));
+		}
+		else
+		{
+			Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Redirect));
+			Assert.That(response.Headers.Location?.OriginalString,
+				Is.EqualTo(adminUiEnabled ? "/ui/signin?oauth_error=https_required" : "/?oauth_error=https_required"));
+			Assert.That(response.Headers.Contains("Set-Cookie"), Is.False);
+		}
+	}
+
+	[Test]
+	public void challenge_service_rejects_http_without_issuing_pkce_cookie()
+	{
+		using var service = Service(new TokenHandler());
+		var context = HttpsContext();
+		context.Request.Scheme = "http";
+
+		Assert.That(() => service.CreateCodeChallenge(context), Throws.InvalidOperationException);
+		Assert.That(context.Response.Headers.SetCookie, Is.Empty);
+	}
+
+	[TestCase("http://node.example.test/ui/auth/oauth/callback")]
+	[TestCase("ftp://node.example.test/ui/auth/oauth/callback")]
+	public async Task callback_rejects_non_https_redirect_uri_without_exchanging_code(string redirectUri)
+	{
+		var handler = new TokenHandler();
+		using var service = Service(handler);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["code"] = "authorization-code",
+			["state"] = State(challenge.CodeChallengeCorrelationId, redirectUri)
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.That(context.Response.Headers.Location.ToString(), Does.Contain("oauth_error=invalid_state"));
+		Assert.That(handler.Body, Is.Empty);
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain(UiSessionAuthentication.CookieName + "="));
+	}
+
+	[Test]
+	public async Task callback_without_redirect_uri_uses_https_request_uri()
+	{
+		var handler = new TokenHandler();
+		using var service = Service(handler);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["code"] = "authorization-code",
+			["state"] = Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new
+			{
+				code_challenge_correlation_id = challenge.CodeChallengeCorrelationId
+			}))
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin"));
+		Assert.That(handler.Body, Does.Contain("redirect_uri=https%3A%2F%2Fnode.example.test%2Fui%2Fauth%2Foauth%2Fcallback"));
 	}
 
 	[Test]

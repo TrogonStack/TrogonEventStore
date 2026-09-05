@@ -268,6 +268,7 @@ public class ForwardingServiceTests
 		Assert.That(authentication.Principal.IsInRole("$admins"), Is.False);
 		if (isValid)
 		{
+			Assert.That(publisher.Messages, Has.Count.EqualTo(2));
 			Assert.That(publisher.Messages.Cast<ClientMessage.WriteEvents>().Select(message => message.User),
 				Is.All.SameAs(validatedUser));
 			Assert.That(publisher.Messages.Cast<ClientMessage.WriteEvents>().Select(message => message.Tokens), Is.All.Null);
@@ -275,6 +276,7 @@ public class ForwardingServiceTests
 		else
 		{
 			Assert.That(publisher.Messages, Is.Empty);
+			Assert.That(response.Messages, Has.Count.EqualTo(2));
 			Assert.That(response.Messages.Select(message => message.Response.PayloadCase),
 				Is.All.EqualTo(Proto.ForwardResponse.PayloadOneofCase.NotAuthenticated));
 		}

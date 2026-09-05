@@ -135,6 +135,7 @@ public sealed class UiSessionEvents(IAuthenticationProvider authenticationProvid
 		else if (ticket is not null && authenticationProvider is ISessionAuthenticationProvider sessions)
 		{
 			principal = await sessions.ValidateSessionAsync(ticket.Principal, context.HttpContext.RequestAborted);
+			context.HttpContext.RequestAborted.ThrowIfCancellationRequested();
 		}
 
 		if (principal?.Identity?.IsAuthenticated != true)
