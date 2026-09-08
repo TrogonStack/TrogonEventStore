@@ -22,7 +22,7 @@ When TrogonEventStore is installed as a Linux service, the following locations a
 - **Data:** `/var/lib/eventstore`
 - **Server logs:** `/var/log/eventstore`
 - **Test client logs:** `./testclientlog`
-- **Web content:** `./ui-assets` then `{Content}/ui-assets`
+- **Web content:** `wwwroot/ui/assets` beside the server executable
 - **Projections:** `./projections` then `{Content}/projections`
 - **Prelude:** `./Prelude` then `{Content}/Prelude`
 
@@ -32,7 +32,7 @@ When TrogonEventStore is installed as a Linux service, the following locations a
 - **Data:** `./data`
 - **Server logs:** `./logs`
 - **Test client log:** `./testclientlogs`
-- **Web content:** `./ui-assets`
+- **Web content:** `wwwroot/ui/assets` beside the server executable
 - **Projections:** `./projections`
 - **Prelude:** `./Prelude`
 
@@ -44,11 +44,13 @@ When running TrogonEventStore using local binaries, either downloaded or built f
 - **Data:** `./data`
 - **Server logs:** `./logs`
 - **Test client log:** `./testclientlogs`
-- **Web content:** `./ui-assets`
+- **Web content:** `wwwroot/ui/assets` beside the server executable
 - **Projections:** `./projections`
 - **Prelude:** `./Prelude`
 
 Depending on the platform and installation type, the location of TrogonEventStore executables, configuration and other necessary files vary.
+
+Deploy the complete published output, including `wwwroot` and the static-asset endpoint manifest, together. UI asset URLs are content-fingerprinted so browsers can safely cache them across upgrades. Replacing asset files independently of the server build is not supported.
 
 ## Database settings
 
