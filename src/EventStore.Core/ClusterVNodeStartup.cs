@@ -131,6 +131,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_configureNode(app);
 
 		app = app
+			.UseRouting()
 			.UseCors("default")
 			// AuthenticationMiddleware uses _httpAuthenticationProviders and assigns
 			// the resulting ClaimsPrinciple to HttpContext.User
@@ -141,7 +142,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			// of this yet but plugins may. The registered authentication scheme (es auth)
 			// is driven by the HttpContext.User established above
 			.UseAuthentication()
-			.UseRouting()
 			.UseMiddleware<GrpcStreamLifetimeMiddleware>()
 			.UseAuthorization()
 			.UseAntiforgery();

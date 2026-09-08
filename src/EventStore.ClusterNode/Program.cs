@@ -28,7 +28,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -327,18 +326,6 @@ internal static class Program
 
 					var app = builder.Build();
 					app.UseMiddleware<UiCredentialsMiddleware>();
-					if (adminUiEnabled && Directory.Exists(Locations.UiAssetsDirectory))
-					{
-						app.UseStaticFiles(new StaticFileOptions
-						{
-							FileProvider = new PhysicalFileProvider(Locations.UiAssetsDirectory),
-							RequestPath = "/ui/assets"
-						});
-					}
-					else if (adminUiEnabled)
-					{
-						Log.Warning("UI assets directory {UiAssetsDirectory} is not available.", Locations.UiAssetsDirectory);
-					}
 					hostedService.Node.Startup.Configure(app);
 					if (oauthEnabled)
 					{
@@ -349,7 +336,7 @@ internal static class Program
 					{
 						app.MapAdminOperationsEndpoints();
 						app.MapQueueDashboardEndpoints();
-						app.MapStaticAssets();
+						app.MapStaticAssets().ShortCircuit();
 						app.MapRazorComponents<App>();
 					}
 
