@@ -37,14 +37,6 @@ namespace EventStore.Core.Cluster
 			public VNodeState State { get; set; }
 			public bool IsAlive { get; set; }
 
-			public string InternalTcpIp { get; set; }
-			public int InternalTcpPort { get; set; }
-			public int InternalSecureTcpPort { get; set; }
-
-			public string ExternalTcpIp { get; set; }
-			public int ExternalTcpPort { get; set; }
-			public int ExternalSecureTcpPort { get; set; }
-
 			public string InternalHttpEndPointIp { get; set; }
 			public int InternalHttpEndPointPort { get; set; }
 
@@ -76,12 +68,6 @@ namespace EventStore.Core.Cluster
 				State = member.State;
 				IsAlive = member.IsAlive;
 
-				InternalTcpIp = member.InternalTcpEndPoint is null
-					? member.InternalSecureTcpEndPoint.GetHost()
-					: member.InternalTcpEndPoint.GetHost();
-				InternalSecureTcpPort = member.InternalSecureTcpEndPoint?.GetPort() ?? 0;
-				InternalTcpPort = member.InternalTcpEndPoint?.GetPort() ?? 0;
-
 				InternalHttpEndPointIp = member.HttpEndPoint.GetHost();
 				InternalHttpEndPointPort = member.HttpEndPoint.GetPort();
 
@@ -91,18 +77,6 @@ namespace EventStore.Core.Cluster
 				HttpEndPointPort = member.AdvertiseHttpPortToClientAs == 0
 					? member.HttpEndPoint.GetPort()
 					: member.AdvertiseHttpPortToClientAs;
-
-				ExternalTcpIp = string.IsNullOrEmpty(member.AdvertiseHostToClientAs)
-					? member.ExternalSecureTcpEndPoint?.GetHost() ??
-					  member.ExternalTcpEndPoint?.GetHost() ?? member.HttpEndPoint.GetHost()
-					: member.AdvertiseHostToClientAs;
-
-				ExternalTcpPort = member.AdvertiseTcpPortToClientAs == 0
-					? member.ExternalTcpEndPoint?.GetPort() ?? 0
-					: member.AdvertiseTcpPortToClientAs;
-				ExternalSecureTcpPort = member.AdvertiseTcpPortToClientAs == 0
-					? member.ExternalSecureTcpEndPoint?.GetPort() ?? 0
-					: member.AdvertiseTcpPortToClientAs;
 
 				LastCommitPosition = member.LastCommitPosition;
 				WriterCheckpoint = member.WriterCheckpoint;
@@ -122,8 +96,6 @@ namespace EventStore.Core.Cluster
 			{
 				return
 					$"InstanceId: {InstanceId:B}, TimeStamp: {TimeStamp:yyyy-MM-dd HH:mm:ss.fff}, State: {State}, IsAlive: {IsAlive}, " +
-					$"InternalTcpIp: {InternalTcpIp}, InternalTcpPort: {InternalTcpPort}, InternalSecureTcpPort: {InternalSecureTcpPort}, " +
-					$"ExternalTcpIp: {ExternalTcpIp}, ExternalTcpPort: {ExternalTcpPort}, ExternalSecureTcpPort: {ExternalSecureTcpPort}, " +
 					$"InternalHttpEndPointIp: {InternalHttpEndPointIp}, InternalHttpEndPointPort: {InternalHttpEndPointPort}, " +
 					$"HttpEndPointIp: {HttpEndPointIp}, HttpEndPointPort: {HttpEndPointPort}, " +
 					$"LastCommitPosition: {LastCommitPosition}, WriterCheckpoint: {WriterCheckpoint}, ChaserCheckpoint: {ChaserCheckpoint}, " +
@@ -133,4 +105,3 @@ namespace EventStore.Core.Cluster
 		}
 	}
 }
-

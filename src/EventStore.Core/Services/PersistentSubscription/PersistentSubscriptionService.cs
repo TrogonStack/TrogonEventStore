@@ -29,7 +29,6 @@ public abstract class PersistentSubscriptionService
 public class PersistentSubscriptionService<TStreamId> :
 	PersistentSubscriptionService,
 	IHandle<SystemMessage.BecomeShuttingDown>,
-	IHandle<TcpMessage.ConnectionClosed>,
 	IHandle<SystemMessage.BecomeLeader>,
 	IHandle<SubscriptionMessage.PersistentSubscriptionsRestart>,
 	IHandle<SubscriptionMessage.PersistentSubscriptionTimerTick>,
@@ -1100,24 +1099,6 @@ public class PersistentSubscriptionService<TStreamId> :
 		foreach (var subscription in _subscriptionsById.Values)
 		{
 			subscription.RemoveClientByCorrelationId(correlationId, sendDropNotification);
-		}
-	}
-
-	public void Handle(TcpMessage.ConnectionClosed message)
-	{
-		if (_subscriptionsById == null)
-		{
-			return; //haven't built yet.
-		}
-
-		foreach (var subscription in _subscriptionsById.Values)
-		{
-			if (subscription.RemoveClientByConnectionId(message.Connection.ConnectionId))
-			{
-				Log.Debug("Persistent subscription {subscription} lost connection from {remoteEndPoint}",
-					subscription.SubscriptionId,
-					message.Connection.RemoteEndPoint);
-			}
 		}
 	}
 

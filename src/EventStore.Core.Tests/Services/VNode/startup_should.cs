@@ -12,7 +12,6 @@ using EventStore.Core.Certificates;
 using EventStore.Core.Configuration.Sources;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Tests.Helpers;
-using EventStore.Core.Tests.Services.Transport.Tcp;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
@@ -31,8 +30,6 @@ public class startup_should : SpecificationWithDirectory
 		var startupTaskStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var blockingStartupTask = new BlockingStartupTask(startupTaskStarted);
 		var ip = IPAddress.Loopback;
-		var tcpEndPoint = new IPEndPoint(ip, PortsHelper.GetAvailablePort(ip));
-		var internalEndPoint = new IPEndPoint(ip, PortsHelper.GetAvailablePort(ip));
 		var httpEndPoint = new IPEndPoint(ip, PortsHelper.GetAvailablePort(ip));
 
 		var options = new ClusterVNodeOptions
@@ -43,11 +40,6 @@ public class startup_should : SpecificationWithDirectory
 				AllowAnonymousStreamAccess = true,
 				StatsPeriodSec = 60 * 60,
 				WorkerThreads = 1
-			},
-			Interface = new()
-			{
-				ReplicationHeartbeatInterval = 10_000,
-				ReplicationHeartbeatTimeout = 10_000
 			},
 			Cluster = new()
 			{
@@ -68,21 +60,12 @@ public class startup_should : SpecificationWithDirectory
 			LoadedOptions = ClusterVNodeOptions.GetLoadedOptions(new ConfigurationBuilder()
 				.AddEventStoreDefaultValues()
 				.Build()),
-		}.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
-				ssl_connections.GetServerCertificate())
-			.WithReplicationEndpointOn(internalEndPoint)
-			.WithExternalTcpOn(tcpEndPoint)
+		}.Secure(new X509Certificate2Collection(TestCertificates.GetRootCertificate()),
+				TestCertificates.GetServerCertificate())
 			.WithNodeEndpointOn(httpEndPoint)
 			.RunOnDisk(System.IO.Path.Combine(PathName, "db"));
 
-		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new KeyValuePair<string, string>[] {
-				new("EventStore:TcpUnitTestPlugin:NodeTcpPort", tcpEndPoint.Port.ToString()),
-				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatInterval", "10000"),
-				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatTimeout", "10000"),
-				new("EventStore:TcpUnitTestPlugin:Insecure", options.Application.Insecure.ToString()),
-			})
-			.Build();
+		var configuration = new ConfigurationBuilder().Build();
 
 		var node = new ClusterVNode<string>(
 			options,

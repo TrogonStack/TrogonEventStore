@@ -273,6 +273,8 @@ internal static class Program
 							x.SuppressStatusMessages = true;
 						});
 
+					var nodeConnectionTracker = new NodeConnectionTracker();
+					builder.Services.AddSingleton(nodeConnectionTracker);
 					builder.WebHost.ConfigureKestrel(server =>
 					{
 						server.Limits.Http2.KeepAlivePingDelay =
@@ -281,12 +283,12 @@ internal static class Program
 							TimeSpan.FromMilliseconds(options.Grpc.KeepAliveTimeout);
 
 						server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
-							ConfigureHttpOptions(listenOptions, hostedService,
+							ConfigureHttpOptions(listenOptions, hostedService, nodeConnectionTracker,
 								useHttps: !hostedService.Node.DisableHttps));
 
 						if (hostedService.Node.EnableUnixSocket)
 						{
-							TryListenOnUnixSocket(hostedService, server);
+							TryListenOnUnixSocket(hostedService, server, nodeConnectionTracker);
 						}
 					});
 
@@ -325,6 +327,19 @@ internal static class Program
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
+					app.Use((context, next) =>
+					{
+						var isGrpc = context.Request.ContentType?.StartsWith(
+							"application/grpc",
+							StringComparison.OrdinalIgnoreCase) == true;
+						nodeConnectionTracker.ObserveRequest(
+							context.Connection.Id,
+							context.Request.Protocol,
+							isGrpc,
+							context.Request.Headers["connection-name"].FirstOrDefault(),
+							context.Request.Headers.UserAgent.ToString());
+						return next(context);
+					});
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					hostedService.Node.Startup.Configure(app);
 					if (oauthEnabled)
@@ -376,9 +391,14 @@ internal static class Program
 		}
 	}
 
-	private static void ConfigureHttpOptions(ListenOptions listenOptions, ClusterVNodeHostedService hostedService,
+	private static void ConfigureHttpOptions(
+		ListenOptions listenOptions,
+		ClusterVNodeHostedService hostedService,
+		NodeConnectionTracker connectionTracker,
 		bool useHttps)
 	{
+		listenOptions.Use(next => context => connectionTracker.Track(context, next, useHttps));
+
 		if (useHttps)
 		{
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
@@ -390,7 +410,10 @@ internal static class Program
 		}
 	}
 
-	private static void TryListenOnUnixSocket(ClusterVNodeHostedService hostedService, KestrelServerOptions server)
+	private static void TryListenOnUnixSocket(
+		ClusterVNodeHostedService hostedService,
+		KestrelServerOptions server,
+		NodeConnectionTracker connectionTracker)
 	{
 		if (!RuntimeInformation.IsLinux && !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17063))
 		{
@@ -421,7 +444,7 @@ internal static class Program
 			server.ListenUnixSocket(unixSocket, listenOptions =>
 			{
 				listenOptions.Use(next => new UnixSocketConnectionMiddleware(next).OnConnectAsync);
-				ConfigureHttpOptions(listenOptions, hostedService, useHttps: false);
+				ConfigureHttpOptions(listenOptions, hostedService, connectionTracker, useHttps: false);
 			});
 			Log.Information("Listening on UNIX domain socket: {unixSocket}", unixSocket);
 		}

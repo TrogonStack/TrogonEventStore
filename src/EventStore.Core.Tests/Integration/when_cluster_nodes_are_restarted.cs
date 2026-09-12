@@ -102,7 +102,7 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 	private EndPoint[] GossipSeedsFor(int restartedNodeIndex) =>
 		_nodeEndpoints
 			.Where((_, index) => index != restartedNodeIndex)
-			.Select(x => (EndPoint)x.HttpEndPoint)
+			.Select(x => (EndPoint)x.NodeEndPoint)
 			.ToArray();
 
 	[Test]

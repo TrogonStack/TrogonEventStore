@@ -1,14 +1,13 @@
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
 using EventStore.Core.Data;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Transport.Common;
 using EventStore.Core.Services.Transport.Enumerators;
 using EventStore.Core.Services.UserManagement;
 using NUnit.Framework;
-using ExpectedVersion = EventStore.ClientAPI.ExpectedVersion;
 
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
@@ -678,25 +677,20 @@ public partial class EnumeratorTests
 
 		private async Task WriteEvents(int count)
 		{
-			var events = new EventData[count];
-			for (var i = 0; i < count; i++)
-			{
-				events[i] = new EventData(Guid.NewGuid(), "type", true, "{}"u8.ToArray(), Array.Empty<byte>());
-			}
-
-			await NodeConnection.AppendToStreamAsync(_stream, ExpectedVersion.Any, events);
+			await AppendToStream(_stream,
+				Enumerable.Range(0, count)
+					.Select(_ => ("type", "{}"u8.ToArray(), Array.Empty<byte>())));
 		}
 
 		private async Task WriteEvent(string stream, string eventType, string data, string metadata)
 		{
 			data ??= string.Empty;
 			metadata ??= string.Empty;
-			var eventData = new EventData(Guid.NewGuid(), eventType, true, Encoding.UTF8.GetBytes(data), Encoding.UTF8.GetBytes(metadata));
-			await NodeConnection.AppendToStreamAsync(stream, ExpectedVersion.Any, eventData);
+			await AppendToStream(stream, eventType, data, metadata);
 		}
 		private Task WriteEvent() => WriteEvent(_stream, "type", "{}", null);
-		private async Task SoftDelete() => await NodeConnection.DeleteStreamAsync(_stream, Data.ExpectedVersion.Any, hardDelete: false);
-		private async Task Tombstone() => await NodeConnection.DeleteStreamAsync(_stream, Data.ExpectedVersion.Any, hardDelete: true);
+		private Task SoftDelete() => DeleteStream(_stream, hardDelete: false);
+		private Task Tombstone() => DeleteStream(_stream, hardDelete: true);
 		private async Task RevokeAccessWithStreamAcl() => await WriteEvent(SystemStreams.MetastreamOf(_stream), "$metadata", @"{ ""$acl"": { ""$r"": [] } }", null);
 		private async Task RevokeAccessWithDefaultAcl() => await WriteEvent(SystemStreams.SettingsStream, "update-default-acl", @"{ ""$userStreamAcl"" : { ""$r"" : [] } }", null);
 
@@ -825,9 +819,7 @@ public partial class EnumeratorTests
 				return;
 			}
 
-			var readResult = await NodeConnection.ReadStreamEventsBackwardAsync(_stream, -1, 1, resolveLinkTos: false);
-
-			_ephemeralStreamLastEventNumber = readResult.LastEventNumber;
+			_ephemeralStreamLastEventNumber = await ReadLastStreamRevision(_stream);
 			_nextEventNumber = CalculateNextEventNumberFromCheckpoint();
 		}
 

@@ -10,9 +10,12 @@ surfaces for running a node or cluster.
 
 TrogonEventStore keeps the database node focused on the durable event log:
 
-- Application event access is gRPC-first.
+- Database client APIs, cluster replication, and follower-to-leader forwarding
+  use gRPC over the node HTTP(S) endpoint.
 - HTTP is reserved for the Admin UI, health probes, metrics, and other
   infrastructure-level concerns.
+- The server does not open a separate legacy EventStore TCP protocol listener
+  or support its TCP transport configuration.
 - The project is FOSS-only. The documentation does not describe unsupported
   proprietary server features.
 - Rich read models, user-defined query engines, connector runtimes, and
@@ -37,7 +40,7 @@ For a production node, review:
 
 ## Protocols and clients
 
-The supported application protocol is gRPC. Existing TrogonEventStore-compatible
+The supported database protocol is gRPC. Existing TrogonEventStore-compatible
 gRPC clients can be useful while the TrogonDB client libraries continue to
 evolve, but the server documentation should be treated as authoritative for this
 repository.

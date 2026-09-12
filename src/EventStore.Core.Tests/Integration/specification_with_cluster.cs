@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Plugins.Subsystems;
@@ -17,7 +16,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 {
 	protected MiniClusterNode<TLogFormat, TStreamId>[] _nodes;
 	protected Endpoints[] _nodeEndpoints;
-	protected IEventStoreConnection _conn;
 	protected virtual TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(2);
 	protected virtual int NodeCount => 3;
 
@@ -25,15 +23,11 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected class Endpoints
 	{
-		public readonly IPEndPoint InternalTcp;
-		public readonly IPEndPoint ExternalTcp;
-		public readonly IPEndPoint HttpEndPoint;
+		public readonly IPEndPoint NodeEndPoint;
 
 		public IEnumerable<int> Ports()
 		{
-			yield return InternalTcp.Port;
-			yield return ExternalTcp.Port;
-			yield return HttpEndPoint.Port;
+			yield return NodeEndPoint.Port;
 		}
 
 		private readonly List<Socket> _sockets;
@@ -44,21 +38,11 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 			var defaultLoopBack = new IPEndPoint(IPAddress.Loopback, 0);
 
-			var internalTcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			internalTcp.Bind(defaultLoopBack);
-			_sockets.Add(internalTcp);
+			var nodeEndpoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			nodeEndpoint.Bind(defaultLoopBack);
+			_sockets.Add(nodeEndpoint);
 
-			var externalTcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			externalTcp.Bind(defaultLoopBack);
-			_sockets.Add(externalTcp);
-
-			var httpEndPoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			httpEndPoint.Bind(defaultLoopBack);
-			_sockets.Add(httpEndPoint);
-
-			InternalTcp = CopyEndpoint((IPEndPoint)internalTcp.LocalEndPoint);
-			ExternalTcp = CopyEndpoint((IPEndPoint)externalTcp.LocalEndPoint);
-			HttpEndPoint = CopyEndpoint((IPEndPoint)httpEndPoint.LocalEndPoint);
+			NodeEndPoint = CopyEndpoint((IPEndPoint)nodeEndpoint.LocalEndPoint);
 		}
 
 		public void DisposeSockets()
@@ -102,7 +86,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 				nodeIndex,
 				_nodeEndpoints[nodeIndex],
 				_nodeEndpoints.Where((_, otherIndex) => otherIndex != nodeIndex)
-					.Select(x => (EndPoint)x.HttpEndPoint)
+					.Select(x => (EndPoint)x.NodeEndPoint)
 					.ToArray(),
 				wait));
 			_nodes[nodeIndex] = _nodeCreationFactory[nodeIndex](true);
@@ -144,9 +128,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			onFail: MiniNodeLogging.WriteLogs,
 			msg: $"Waiting for followers timed out! States={string.Join(", ", _nodes.Select(n => n.NodeState))}");
 
-		_conn = CreateConnection();
-		await _conn.ConnectAsync();
-
 		try
 		{
 			await Given().WithTimeout(GivenTimeout);
@@ -158,9 +139,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	protected virtual IEventStoreConnection CreateConnection() =>
-		EventStoreConnection.Create(_nodes[0].ExternalTcpEndPoint);
-
 	protected virtual void BeforeNodesStart()
 	{
 	}
@@ -171,8 +149,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected virtual MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		bool wait = true) => new(
-		PathName, index, endpoints.InternalTcp,
-		endpoints.ExternalTcp, endpoints.HttpEndPoint,
+		PathName, index, endpoints.NodeEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
 
 	[TearDown]
@@ -187,7 +164,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
-		_conn?.Close();
 		if (_nodes is not null)
 		{
 			await Task.WhenAll(_nodes.Where(node => node is not null).Select(node => node.Shutdown()));

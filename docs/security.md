@@ -15,14 +15,14 @@ Security features of TrogonEventStore include:
 
 ### Protocol security
 
-TrogonEventStore supports gRPC for client communication and internal TCP for
-cluster replication. It also has HTTP endpoints for the Admin UI, health,
-metrics, and supported operator workflows.
-TrogonEventStore also uses HTTP for the gossip seed endpoint, both internally for the cluster gossip, and
-internally for clients that connect to the cluster using discovery mode.
+TrogonEventStore uses a single HTTP(S) endpoint. gRPC over that endpoint carries
+database client APIs, cluster replication, follower-to-leader forwarding, and
+cluster discovery. Regular HTTP routes serve the Admin UI, health, metrics, and
+supported operator workflows.
 
-All those protocols support encryption with TLS and SSL. Each protocol has its own security configuration, but
-you can only use one set of certificates for both TLS and HTTPS.
+The same TLS configuration and node certificate protect every surface on the
+listener. The server does not open a separate legacy EventStore TCP protocol
+listener or support separate TCP security settings.
 
 The protocol security configuration depends a lot on the deployment topology and platform. We have created an
 interactive [configuration tool](installation.md), which also has instructions on how to generate and install
@@ -162,7 +162,8 @@ If the domains are `node1.esdb.mycompany.org`, `node2.esdb.mycompany.org` and `n
 | Environment variable | `EVENTSTORE_CERTIFICATE_RESERVED_NODE_COMMON_NAME` |
 
 ::: warning
-Server certificates **must** have the internal and external IP addresses (`ReplicationIp` and `NodeIp` respectively) or DNS names as subject alternative names.
+Server certificates **must** contain every IP address or DNS name that clients
+or peer nodes use to reach the node as a subject alternative name.
 :::
 
 #### Node certificate Client Authentication usage
@@ -188,8 +189,7 @@ validity period, common-name policy, subject alternative names, key usage, and S
 required. This option does not relax user certificate authentication.
 :::
 
-This setting controls node identity authentication for HTTPS cluster traffic. It does not change legacy secure TCP
-replication certificate handling.
+This setting controls node identity authentication for HTTPS cluster traffic.
 
 #### Trusted root certificates
 
@@ -512,11 +512,13 @@ Import-Certificate -FilePath .\ca.crt -CertStoreLocation Cert:\LocalMachine\CA
 :::
 ::::
 
-### Replication protocol security
+### Internal gRPC security
 
-When TLS is enabled, cluster replication uses the configured node certificate. Replication TLS cannot be
-disabled independently. Use [`DisableTls`](#disable-tls) to disable transport encryption for both HTTP and
-replication while preserving authentication and authorization.
+When TLS is enabled, cluster replication and follower-to-leader forwarding use
+the configured node certificate on the shared HTTPS endpoint. Internal gRPC TLS
+cannot be disabled independently. Use [`DisableTls`](#disable-tls) to disable
+transport encryption for the entire endpoint while preserving authentication
+and authorization.
 
 ## Authentication
 
@@ -530,7 +532,7 @@ content, and redirects.
 ### Password authentication admission limits
 
 Built-in password authentication shares a node-local admission budget across UI sign-in, HTTP and gRPC
-credentials, TCP authentication, and forwarded credentials. Cached credentials still require password
+credentials, and forwarded credentials. Cached credentials still require password
 verification and use the same budget. Attempts are admitted before account reads, including requests
 for nonexistent accounts, so changing usernames cannot bypass the node-wide limit.
 
@@ -544,7 +546,7 @@ All values must be positive, and `BurstSize` must be at least `AttemptsPerSecond
 hold a full second's replenishment. Invalid limits prevent the password provider from starting.
 There is no waiting queue. When either budget is exhausted, requests
 receive the existing authentication-not-ready response: HTTP returns `503` with `Retry-After`, gRPC
-returns `Unavailable`, TCP returns `NotReady`, and browser sign-in reports that the provider is not
+returns `Unavailable`, and browser sign-in reports that the provider is not
 ready. Clients should use bounded retries with backoff and jitter.
 
 Limits are shared by all password users on a node, not per account or per IP address. They do not lock

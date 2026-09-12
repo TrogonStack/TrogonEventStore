@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.Chunks;
-using EventStore.Transport.Tcp.Framing;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Helpers;
@@ -85,7 +84,7 @@ public sealed class LengthPrefixSuffixFramer : IAsyncMessageFramer<ReadOnlySeque
 					if (_packageLength <= 0 || _packageLength > _maxPackageSize)
 					{
 						Log.Error("FRAMING ERROR! Data:\n{data}", Helper.FormatBinaryDump(bytes));
-						throw new PackageFramingException(string.Format(
+						throw new MessageFramingException(string.Format(
 							"Package size is out of bounds: {0} (max: {1}).",
 							_packageLength, _maxPackageSize));
 					}

@@ -35,7 +35,6 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 	[Test]
 	public void should_have_default_endpoints()
 	{
-		Assert.AreEqual(new IPEndPoint(IPAddress.Loopback, 1112), _node.NodeInfo.InternalSecureTcp);
 		Assert.AreEqual(new IPEndPoint(IPAddress.Loopback, 2113), _node.NodeInfo.HttpEndPoint);
 	}
 
@@ -69,11 +68,6 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 		Assert.AreEqual(Opts.MaxProjectionStateSizeDefault, _options.Projection.MaxProjectionStateSize,
 			"MaxProjectionStateSize");
 
-		Assert.AreEqual(700, _options.Interface.ReplicationHeartbeatInterval, "ReplicationHeartbeatInterval");
-
-		Assert.AreEqual(700, _options.Interface.ReplicationHeartbeatTimeout,
-			"ReplicationHeartbeatTimeout");
-
 		Assert.AreEqual(TFConsts.ChunkSize, _node.Db.Config.ChunkSize, "ChunkSize");
 		Assert.AreEqual(TFConsts.ChunksCacheSize, _node.Db.Config.MaxChunksCacheSize, "MaxChunksCacheSize");
 	}
@@ -92,15 +86,11 @@ public class with_default_node_as_node_in_a_cluster<TLogFormat, TStreamId> : Clu
 	}
 
 	[Test]
-	public void should_have_default_secure_endpoints()
+	public void should_have_default_endpoint()
 	{
-		var internalTcp = new IPEndPoint(IPAddress.Loopback, 1112);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
-		Assert.AreEqual(internalTcp, _node.NodeInfo.InternalSecureTcp);
 		Assert.AreEqual(httpEndPoint, _node.NodeInfo.HttpEndPoint);
-
-		Assert.AreEqual(internalTcp.ToDnsEndPoint(), _node.GossipAdvertiseInfo.InternalSecureTcp);
 		Assert.AreEqual(httpEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.HttpEndPoint);
 	}
 
@@ -125,13 +115,9 @@ public class with_default_node_as_node_in_an_insecure_cluster<TLogFormat, TStrea
 	[Test]
 	public void should_have_default_endpoints()
 	{
-		var internalTcp = new IPEndPoint(IPAddress.Loopback, 1112);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
-		Assert.AreEqual(internalTcp, _node.NodeInfo.InternalTcp);
 		Assert.AreEqual(httpEndPoint, _node.NodeInfo.HttpEndPoint);
-
-		Assert.AreEqual(internalTcp.ToDnsEndPoint(), _node.GossipAdvertiseInfo.InternalTcp);
 		Assert.AreEqual(httpEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.HttpEndPoint);
 	}
 

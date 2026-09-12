@@ -27,11 +27,6 @@ public static class ClusterVNodeOptionsValidator
 			throw new ArgumentNullException(nameof(options.Interface.NodeIp));
 		}
 
-		if (options.Interface.ReplicationIp == null)
-		{
-			throw new ArgumentNullException(nameof(options.Interface.ReplicationIp));
-		}
-
 		if (options.Cluster.ClusterSize <= 0)
 		{
 			throw new ArgumentOutOfRangeException(nameof(options.Cluster.ClusterSize), options.Cluster.ClusterSize,

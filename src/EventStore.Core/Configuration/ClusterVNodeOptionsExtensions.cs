@@ -89,29 +89,6 @@ public static class ClusterVNodeOptionsExtensions
 		};
 
 	/// <summary>
-	/// Sets the external tcp endpoint to the specified value
-	/// </summary>
-	/// <param name="options">The <see cref="ClusterVNodeOptions"/></param>
-	/// <param name="endPoint">The external endpoint to use</param>
-	/// <returns>A <see cref="ClusterVNodeOptions"/> with the options set</returns>
-	public static ClusterVNodeOptions WithExternalTcpOn(
-		this ClusterVNodeOptions options, IPEndPoint endPoint) =>
-		options with { Interface = options.Interface with { NodeIp = endPoint.Address, } };
-
-	/// <summary>
-	/// Sets the internal tcp endpoint to the specified value
-	/// </summary>
-	/// <param name="options">The <see cref="ClusterVNodeOptions"/></param>
-	/// <param name="endPoint">The internal endpoint to use</param>
-	/// <returns>A <see cref="ClusterVNodeOptions"/> with the options set</returns>
-	public static ClusterVNodeOptions WithReplicationEndpointOn(
-		this ClusterVNodeOptions options, IPEndPoint endPoint) =>
-		options with
-		{
-			Interface = options.Interface with { ReplicationIp = endPoint.Address, ReplicationPort = endPoint.Port }
-		};
-
-	/// <summary>
 	/// Sets the http endpoint to the specified value
 	/// </summary>
 	/// <param name="options">The <see cref="ClusterVNodeOptions"/></param>
@@ -130,23 +107,6 @@ public static class ClusterVNodeOptionsExtensions
 	public static ClusterVNodeOptions
 		AdvertiseExternalHostAs(this ClusterVNodeOptions options, EndPoint endPoint) =>
 		options with { Interface = options.Interface with { NodeHostAdvertiseAs = endPoint.GetHost(), } };
-
-	/// <summary>
-	/// Sets up the Internal Host that would be advertised
-	/// </summary>
-	/// <param name="options">The <see cref="ClusterVNodeOptions"/></param>
-	/// <param name="endPoint">The advertised host</param>
-	/// <returns>A <see cref="ClusterVNodeOptions"/> with the options set</returns>
-	public static ClusterVNodeOptions
-		AdvertiseInternalHostAs(this ClusterVNodeOptions options, EndPoint endPoint) =>
-		options with
-		{
-			Interface = options.Interface with
-			{
-				ReplicationHostAdvertiseAs = endPoint.GetHost(),
-				ReplicationTcpPortAdvertiseAs = endPoint.GetPort()
-			}
-		};
 
 	/// <summary>
 	/// </summary>

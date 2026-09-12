@@ -31,23 +31,20 @@ public class CommandProcessorContext
 	/// </summary>
 	public bool OutputCsv = false;
 
-	public readonly TcpTestClient _tcpTestClient;
 	public readonly GrpcTestClient _grpcTestClient;
-	public readonly ClientApiTcpTestClient _clientApiTestClient;
 
 	private readonly ManualResetEventSlim _doneEvent;
 	private readonly CancellationToken _cancellationToken;
 	private int _completed;
 	private int _timeout;
 
-	public CommandProcessorContext(TcpTestClient tcpTestClient, GrpcTestClient grpcTestClient,
-		ClientApiTcpTestClient clientApiTestClient, int timeout, ILogger log, ILogger statsLogger, bool outputCsv,
+	public CancellationToken CancellationToken => _cancellationToken;
+
+	public CommandProcessorContext(GrpcTestClient grpcTestClient,
+		int timeout, ILogger log, ILogger statsLogger, bool outputCsv,
 		ManualResetEventSlim doneEvent, CancellationToken cancellationToken)
 	{
-
-		_tcpTestClient = tcpTestClient;
 		_grpcTestClient = grpcTestClient;
-		_clientApiTestClient = clientApiTestClient;
 		Log = log;
 		StatsLogger = statsLogger;
 		_doneEvent = doneEvent;

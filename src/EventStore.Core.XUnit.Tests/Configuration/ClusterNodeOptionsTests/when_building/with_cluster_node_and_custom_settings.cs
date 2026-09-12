@@ -127,8 +127,6 @@ public class with_custom_external_ip_address_as_advertise_info<TLogFormat, TStre
 	{
 		return options
 			.Insecure()
-			.WithExternalTcpOn(new IPEndPoint(IPAddress.Loopback, 11130))
-			.WithReplicationEndpointOn(new IPEndPoint(IPAddress.Loopback, 11120))
 			.AdvertiseExternalHostAs(new DnsEndPoint("196.168.1.1", 11131))
 			.AdvertiseNodeAs(new DnsEndPoint("196.168.1.1", 21130));
 	}
@@ -139,12 +137,6 @@ public class with_custom_external_ip_address_as_advertise_info<TLogFormat, TStre
 		Assert.AreEqual(new DnsEndPoint("196.168.1.1", 21130),
 			_node.GossipAdvertiseInfo.HttpEndPoint);
 	}
-
-	[Test]
-	public void should_set_the_loopback_address_as_advertise_info_for_internal()
-	{
-		Assert.AreEqual(new DnsEndPoint(IPAddress.Loopback.ToString(), 11120), _node.GossipAdvertiseInfo.InternalTcp);
-	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
@@ -154,8 +146,7 @@ public class with_0_0_0_0_as_external_ip_address_and_custom_advertise_info<TLogF
 	{
 		return options
 			.Insecure()
-			.WithReplicationEndpointOn(new IPEndPoint(IPAddress.Any, 11120))
-			.WithExternalTcpOn(new IPEndPoint(IPAddress.Any, 11130))
+			.WithNodeEndpointOn(new IPEndPoint(IPAddress.Any, 2113))
 			.AdvertiseExternalHostAs(new DnsEndPoint("10.0.0.1", 11131));
 	}
 
@@ -164,13 +155,6 @@ public class with_0_0_0_0_as_external_ip_address_and_custom_advertise_info<TLogF
 	{
 		Assert.AreEqual(new DnsEndPoint("10.0.0.1", 2113),
 			_node.GossipAdvertiseInfo.HttpEndPoint);
-	}
-
-	[Test]
-	public void should_set_the_non_loopback_address_as_advertise_info_for_internal()
-	{
-		Assert.AreEqual(new DnsEndPoint(IPFinder.GetNonLoopbackAddress().ToString(), 11120),
-			_node.GossipAdvertiseInfo.InternalTcp);
 	}
 }
 
@@ -181,9 +165,7 @@ public class with_0_0_0_0_as_external_ip_address_with_no_explicit_advertise_info
 	{
 		return options
 			.Insecure()
-			.WithNodeEndpointOn(new IPEndPoint(IPAddress.Any, 21130))
-			.WithExternalTcpOn(new IPEndPoint(IPAddress.Any, 11130))
-			.WithReplicationEndpointOn(new IPEndPoint(IPAddress.Loopback, 11120));
+			.WithNodeEndpointOn(new IPEndPoint(IPAddress.Any, 21130));
 	}
 
 	[Test]
@@ -191,12 +173,6 @@ public class with_0_0_0_0_as_external_ip_address_with_no_explicit_advertise_info
 	{
 		Assert.AreEqual(new DnsEndPoint(IPFinder.GetNonLoopbackAddress().ToString(), 21130),
 			_node.GossipAdvertiseInfo.HttpEndPoint);
-	}
-
-	[Test]
-	public void should_use_loopback_ip_as_advertise_info_for_internal()
-	{
-		Assert.AreEqual(new DnsEndPoint(IPAddress.Loopback.ToString(), 11120), _node.GossipAdvertiseInfo.InternalTcp);
 	}
 }
 
@@ -209,8 +185,6 @@ public class
 		return options
 			.Insecure()
 			.WithNodeEndpointOn(new IPEndPoint(IPAddress.Loopback, 21130))
-			.WithExternalTcpOn(new IPEndPoint(IPAddress.Loopback, 11130))
-			.WithReplicationEndpointOn(new IPEndPoint(IPAddress.Any, 11120))
 			.AdvertiseExternalHostAs(new DnsEndPoint("10.0.0.1", 11131))
 			.AdvertiseNodeAs(new DnsEndPoint("10.0.0.1", 21131));
 	}
@@ -220,13 +194,6 @@ public class
 	{
 		Assert.AreEqual(new DnsEndPoint("10.0.0.1", 21131),
 			_node.GossipAdvertiseInfo.HttpEndPoint);
-	}
-
-	[Test]
-	public void should_use_the_non_default_loopback_ip_as_advertise_info_for_internal()
-	{
-		Assert.AreEqual(new DnsEndPoint(IPFinder.GetNonLoopbackAddress().ToString(), 11120),
-			_node.GossipAdvertiseInfo.InternalTcp);
 	}
 }
 

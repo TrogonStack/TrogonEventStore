@@ -211,7 +211,7 @@ namespace EventStore.Core.Services
 				case ClientMessage.PersistentSubscriptionNackEvents _:
 				case ClientMessage.UnsubscribeFromStream _:
 				case ClientMessage.NotHandled _:
-				case TcpMessage.NotAuthenticated _:
+				case ClientMessage.NotAuthenticated _:
 				case ClientMessage.WriteEventsCompleted _:
 				case ClientMessage.TransactionStartCompleted _:
 				case ClientMessage.TransactionWriteCompleted _:
@@ -244,8 +244,6 @@ namespace EventStore.Core.Services
 					break;
 				default:
 #if DEBUG
-					//This sucks, because if new tcp messages are added there is no way to be sure they have to be authorized...
-					//They should be caught by debug builds though
 					throw new ArgumentOutOfRangeException(nameof(toValidate), toValidate.GetType().FullName,
 						"Unhandled client message");
 #else

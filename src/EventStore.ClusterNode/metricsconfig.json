@@ -237,10 +237,6 @@
 			"Label": "System"
 		},
 		{
-			"Regex": "CoreMessage-Tcp-.*",
-			"Label": "Tcp"
-		},
-		{
 			"Regex": "ProjectionMessage-.*",
 			"Label": "Projections"
 		},

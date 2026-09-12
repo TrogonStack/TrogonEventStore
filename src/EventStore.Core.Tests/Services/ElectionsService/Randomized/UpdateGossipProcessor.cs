@@ -63,7 +63,7 @@ internal class UpdateGossipProcessor : IRandTestItemProcessor
 
 					previousMembers[leaderIndex] =
 						MemberInfo.ForVNode(previousLeaderInfo.InstanceId, DateTime.UtcNow, VNodeState.Leader,
-							previousLeaderInfo.IsAlive, leaderEndPoint, null, leaderEndPoint, null, leaderEndPoint, null, 0, 0,
+							previousLeaderInfo.IsAlive, leaderEndPoint, null, 0,
 							-1, 0, 0, -1, -1, Guid.Empty, 0, false);
 				}
 			}
@@ -82,7 +82,7 @@ internal class UpdateGossipProcessor : IRandTestItemProcessor
 
 			foreach (var memberInfo in updatedGossip)
 			{
-				_sendOverGrpcProcessor.RegisterEndpointToSkip(memberInfo.ExternalTcpEndPoint, !memberInfo.IsAlive);
+				_sendOverGrpcProcessor.RegisterEndpointToSkip(memberInfo.HttpEndPoint, !memberInfo.IsAlive);
 			}
 
 			var updateGossipMessage = new GossipMessage.GossipUpdated(new ClusterInfo(updatedGossip));

@@ -42,7 +42,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-${CONTAINER_RUNTIME} AS test
 WORKDIR /build
 COPY --from=build ./build/published-tests ./published-tests
 COPY --from=build ./build/ci ./ci
-COPY --from=build ./build/src/EventStore.Core.Tests/Services/Transport/Tcp/test_certificates/ca/ca.crt /usr/local/share/ca-certificates/ca_eventstore_test.crt
 COPY ./scripts/test.sh /build/test.sh
 RUN mkdir ./test-results
 RUN chmod +x /build/test.sh
@@ -84,12 +83,11 @@ RUN mkdir -p /var/lib/eventstore && \
 
 USER eventstore
 
-RUN printf "NodeIp: 0.0.0.0\n\
-ReplicationIp: 0.0.0.0" >> /etc/eventstore/eventstore.conf
+RUN printf "NodeIp: 0.0.0.0" >> /etc/eventstore/eventstore.conf
 
 VOLUME /var/lib/eventstore /var/log/eventstore
 
-EXPOSE 1112/tcp 1113/tcp 2113/tcp
+EXPOSE 2113/tcp
 
 HEALTHCHECK --interval=5s --timeout=5s --retries=24 \
     CMD curl --fail --insecure https://localhost:2113/-/liveness || curl --fail http://localhost:2113/-/liveness || exit 1

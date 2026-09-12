@@ -1,10 +1,7 @@
 using System;
 using System.IO;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.SystemData;
 using EventStore.Core.Bus;
 using EventStore.Core.Tests.Helpers;
 using NUnit.Framework;

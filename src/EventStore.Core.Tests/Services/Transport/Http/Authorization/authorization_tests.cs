@@ -5,10 +5,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using EventStore.Client.Users;
-using EventStore.ClientAPI;
 using EventStore.Common.Utils;
 using EventStore.Core.Services;
-using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -146,12 +144,6 @@ public class Authorization<TLogFormat, TStreamId> : SpecificationWithDirectoryPe
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
-		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
-
-		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
-			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
-			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
-			ReadinessTimeout);
 
 		_httpClients["Admin"] = CreateHttpClient("admin", "changeit");
 		_httpClients["Ops"] = CreateHttpClient("ops", "changeit");

@@ -9,7 +9,7 @@ using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Bus;
 using EventStore.Core.Certificates;
 using EventStore.Core.Messaging;
-using EventStore.Core.Tests.Services.Transport.Tcp;
+using EventStore.Core.Tests.Helpers;
 using Microsoft.AspNetCore.Builder;
 
 namespace EventStore.Core.Tests.ClientOperations;
@@ -26,8 +26,8 @@ public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPu
 		var options = new ClusterVNodeOptions()
 			.ReduceMemoryUsageForTests()
 			.RunOnDisk(_dbPath)
-			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
-				ssl_connections.GetServerCertificate());
+			.Secure(new X509Certificate2Collection(TestCertificates.GetRootCertificate()),
+				TestCertificates.GetServerCertificate());
 		_node = new ClusterVNode<TStreamId>(options, logFormatFactory,
 			new AuthenticationProviderFactory(
 				c => new InternalAuthenticationProviderFactory(c, options.DefaultUser)),

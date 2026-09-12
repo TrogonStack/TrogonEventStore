@@ -274,7 +274,7 @@ namespace EventStore.Core.Services.Gossip
 			if (node.InstanceId == CurrentLeader?.InstanceId)
 			{
 				Log.Information(
-					"Leader [{leaderEndPoint}, {instanceId:B}] appears to be DEAD (Gossip send failed); wait for TCP to decide.",
+					"Leader [{leaderEndPoint}, {instanceId:B}] appears to be DEAD (Gossip send failed); wait for replication transport to decide.",
 					message.Recipient, node.InstanceId);
 				return;
 			}
@@ -302,7 +302,7 @@ namespace EventStore.Core.Services.Gossip
 				return;
 			}
 
-			Log.Information("Looks like node [{nodeEndPoint}] is DEAD (TCP connection lost). Issuing a gossip to confirm.",
+			Log.Information("Looks like node [{nodeEndPoint}] is DEAD (replication connection lost). Issuing a gossip to confirm.",
 				message.VNodeEndPoint);
 			_bus.Publish(new GrpcMessage.SendOverGrpc(node.HttpEndPoint,
 				new GossipMessage.GetGossip(),
@@ -354,7 +354,7 @@ namespace EventStore.Core.Services.Gossip
 			if (_cluster.HasChangedSince(oldCluster))
 			{
 				LogClusterChange(oldCluster, _cluster,
-					string.Format("TCP connection lost to [{0}]", message.Recipient));
+					string.Format("Replication connection lost to [{0}]", message.Recipient));
 			}
 
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));
@@ -371,7 +371,7 @@ namespace EventStore.Core.Services.Gossip
 			if (_cluster.HasChangedSince(oldCluster))
 			{
 				LogClusterChange(oldCluster, _cluster,
-					string.Format("TCP connection established to [{0}]", message.VNodeEndPoint));
+					string.Format("Replication connection established to [{0}]", message.VNodeEndPoint));
 			}
 
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));

@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
 using EventStore.Common.Utils;
 using EventStore.Core.Tests;
 using EventStore.Projections.Core.Services.Processing;
@@ -20,25 +19,16 @@ public class with_multiple_tracked_streams<TLogFormat, TStreamId> : Specificatio
 	protected CountdownEvent _eventAppeared;
 	private int _numberOfTrackedEvents = 50;
 	private string _testStreamFormat = "test_stream_{0}";
-	private EventStore.ClientAPI.SystemData.UserCredentials _credentials;
 
 	protected override async Task Given()
 	{
-		_credentials = new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit");
 		_eventAppeared = new CountdownEvent(_numberOfTrackedEvents);
 		_onDeleteStreamCompleted = () => { _resetEvent.Set(); };
 		await base.Given();
 
-		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) =>
-		{
-			_eventAppeared.Signal();
-			return Task.CompletedTask;
-		}, userCredentials: _credentials);
-
 		for (int i = 0; i < _numberOfTrackedEvents; i++)
 		{
-			await _conn.AppendToStreamAsync(String.Format(_testStreamFormat, i), ExpectedVersion.Any,
-				new EventData(Guid.NewGuid(), "type1", true, Helper.UTF8NoBom.GetBytes("data"), null));
+			await AppendEvent(String.Format(_testStreamFormat, i), "type1", Helper.UTF8NoBom.GetBytes("data"));
 			_emittedStreamsTracker.TrackEmittedStream(new EmittedEvent[] {
 				new EmittedDataEvent(
 					String.Format(_testStreamFormat, i), Guid.NewGuid(), "type1", true,
@@ -46,16 +36,13 @@ public class with_multiple_tracked_streams<TLogFormat, TStreamId> : Specificatio
 			});
 		}
 
-		if (!_eventAppeared.Wait(TimeSpan.FromSeconds(10)))
+		var events = await WaitForEvents(_projectionNamesBuilder.GetEmittedStreamsName(), _numberOfTrackedEvents);
+		if (events.Length != _numberOfTrackedEvents)
 		{
 			Assert.Fail("Timed out waiting for emitted streams");
 		}
-
-		var emittedStreamResult =
-			await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsName(), 0,
-				_numberOfTrackedEvents, false, _credentials);
-		Assert.AreEqual(_numberOfTrackedEvents, emittedStreamResult.Events.Length);
-		Assert.AreEqual(SliceReadStatus.Success, emittedStreamResult.Status);
+		while (_eventAppeared.CurrentCount > 0)
+			_eventAppeared.Signal();
 	}
 
 	protected override Task When()
@@ -74,9 +61,8 @@ public class with_multiple_tracked_streams<TLogFormat, TStreamId> : Specificatio
 	{
 		for (int i = 0; i < _numberOfTrackedEvents; i++)
 		{
-			var result = await _conn.ReadStreamEventsForwardAsync(String.Format(_testStreamFormat, i), 0, 1, false,
-				new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit"));
-			Assert.AreEqual(SliceReadStatus.StreamNotFound, result.Status);
+			var events = await ReadEvents(String.Format(_testStreamFormat, i), 1);
+			Assert.AreEqual(0, events.Length);
 		}
 	}
 
@@ -84,16 +70,14 @@ public class with_multiple_tracked_streams<TLogFormat, TStreamId> : Specificatio
 	[Test]
 	public async Task should_have_deleted_the_checkpoint_stream()
 	{
-		var result = await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsCheckpointName(),
-			0, 1, false, new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit"));
-		Assert.AreEqual(SliceReadStatus.StreamNotFound, result.Status);
+		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsCheckpointName(), 1);
+		Assert.AreEqual(0, events.Length);
 	}
 
 	[Test]
 	public async Task should_have_deleted_the_emitted_streams_stream()
 	{
-		var result = await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsName(), 0, 1,
-			false, new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit"));
-		Assert.AreEqual(SliceReadStatus.StreamNotFound, result.Status);
+		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 1);
+		Assert.AreEqual(0, events.Length);
 	}
 }

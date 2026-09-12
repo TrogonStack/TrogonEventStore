@@ -172,7 +172,7 @@ public static class ForwardingGrpcCodec
 			ClientMessage.TransactionCommitCompleted completed => ToGrpc(completed),
 			ClientMessage.DeleteStreamCompleted completed => ToGrpc(completed),
 			ClientMessage.NotHandled notHandled => ToGrpc(notHandled),
-			TcpMessage.NotAuthenticated notAuthenticated => ToGrpc(notAuthenticated),
+			ClientMessage.NotAuthenticated notAuthenticated => ToGrpc(notAuthenticated),
 			_ => throw new ArgumentOutOfRangeException(nameof(message), message.GetType().FullName,
 				"Unsupported forwarding response")
 		}
@@ -195,7 +195,7 @@ public static class ForwardingGrpcCodec
 			Proto.ForwardResponse.PayloadOneofCase.DeleteStream => FromGrpc(correlationId, response.DeleteStream),
 			Proto.ForwardResponse.PayloadOneofCase.NotHandled => FromGrpc(correlationId, response.NotHandled),
 			Proto.ForwardResponse.PayloadOneofCase.NotAuthenticated =>
-				new TcpMessage.NotAuthenticated(correlationId, response.NotAuthenticated.Reason),
+				new ClientMessage.NotAuthenticated(correlationId, response.NotAuthenticated.Reason),
 			_ => throw new ArgumentOutOfRangeException(nameof(frame), response.PayloadCase,
 				"Unknown forwarding response")
 		};
@@ -457,8 +457,6 @@ public static class ForwardingGrpcCodec
 		{
 			notHandled.LeaderInfo = new Proto.LeaderInfo
 			{
-				ExternalTcp = ToGrpc(message.LeaderInfo.ExternalTcp),
-				IsSecure = message.LeaderInfo.IsSecure,
 				Http = ToGrpc(message.LeaderInfo.Http)
 			};
 		}
@@ -471,7 +469,7 @@ public static class ForwardingGrpcCodec
 		return response;
 	}
 
-	private static Proto.ForwardResponse ToGrpc(TcpMessage.NotAuthenticated message)
+	private static Proto.ForwardResponse ToGrpc(ClientMessage.NotAuthenticated message)
 	{
 		var response = NewResponse(message.CorrelationId);
 		response.NotAuthenticated = new Proto.NotAuthenticated { Reason = message.Reason ?? string.Empty };
@@ -552,8 +550,6 @@ public static class ForwardingGrpcCodec
 				correlationId,
 				reason,
 				new ClientMessage.NotHandled.Types.LeaderInfo(
-					FromGrpc(message.LeaderInfo.ExternalTcp),
-					message.LeaderInfo.IsSecure,
 					FromGrpc(message.LeaderInfo.Http))),
 			Proto.NotHandled.DetailOneofCase.Description =>
 				new ClientMessage.NotHandled(correlationId, reason, message.Description),
