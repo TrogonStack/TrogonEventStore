@@ -6,11 +6,12 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Core.Services.Transport.Grpc;
 using Microsoft.AspNetCore.Connections;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-public sealed class NodeConnectionTracker
+public sealed class NodeConnectionTracker : IConnectionStatsProvider
 {
 	private readonly ConcurrentDictionary<string, NodeConnectionState> _connections = new();
 
@@ -19,6 +20,8 @@ public sealed class NodeConnectionTracker
 			.OrderBy(x => x.RemoteEndPoint, StringComparer.OrdinalIgnoreCase)
 			.ThenBy(x => x.ConnectionId, StringComparer.Ordinal)
 			.ToArray();
+
+	IReadOnlyList<ConnectionStatsSnapshot> IConnectionStatsProvider.Snapshot() => Snapshot();
 
 	public async Task Track(ConnectionContext context, ConnectionDelegate next, bool isTls)
 	{
@@ -49,7 +52,9 @@ public sealed class NodeConnectionTracker
 		string userAgent)
 	{
 		if (_connections.TryGetValue(connectionId, out var connection))
+		{
 			connection.ObserveRequest(protocol, isGrpc, connectionName, userAgent);
+		}
 	}
 }
 
@@ -65,7 +70,19 @@ public sealed record NodeConnectionSnapshot(
 	long TotalBytesSent,
 	long TotalBytesReceived,
 	long PendingSendBytes,
-	long PendingReceivedBytes);
+	long PendingReceivedBytes) : ConnectionStatsSnapshot(
+	ConnectionId,
+	RemoteEndPoint,
+	LocalEndPoint,
+	ClientName,
+	Application,
+	Protocol,
+	IsTls,
+	ConnectedAt,
+	TotalBytesSent,
+	TotalBytesReceived,
+	PendingSendBytes,
+	PendingReceivedBytes);
 
 internal sealed class NodeConnectionState
 {
@@ -172,7 +189,10 @@ internal sealed class NodeConnectionState
 	private static string Merge(string current, string observed)
 	{
 		if (string.IsNullOrWhiteSpace(observed) || current == observed)
+		{
 			return current;
+		}
+
 		return string.IsNullOrWhiteSpace(current) ? observed : "Mixed";
 	}
 }
@@ -228,7 +248,9 @@ internal sealed class CountingPipeReader : PipeReader
 	public override bool TryRead(out ReadResult result)
 	{
 		if (!_inner.TryRead(out result))
+		{
 			return false;
+		}
 
 		Observe(result);
 		return true;
@@ -268,7 +290,10 @@ internal sealed class CountingPipeWriter : PipeWriter
 	{
 		var result = await _inner.FlushAsync(cancellationToken);
 		if (!result.IsCanceled)
+		{
 			_state.Sent();
+		}
+
 		return result;
 	}
 

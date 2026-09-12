@@ -2,7 +2,7 @@
 	"use strict";
 
 	var pollIntervalMs = 1000;
-	var tcpPageSize = 5;
+	var networkPageSize = 5;
 	var dashboards = new WeakMap();
 
 	function start() {
@@ -20,8 +20,10 @@
 			expanded: parseExpanded(root),
 			blocks: [],
 			queues: [],
-			tcpConnections: [],
-			tcpPage: 0,
+			networkConnections: [],
+			networkSamples: new Map(),
+			networkPage: 0,
+			replicationConnections: [],
 			timer: null,
 			inFlight: false
 		};
@@ -33,10 +35,10 @@
 			applyPayload(state, initialPayload);
 
 		root.addEventListener("click", function (event) {
-			var tcpPager = event.target.closest("[data-tcp-page]");
-			if (tcpPager && root.contains(tcpPager)) {
+			var networkPager = event.target.closest("[data-network-page]");
+			if (networkPager && root.contains(networkPager)) {
 				event.preventDefault();
-				changeTcpPage(state, tcpPager.getAttribute("data-tcp-page"));
+				changeNetworkPage(state, networkPager.getAttribute("data-network-page"));
 				return;
 			}
 
@@ -124,21 +126,14 @@
 		var parsed = parseQueues(payload);
 		state.queues = parsed.queues;
 		state.blocks = parsed.blocks;
-		state.tcpConnections = parseTcpConnections(payload);
+		state.networkConnections = parseNetworkConnections(payload, state);
+		state.replicationConnections = parseReplicationConnections(payload);
 		setStatus(
 			state.root,
 			payload.message ? "Live stats unavailable" : "Live stats",
 			payload.message || "Updated " + formatTime(new Date()));
+		setNetworkStatus(state.root, payload.message, state.networkConnections.length);
 		render(state);
-
-		if (state.root.querySelector("[data-tcp-table-body]")) {
-			var tcpMessage = payload.tcpMessage || payload.message || "";
-			setTcpStatus(
-				state.root,
-				tcpMessage ? "TCP unavailable" : "TCP live",
-				tcpMessage || state.tcpConnections.length + " connection" + (state.tcpConnections.length === 1 ? "" : "s"));
-			renderTcpTable(state.root, state.tcpConnections, state);
-		}
 	}
 
 	async function refresh(state) {
@@ -159,11 +154,11 @@
 		} catch (error) {
 			state.queues = [];
 			state.blocks = [];
-			state.tcpConnections = [];
+			state.networkConnections = [];
+			state.replicationConnections = [];
 			setStatus(state.root, "Live stats unavailable", friendlyMessage(error));
-			setTcpStatus(state.root, "TCP unavailable", friendlyMessage(error));
+			setNetworkStatus(state.root, friendlyMessage(error), 0);
 			render(state);
-			renderTcpTable(state.root, state.tcpConnections, state);
 		} finally {
 			state.inFlight = false;
 		}
@@ -208,31 +203,71 @@
 		};
 	}
 
-	function parseTcpConnections(payload) {
-		var rows = payload && Array.isArray(payload.tcpConnections) ? payload.tcpConnections : [];
+	function parseNetworkConnections(payload, state) {
+		var rows = payload && Array.isArray(payload.nodeConnections) ? payload.nodeConnections : [];
+		var now = Date.now();
+		var nextSamples = new Map();
+		var connections = rows.map(function (row) {
+			var id = readString(row.connectionId, "");
+			var totalBytesSent = readNumber(row.totalBytesSent);
+			var totalBytesReceived = readNumber(row.totalBytesReceived);
+			var previous = state.networkSamples.get(id);
+			var elapsedSeconds = previous ? Math.max(0.001, (now - previous.observedAt) / 1000) : 0;
+			var sentRate = previous ? Math.max(0, totalBytesSent - previous.totalBytesSent) / elapsedSeconds : 0;
+			var receivedRate = previous
+				? Math.max(0, totalBytesReceived - previous.totalBytesReceived) / elapsedSeconds
+				: 0;
 
-		return rows.map(function (row) {
-			var id = readFieldString(row, ["connectionId", "ConnectionId"], "");
-			var totalBytesSent = readFieldNumber(row, ["totalBytesSent", "TotalBytesSent"]);
-			var totalBytesReceived = readFieldNumber(row, ["totalBytesReceived", "TotalBytesReceived"]);
+			nextSamples.set(id, {
+				observedAt: now,
+				totalBytesSent: totalBytesSent,
+				totalBytesReceived: totalBytesReceived
+			});
 
 			return {
 				id: id,
-				clientConnectionName: readFieldString(row, ["clientConnectionName", "ClientConnectionName"], "<none>"),
-				remoteEndPoint: readFieldString(row, ["remoteEndPoint", "RemoteEndPoint"], "<none>"),
-				localEndPoint: readFieldString(row, ["localEndPoint", "LocalEndPoint"], "<none>"),
+				clientName: readString(row.clientName, "<none>"),
+				application: readString(row.application, "Awaiting request"),
+				protocol: readString(row.protocol, "<none>"),
+				remoteEndPoint: readString(row.remoteEndPoint, "<none>"),
+				localEndPoint: readString(row.localEndPoint, "<none>"),
+				connectedAt: readString(row.connectedAt, ""),
+				isTls: Boolean(row.isTls),
 				totalBytesSent: totalBytesSent,
 				totalBytesReceived: totalBytesReceived,
-				pendingSendBytes: readFieldNumber(row, ["pendingSendBytes", "PendingSendBytes"]),
-				pendingReceivedBytes: readFieldNumber(row, ["pendingReceivedBytes", "PendingReceivedBytes"]),
-				sentRate: readFieldNumber(row, ["sentRate", "SentRate"]),
-				receivedRate: readFieldNumber(row, ["receivedRate", "ReceivedRate"]),
-				isExternalConnection: readFieldBoolean(row, ["isExternalConnection", "IsExternalConnection"]),
-				isSslConnection: readFieldBoolean(row, ["isSslConnection", "IsSslConnection"])
+				pendingSendBytes: readNumber(row.pendingSendBytes),
+				pendingReceivedBytes: readNumber(row.pendingReceivedBytes),
+				sentRate: sentRate,
+				receivedRate: receivedRate
 			};
 		}).sort(function (left, right) {
-			return left.clientConnectionName.localeCompare(right.clientConnectionName, undefined, { sensitivity: "base" }) ||
+			return left.clientName.localeCompare(right.clientName, undefined, { sensitivity: "base" }) ||
 				left.id.localeCompare(right.id, undefined, { sensitivity: "base" });
+		});
+
+		state.networkSamples = nextSamples;
+		return connections;
+	}
+
+	function parseReplicationConnections(payload) {
+		var rows = payload && Array.isArray(payload.replicationConnections)
+			? payload.replicationConnections
+			: [];
+
+		return rows.map(function (row) {
+			return {
+				subscriptionId: readString(row.subscriptionId, ""),
+				connectionId: readString(row.connectionId, ""),
+				endpoint: readString(row.endpoint, "<none>"),
+				totalBytesSent: readNumber(row.totalBytesSent),
+				totalBytesReceived: readNumber(row.totalBytesReceived),
+				pendingSendBytes: readNumber(row.pendingSendBytes),
+				pendingReceivedBytes: readNumber(row.pendingReceivedBytes),
+				sendQueueSize: readNumber(row.sendQueueSize)
+			};
+		}).sort(function (left, right) {
+			return left.endpoint.localeCompare(right.endpoint, undefined, { sensitivity: "base" }) ||
+				left.connectionId.localeCompare(right.connectionId, undefined, { sensitivity: "base" });
 		});
 	}
 
@@ -311,6 +346,8 @@
 		renderSpotlightTable(state.root, state.queues);
 		renderQueueTable(state);
 		renderDashboardSnapshot(state.root, state.blocks);
+		renderNetworkTable(state);
+		renderReplicationTable(state.root, state.replicationConnections);
 	}
 
 	function updateMetrics(root, queues) {
@@ -451,32 +488,33 @@
 		node.textContent = lines.join("\n");
 	}
 
-	function renderTcpTable(root, connections, state) {
-		var tbody = root.querySelector("[data-tcp-table-body]");
+	function renderNetworkTable(state) {
+		var tbody = state.root.querySelector("[data-network-table-body]");
 		if (!tbody)
 			return;
 
 		replaceChildren(tbody);
-		if (connections.length === 0) {
+		if (state.networkConnections.length === 0) {
 			var empty = element("tr");
-			var cell = element("td", "px-5 py-4 text-es-muted");
-			cell.colSpan = 10;
-			cell.textContent = "No TCP connections are currently reported.";
-			empty.appendChild(cell);
+			var emptyCell = element("td", "px-5 py-4 text-es-muted");
+			emptyCell.colSpan = 10;
+			emptyCell.textContent = "No active shared-endpoint connections.";
+			empty.appendChild(emptyCell);
 			tbody.appendChild(empty);
-			updateTcpPagination(root, state, 0);
+			updateNetworkPagination(state, 0);
 			return;
 		}
 
-		var pageCount = Math.ceil(connections.length / tcpPageSize);
-		state.tcpPage = Math.min(state.tcpPage, Math.max(0, pageCount - 1));
-		var pageStart = state.tcpPage * tcpPageSize;
-		connections.slice(pageStart, pageStart + tcpPageSize).forEach(function (connection) {
+		var pageCount = Math.ceil(state.networkConnections.length / networkPageSize);
+		state.networkPage = Math.min(state.networkPage, pageCount - 1);
+		var offset = state.networkPage * networkPageSize;
+		state.networkConnections.slice(offset, offset + networkPageSize).forEach(function (connection) {
 			var row = element("tr", "bg-white/70 text-es-ink");
-			appendText(row, "td", connection.id || "<none>", "max-w-[14rem] truncate px-5 py-4 font-mono text-xs text-es-muted");
-			appendText(row, "td", displayMessage(connection.clientConnectionName), "px-5 py-4 font-bold text-es-ink");
-			appendText(row, "td", tcpTypeLabel(connection), "px-5 py-4 text-es-muted");
-			appendText(row, "td", displayMessage(connection.remoteEndPoint), "px-5 py-4 font-mono text-xs text-es-muted");
+			appendText(row, "td", displayMessage(connection.id), "max-w-[14rem] truncate px-5 py-4 font-mono text-xs text-es-muted");
+			appendText(row, "td", displayMessage(connection.clientName), "max-w-[16rem] truncate px-5 py-4 font-bold text-es-ink");
+			appendText(row, "td", networkTypeLabel(connection), "px-5 py-4 text-es-muted");
+			var endpointCell = appendText(row, "td", displayMessage(connection.remoteEndPoint), "px-5 py-4 font-mono text-xs text-es-muted");
+			endpointCell.title = networkConnectionDetails(connection);
 			appendText(row, "td", formatByteRate(connection.sentRate), "px-5 py-4 text-right font-mono text-es-ink");
 			appendText(row, "td", formatInteger(connection.totalBytesSent), "px-5 py-4 text-right font-mono text-es-ink");
 			appendText(row, "td", formatInteger(connection.pendingSendBytes), "px-5 py-4 text-right font-mono text-es-ink");
@@ -485,17 +523,80 @@
 			appendText(row, "td", formatInteger(connection.pendingReceivedBytes), "px-5 py-4 text-right font-mono text-es-ink");
 			tbody.appendChild(row);
 		});
-		updateTcpPagination(root, state, pageCount);
+
+		updateNetworkPagination(state, pageCount);
 	}
 
-	function changeTcpPage(state, direction) {
-		var pageCount = Math.ceil(state.tcpConnections.length / tcpPageSize);
-		if (direction === "previous")
-			state.tcpPage = Math.max(0, state.tcpPage - 1);
-		else if (direction === "next")
-			state.tcpPage = Math.min(Math.max(0, pageCount - 1), state.tcpPage + 1);
+	function renderReplicationTable(root, connections) {
+		var tbody = root.querySelector("[data-replication-table-body]");
+		if (!tbody)
+			return;
 
-		renderTcpTable(state.root, state.tcpConnections, state);
+		replaceChildren(tbody);
+		if (connections.length === 0) {
+			var empty = element("tr");
+			var emptyCell = element("td", "px-5 py-4 text-es-muted");
+			emptyCell.colSpan = 6;
+			emptyCell.textContent = "No active gRPC replication connections.";
+			empty.appendChild(emptyCell);
+			tbody.appendChild(empty);
+			return;
+		}
+
+		connections.forEach(function (connection) {
+			var row = element("tr", "bg-white/70 text-es-ink");
+			appendText(row, "td", connection.endpoint, "px-5 py-4 font-bold text-es-ink");
+			var connectionCell = appendText(row, "td", displayMessage(connection.connectionId), "px-5 py-4 font-mono text-xs text-es-muted");
+			connectionCell.title = "Subscription " + displayMessage(connection.subscriptionId);
+			appendText(row, "td", formatInteger(connection.totalBytesSent), "px-5 py-4 text-right font-mono text-es-ink");
+			appendText(row, "td", formatInteger(connection.totalBytesReceived), "px-5 py-4 text-right font-mono text-es-ink");
+			appendText(row, "td", formatInteger(connection.pendingSendBytes + connection.pendingReceivedBytes), "px-5 py-4 text-right font-mono text-es-ink");
+			appendText(row, "td", formatInteger(connection.sendQueueSize), "px-5 py-4 text-right font-mono text-es-ink");
+			tbody.appendChild(row);
+		});
+	}
+
+	function changeNetworkPage(state, direction) {
+		var pageCount = Math.ceil(state.networkConnections.length / networkPageSize);
+		if (direction === "previous")
+			state.networkPage = Math.max(0, state.networkPage - 1);
+		else if (direction === "next")
+			state.networkPage = Math.min(Math.max(0, pageCount - 1), state.networkPage + 1);
+
+		renderNetworkTable(state);
+	}
+
+	function updateNetworkPagination(state, pageCount) {
+		var status = state.root.querySelector("[data-network-page-status]");
+		var previous = state.root.querySelector('[data-network-page="previous"]');
+		var next = state.root.querySelector('[data-network-page="next"]');
+		var hasRows = state.networkConnections.length > 0;
+
+		if (status)
+			status.textContent = hasRows ? "Page " + (state.networkPage + 1) + " of " + pageCount : "No pages";
+		if (previous)
+			previous.disabled = !hasRows || state.networkPage === 0;
+		if (next)
+			next.disabled = !hasRows || state.networkPage >= pageCount - 1;
+	}
+
+	function setNetworkStatus(root, message, connectionCount) {
+		var status = root.querySelector("[data-network-status]");
+		if (!status)
+			return;
+
+		status.textContent = message
+			? "Network unavailable · " + message
+			: "Network live · " + connectionCount + " connection" + (connectionCount === 1 ? "" : "s");
+	}
+
+	function networkTypeLabel(connection) {
+		return connection.application + " · " + connection.protocol + " · " + (connection.isTls ? "TLS" : "Cleartext");
+	}
+
+	function networkConnectionDetails(connection) {
+		var connected = connection.connectedAt ? new Date(connection.connectedAt).toLocaleString() : "unknown";
+		return "Local " + connection.localEndPoint + ", connected " + connected;
 	}
 
 	function queueTableRow(queue, block, state) {
@@ -552,37 +653,6 @@
 		var updatedNode = root.querySelector("[data-queue-updated]");
 		if (updatedNode)
 			updatedNode.textContent = updated;
-	}
-
-	function setTcpStatus(root, status, detail) {
-		var statusNode = root.querySelector("[data-tcp-status]");
-		if (!statusNode)
-			return;
-
-		statusNode.textContent = detail ? status + " · " + detail : status;
-	}
-
-	function updateTcpPagination(root, state, pageCount) {
-		var status = root.querySelector("[data-tcp-page-status]");
-		var previous = root.querySelector('[data-tcp-page="previous"]');
-		var next = root.querySelector('[data-tcp-page="next"]');
-		var hasRows = state.tcpConnections.length > 0;
-
-		if (status)
-			status.textContent = hasRows
-				? "Page " + (state.tcpPage + 1) + " of " + pageCount
-				: "No pages";
-
-		if (previous)
-			previous.disabled = !hasRows || state.tcpPage === 0;
-
-		if (next)
-			next.disabled = !hasRows || state.tcpPage >= pageCount - 1;
-	}
-
-	function tcpTypeLabel(connection) {
-		return (connection.isExternalConnection ? "External" : "Internal") + " " +
-			(connection.isSslConnection ? "TLS" : "TCP");
 	}
 
 	function currentLastMessage(queue) {
@@ -660,36 +730,6 @@
 	function readNumber(value) {
 		var number = Number(value);
 		return Number.isFinite(number) ? number : 0;
-	}
-
-	function readFieldString(source, keys, fallback) {
-		var value = readField(source, keys);
-		if (value === null || value === undefined)
-			return fallback;
-
-		var text = String(value);
-		return text.trim() ? text : fallback;
-	}
-
-	function readFieldNumber(source, keys) {
-		return readNumber(readField(source, keys));
-	}
-
-	function readFieldBoolean(source, keys) {
-		var value = readField(source, keys);
-		return value === true || String(value).toLowerCase() === "true";
-	}
-
-	function readField(source, keys) {
-		if (!source || typeof source !== "object")
-			return undefined;
-
-		for (var i = 0; i < keys.length; i++) {
-			if (Object.prototype.hasOwnProperty.call(source, keys[i]))
-				return source[keys[i]];
-		}
-
-		return undefined;
 	}
 
 	function sum(rows, key) {
