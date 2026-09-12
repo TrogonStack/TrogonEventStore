@@ -1,4 +1,4 @@
-using EventStore.ClientAPI.Common;
+using EventStore.Core.Services;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.event_filter;
