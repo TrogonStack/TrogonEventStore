@@ -218,6 +218,12 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
+		if (message.Reason == ClientMessage.UnsubscribeFromStream.SubscriptionEndReason.ConnectionClosed)
+		{
+			DisconnectFromStream(message.CorrelationId);
+			return;
+		}
+
 		UnsubscribeFromStream(message.CorrelationId, true);
 	}
 
@@ -1117,6 +1123,18 @@ public class PersistentSubscriptionService<TStreamId> :
 				Log.Debug("Persistent subscription {subscription} lost connection from {remoteEndPoint}",
 					subscription.SubscriptionId,
 					message.Connection.RemoteEndPoint);
+			}
+		}
+	}
+
+	private void DisconnectFromStream(Guid connectionId)
+	{
+		foreach (var subscription in _subscriptionsById.Values)
+		{
+			if (subscription.RemoveClientByConnectionId(connectionId))
+			{
+				Log.Debug("Persistent subscription {subscription} lost connection {connectionId}",
+					subscription.SubscriptionId, connectionId);
 			}
 		}
 	}

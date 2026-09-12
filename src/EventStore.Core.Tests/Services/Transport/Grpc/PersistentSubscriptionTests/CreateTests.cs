@@ -32,6 +32,14 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	}
 
 	[Test]
+	public async Task can_create_persistent_subscription_to_all()
+	{
+		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+
+		await client.CreateAsync(CreateAllRequest(), GetCallOptions(AdminCredentials));
+	}
+
+	[Test]
 	public async Task creating_duplicate_persistent_subscription_returns_already_exists()
 	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
@@ -48,12 +56,72 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	}
 
 	[Test]
+	public async Task creating_duplicate_persistent_subscription_to_all_returns_already_exists()
+	{
+		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+		var request = CreateAllRequest();
+
+		await client.CreateAsync(request, GetCallOptions(AdminCredentials));
+
+		var ex = Assert.ThrowsAsync<RpcException>(async () =>
+			await client.CreateAsync(request, GetCallOptions(AdminCredentials)));
+
+		Assert.AreEqual(StatusCode.AlreadyExists, ex.Status.StatusCode);
+	}
+
+	[Test]
+	public async Task can_reuse_a_group_name_on_a_different_stream()
+	{
+		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+		var groupName = NewName("group");
+
+		await client.CreateAsync(
+			CreateRequest(NewName("stream"), groupName), GetCallOptions(AdminCredentials));
+		await client.CreateAsync(
+			CreateRequest(NewName("stream"), groupName), GetCallOptions(AdminCredentials));
+	}
+
+	[Test]
+	public async Task can_recreate_a_subscription_after_deleting_it()
+	{
+		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+		var streamName = NewName("stream");
+		var groupName = NewName("group");
+		var request = CreateRequest(streamName, groupName);
+		await client.CreateAsync(request, GetCallOptions(AdminCredentials));
+		await client.DeleteAsync(new DeleteReq
+		{
+			Options = new DeleteReq.Types.Options
+			{
+				GroupName = groupName,
+				StreamIdentifier = new StreamIdentifier
+				{
+					StreamName = ByteString.CopyFromUtf8(streamName)
+				}
+			}
+		}, GetCallOptions(AdminCredentials));
+
+		await client.CreateAsync(request, GetCallOptions(AdminCredentials));
+	}
+
+	[Test]
 	public void creating_persistent_subscription_without_permissions_returns_permission_denied()
 	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 		var ex = Assert.ThrowsAsync<RpcException>(async () =>
 			await client.CreateAsync(CreateRequest(), GetCallOptions()));
+
+		Assert.AreEqual(StatusCode.PermissionDenied, ex.Status.StatusCode);
+	}
+
+	[Test]
+	public void creating_persistent_subscription_to_all_without_permissions_returns_permission_denied()
+	{
+		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+
+		var ex = Assert.ThrowsAsync<RpcException>(async () =>
+			await client.CreateAsync(CreateAllRequest(), GetCallOptions()));
 
 		Assert.AreEqual(StatusCode.PermissionDenied, ex.Status.StatusCode);
 	}
@@ -110,6 +178,20 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 				Settings = settings ?? Settings()
 			}
 		};
+
+	private CreateReq CreateAllRequest(string groupName = null) => new()
+	{
+		Options = new CreateReq.Types.Options
+		{
+			GroupName = groupName ?? NewName("group"),
+			All = new CreateReq.Types.AllOptions
+			{
+				Start = new Empty(),
+				NoFilter = new Empty()
+			},
+			Settings = Settings()
+		}
+	};
 
 	private CreateReq.Types.Settings Settings(int messageTimeoutMs = 20000, bool includeMessageTimeout = true)
 	{
