@@ -5,8 +5,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.Common;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Helpers;
@@ -15,10 +13,10 @@ using EventStore.Core.LogAbstraction;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Metrics;
+using EventStore.Core.Services;
 using EventStore.Core.Services.PersistentSubscription;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 using EventStore.Core.Services.Storage.ReaderIndex;
-using EventStore.Core.Tests.ClientAPI;
 using EventStore.Core.Tests.Services.Replication;
 using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -2603,58 +2601,6 @@ public class ParkTests
 
 		Assert.AreEqual(7, sub.OutstandingMessageCount);
 
-	}
-}
-
-[Ignore("very long test")]
-[TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class DeadlockTest<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
-	protected override Task Given()
-	{
-		_conn = BuildConnection(_node);
-		return _conn.ConnectAsync();
-	}
-
-	protected override Task When() => Task.CompletedTask;
-
-	[Test]
-	public async Task read_whilst_ack_doesnt_deadlock_with_request_response_dispatcher()
-	{
-		var persistentSubscriptionSettings = PersistentSubscriptionSettings.Create().Build();
-		var userCredentials = DefaultData.AdminCredentials;
-		await _conn.CreatePersistentSubscriptionAsync("TestStream", "TestGroup", persistentSubscriptionSettings,
-			userCredentials);
-
-		const int count = 5000;
-		await _conn.AppendToStreamAsync("TestStream", ExpectedVersion.Any, CreateEvent().Take(count));
-
-
-		var received = 0;
-		var manualResetEventSlim = new ManualResetEventSlim();
-		var sub1 = _conn.ConnectToPersistentSubscription("TestStream", "TestGroup", (sub, ev) =>
-		{
-			received++;
-			if (received == count)
-			{
-				manualResetEventSlim.Set();
-			}
-
-			return Task.CompletedTask;
-		},
-			(sub, reason, ex) => { });
-		Assert.IsTrue(manualResetEventSlim.Wait(TimeSpan.FromSeconds(30)),
-			"Failed to receive all events in 2 minutes. Assume event store is deadlocked.");
-		sub1.Stop(TimeSpan.FromSeconds(10));
-		_conn.Close();
-	}
-
-	private static IEnumerable<EventData> CreateEvent()
-	{
-		while (true)
-		{
-			yield return new EventData(Guid.NewGuid(), "testtype", false, new byte[0], new byte[0]);
-		}
 	}
 }
 

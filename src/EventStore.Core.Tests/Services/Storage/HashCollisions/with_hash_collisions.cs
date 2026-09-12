@@ -12,7 +12,7 @@ using EventStore.Core.Tests.Index.Hashers;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
-using ExpectedVersion = EventStore.ClientAPI.ExpectedVersion;
+using ExpectedVersion = EventStore.Core.Data.ExpectedVersion;
 
 namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 
