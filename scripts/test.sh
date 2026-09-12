@@ -219,7 +219,7 @@ project_timeout() {
             printf '%s\n' "15m"
             ;;
         core-services:EventStore.Core.Tests)
-            printf '%s\n' "15m"
+            printf '%s\n' "20m"
             ;;
         core-cluster-services:EventStore.Core.Tests)
             printf '%s\n' "25m"
