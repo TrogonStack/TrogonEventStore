@@ -83,11 +83,12 @@ RUN mkdir -p /var/lib/eventstore && \
 
 USER eventstore
 
-RUN printf "NodeIp: 0.0.0.0" >> /etc/eventstore/eventstore.conf
+RUN printf "NodeIp: 0.0.0.0\n\
+ReplicationIp: 0.0.0.0" >> /etc/eventstore/eventstore.conf
 
 VOLUME /var/lib/eventstore /var/log/eventstore
 
-EXPOSE 2113/tcp
+EXPOSE 1112/tcp 2113/tcp
 
 HEALTHCHECK --interval=5s --timeout=5s --retries=24 \
     CMD curl --fail --insecure https://localhost:2113/-/liveness || curl --fail http://localhost:2113/-/liveness || exit 1

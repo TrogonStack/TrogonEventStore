@@ -128,7 +128,7 @@ public static class ClusterVNodeOptionsExtensions
 			Interface = options.Interface with
 			{
 				ReplicationHostAdvertiseAs = endPoint.GetHost(),
-				ReplicationTcpPortAdvertiseAs = endPoint.GetPort()
+				ReplicationPortAdvertiseAs = endPoint.GetPort()
 			}
 		};
 

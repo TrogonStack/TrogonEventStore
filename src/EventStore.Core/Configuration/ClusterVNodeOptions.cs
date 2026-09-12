@@ -648,7 +648,18 @@ public partial record ClusterVNodeOptions
 		public int NodePortAdvertiseAs { get; init; } = 0;
 
 		[Description("Advertise the gRPC replication port as.")]
+		public int ReplicationPortAdvertiseAs { get; init; } = 0;
+
+		[Description("Advertise the gRPC replication port as.")]
+		[Deprecated(
+			"The ReplicationTcpPortAdvertiseAs setting has been deprecated because replication uses gRPC. " +
+			"Use ReplicationPortAdvertiseAs instead.")]
 		public int ReplicationTcpPortAdvertiseAs { get; init; } = 0;
+
+		public int GetReplicationPortAdvertiseAs() =>
+			ReplicationPortAdvertiseAs > 0
+				? ReplicationPortAdvertiseAs
+				: ReplicationTcpPortAdvertiseAs;
 
 		[Description("Keepalive ping timeout for gRPC replication connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
 		 Unit("ms")]

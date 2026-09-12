@@ -906,9 +906,10 @@ public class ClusterVNode<TStreamId> :
 				options.Interface.NodePortAdvertiseAs > 0
 					? options.Interface.NodePortAdvertiseAs
 					: NodeInfo.HttpEndPoint.GetPort());
+			var replicationPortAdvertiseAs = options.Interface.GetReplicationPortAdvertiseAs();
 			var advertisedReplicationEndPoint = new DnsEndPoint(replicationHostToAdvertise,
-				options.Interface.ReplicationTcpPortAdvertiseAs > 0
-					? options.Interface.ReplicationTcpPortAdvertiseAs
+				replicationPortAdvertiseAs > 0
+					? replicationPortAdvertiseAs
 					: NodeInfo.ReplicationEndPoint.GetPort());
 
 			return new GossipAdvertiseInfo(httpEndPoint, options.Interface.AdvertiseHostToClientAs,

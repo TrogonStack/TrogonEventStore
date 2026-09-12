@@ -237,15 +237,17 @@ Please note that the `ExtHostAdvertiseAs` parameter has been deprecated as of ve
 If the bound replication address or port is not reachable as-is from the other
 nodes, override the endpoint advertised through internal gossip.
 
-| Format               | Host syntax                                  | Port syntax                                      |
-|:---------------------|:---------------------------------------------|:-------------------------------------------------|
-| Command line         | `--replication-host-advertise-as`            | `--replication-tcp-port-advertise-as`            |
-| YAML                 | `ReplicationHostAdvertiseAs`                 | `ReplicationTcpPortAdvertiseAs`                  |
-| Environment variable | `EVENTSTORE_REPLICATION_HOST_ADVERTISE_AS`   | `EVENTSTORE_REPLICATION_TCP_PORT_ADVERTISE_AS`   |
+| Format               | Host syntax                                  | Port syntax                                  |
+|:---------------------|:---------------------------------------------|:---------------------------------------------|
+| Command line         | `--replication-host-advertise-as`            | `--replication-port-advertise-as`            |
+| YAML                 | `ReplicationHostAdvertiseAs`                 | `ReplicationPortAdvertiseAs`                 |
+| Environment variable | `EVENTSTORE_REPLICATION_HOST_ADVERTISE_AS`   | `EVENTSTORE_REPLICATION_PORT_ADVERTISE_AS`   |
 
-The port option retains its existing name for configuration compatibility, but
-the advertised endpoint now carries gRPC replication rather than the removed
-TCP replication protocol.
+::: warning
+`ReplicationTcpPortAdvertiseAs` is deprecated. Use
+`ReplicationPortAdvertiseAs` for the gRPC replication endpoint. If both are
+configured, `ReplicationPortAdvertiseAs` takes precedence.
+:::
 
 ### Advertise to clients
 

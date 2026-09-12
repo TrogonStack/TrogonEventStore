@@ -1,6 +1,6 @@
 # Before starting, provide certs/ca/ca.crt and node.crt/node.key under each node directory.
-# Each node certificate must include localhost, its service DNS name, and its configured node IP in its
-# subject alternative names. The node IPs are 172.30.240.11, 172.30.240.12, and 172.30.240.13.
+# Each node certificate must include localhost, its service DNS name, and its configured node and replication IP in
+# its subject alternative names. The node IPs are 172.30.240.11, 172.30.240.12, and 172.30.240.13.
 # Keep each node private key readable only by the account running the container.
 services:
   node1.eventstore: &template
@@ -11,6 +11,7 @@ services:
       - vars.env
     environment:
       - EVENTSTORE_NODE_IP=172.30.240.11
+      - EVENTSTORE_REPLICATION_IP=172.30.240.11
       - EVENTSTORE_ADVERTISE_NODE_PORT_TO_CLIENT_AS=2111
       - EVENTSTORE_GOSSIP_SEED=172.30.240.12:2113,172.30.240.13:2113
       - EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH=/certs/ca
@@ -44,6 +45,7 @@ services:
     container_name: node2.eventstore
     environment:
       - EVENTSTORE_NODE_IP=172.30.240.12
+      - EVENTSTORE_REPLICATION_IP=172.30.240.12
       - EVENTSTORE_ADVERTISE_NODE_PORT_TO_CLIENT_AS=2112
       - EVENTSTORE_GOSSIP_SEED=172.30.240.11:2113,172.30.240.13:2113
       - EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH=/certs/ca
@@ -76,6 +78,7 @@ services:
     container_name: node3.eventstore
     environment:
       - EVENTSTORE_NODE_IP=172.30.240.13
+      - EVENTSTORE_REPLICATION_IP=172.30.240.13
       - EVENTSTORE_ADVERTISE_NODE_PORT_TO_CLIENT_AS=2113
       - EVENTSTORE_GOSSIP_SEED=172.30.240.11:2113,172.30.240.12:2113
       - EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH=/certs/ca

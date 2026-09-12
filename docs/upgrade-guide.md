@@ -60,6 +60,10 @@ current product direction is:
 - No legacy EventStore TCP client protocol listener.
 - No proprietary plugin configuration.
 
+Use `ReplicationPortAdvertiseAs` for replication endpoint translation. The
+previous `ReplicationTcpPortAdvertiseAs` name remains accepted for configuration
+compatibility and produces a deprecation warning.
+
 If a setting is no longer documented, remove it rather than carrying it forward
 silently.
 
