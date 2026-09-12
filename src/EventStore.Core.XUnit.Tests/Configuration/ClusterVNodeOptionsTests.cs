@@ -96,6 +96,75 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void replication_port_advertise_as_is_configurable()
+	{
+		var options = GetOptions("--replication-port-advertise-as 2112");
+
+		options.Interface.ReplicationPortAdvertiseAs.Should().Be(2112);
+		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+		Assert.Empty(options.Unknown.Options);
+	}
+
+	[Fact]
+	public void replication_port_advertise_as_is_configurable_from_the_environment()
+	{
+		var configuration = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddEventStoreEnvironmentVariables((
+				"EVENTSTORE_REPLICATION_PORT_ADVERTISE_AS",
+				"2112"))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.Interface.ReplicationPortAdvertiseAs.Should().Be(2112);
+		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+	}
+
+	[Fact]
+	public void replication_port_advertise_as_is_configurable_from_yaml()
+	{
+		var yamlPath = Path.Combine(
+			Path.GetTempPath(),
+			$"eventstore-replication-advertise-{Guid.NewGuid():N}.conf");
+
+		try
+		{
+			File.WriteAllText(yamlPath, "ReplicationPortAdvertiseAs: 2112");
+			var configuration = EventStoreConfiguration.Build(["--config", yamlPath], new Hashtable());
+
+			var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+			options.Interface.ReplicationPortAdvertiseAs.Should().Be(2112);
+			options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+		}
+		finally
+		{
+			File.Delete(yamlPath);
+		}
+	}
+
+	[Fact]
+	public void deprecated_replication_tcp_port_advertise_as_remains_compatible()
+	{
+		var options = GetOptions("--replication-tcp-port-advertise-as 3112");
+
+		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(3112);
+		options.GetDeprecationWarnings().Should().Contain(
+			"ReplicationTcpPortAdvertiseAs setting has been deprecated");
+		Assert.Empty(options.Unknown.Options);
+	}
+
+	[Fact]
+	public void replication_port_advertise_as_takes_precedence_over_deprecated_alias()
+	{
+		var options = GetOptions(
+			"--replication-port-advertise-as 2112 --replication-tcp-port-advertise-as 3112");
+
+		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+	}
+
+	[Fact]
 	public void grpc_compression_level_defaults_to_optimal()
 	{
 		var configuration = EventStoreConfiguration.Build(Array.Empty<string>());

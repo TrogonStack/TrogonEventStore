@@ -43,31 +43,15 @@ public abstract class NodeGossipServiceTestFixture
 
 		_currentNode = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000001"), 1,
-			new IPEndPoint(IPAddress.Loopback, 1111),
-			new IPEndPoint(IPAddress.Loopback, 1111),
-			new IPEndPoint(IPAddress.Loopback, 1111),
-			new IPEndPoint(IPAddress.Loopback, 1111),
 			new IPEndPoint(IPAddress.Loopback, 1111), false);
 		_nodeTwo = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000002"), 2,
-			new IPEndPoint(IPAddress.Loopback, 2222),
-			new IPEndPoint(IPAddress.Loopback, 2222),
-			new IPEndPoint(IPAddress.Loopback, 2222),
-			new IPEndPoint(IPAddress.Loopback, 2222),
 			new IPEndPoint(IPAddress.Loopback, 2222), false);
 		_nodeThree = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000003"), 3,
-			new IPEndPoint(IPAddress.Loopback, 3333),
-			new IPEndPoint(IPAddress.Loopback, 3333),
-			new IPEndPoint(IPAddress.Loopback, 3333),
-			new IPEndPoint(IPAddress.Loopback, 3333),
 			new IPEndPoint(IPAddress.Loopback, 3333), false);
 		_nodeFour = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000004"), 4,
-			new IPEndPoint(IPAddress.Loopback, 4444),
-			new IPEndPoint(IPAddress.Loopback, 4444),
-			new IPEndPoint(IPAddress.Loopback, 4444),
-			new IPEndPoint(IPAddress.Loopback, 4444),
 			new IPEndPoint(IPAddress.Loopback, 4444), false);
 
 		_getNodeToGossipTo = infos => infos.First(x => Equals(x.HttpEndPoint, _nodeTwo.HttpEndPoint));
@@ -120,8 +104,7 @@ public abstract class NodeGossipServiceTestFixture
 		VNodeState nodeState = VNodeState.Initializing, string esVersion = VersionInfo.DefaultVersion, bool isAlive = true)
 	{
 		return MemberInfo.ForVNode(nodeInfo.InstanceId, utcNow, nodeState, isAlive,
-			nodeInfo.InternalTcp, nodeInfo.InternalSecureTcp, nodeInfo.ExternalTcp,
-			nodeInfo.ExternalSecureTcp, nodeInfo.HttpEndPoint, null, 0, 0,
+			nodeInfo.HttpEndPoint, null, 0,
 			0, writerCheckpoint ?? 0, 0, -1, epochNumber ?? -1, Guid.Empty, nodePriority ?? 0, false, esVersion);
 	}
 
@@ -743,7 +726,7 @@ public class when_gossip_send_failed_to_the_current_leader_node : NodeGossipServ
 		_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_ignore_message_and_wait_for_tcp_to_decide()
+	public void should_ignore_message_and_wait_for_connection_state_to_change()
 	{
 		ExpectNoMessages();
 	}
@@ -1031,7 +1014,7 @@ public class when_updating_cluster
 	{
 		var ipEndpoint = new IPEndPoint(IPAddress.Loopback, identifier);
 		return MemberInfo.ForVNode(Guid.NewGuid(), timeStamp, VNodeState.Initializing, isAlive,
-			ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, null, 0, 0,
+			ipEndpoint, null, 0,
 			0, 0, 0, -1, -1, Guid.Empty, 0, false);
 	}
 
@@ -1108,7 +1091,7 @@ public class when_merging_clusters
 	{
 		var ipEndpoint = new IPEndPoint(IPAddress.Loopback, identifier);
 		return MemberInfo.ForVNode(Guid.NewGuid(), timeStamp, nodeState, isAlive,
-			ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, null, 0, 0,
+			ipEndpoint, null, 0,
 			0, 0, 0, -1, -1, Guid.Empty, 0, false);
 	}
 

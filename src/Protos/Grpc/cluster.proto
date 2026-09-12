@@ -128,10 +128,8 @@ message MemberInfo {
 	VNodeState state = 3;
 	bool is_alive = 4;
 	EndPoint http_end_point = 5;
-	EndPoint internal_tcp = 6;
-	EndPoint external_tcp = 7;
-	bool internal_tcp_uses_tls = 8;
-	bool external_tcp_uses_tls = 9;
+	reserved 6, 7, 8, 9;
+	reserved "internal_tcp", "external_tcp", "internal_tcp_uses_tls", "external_tcp_uses_tls";
 
     int64 last_commit_position = 10;
     int64 writer_checkpoint = 11;
@@ -142,8 +140,10 @@ message MemberInfo {
 
     int32 node_priority = 16;
     bool is_read_only_replica = 17;
-    string advertise_host_to_client_as = 18;
-    uint32 advertise_http_port_to_client_as = 19;
-    uint32 advertise_tcp_port_to_client_as = 20;
+	string advertise_host_to_client_as = 18;
+	uint32 advertise_http_port_to_client_as = 19;
+	reserved 20;
+	reserved "advertise_tcp_port_to_client_as";
 	string es_version = 21;
+	EndPoint replication_end_point = 22;
 }

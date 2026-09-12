@@ -1,5 +1,4 @@
 using System;
-using System.Net;
 using DotNext.Net.Http;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
@@ -16,10 +15,6 @@ public class ShutdownServiceTests
 		= new(
 			Guid.NewGuid(),
 			0,
-			new IPEndPoint(0, 0),
-			new IPEndPoint(IPAddress.Loopback, 1),
-			new IPEndPoint(IPAddress.Loopback, 2),
-			new IPEndPoint(IPAddress.Loopback, 3),
 			new HttpEndPoint(new Uri("http://www.trogondb.com")), true);
 
 	[Test]

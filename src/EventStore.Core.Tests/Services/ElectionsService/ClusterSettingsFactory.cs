@@ -1,9 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
 using EventStore.Core.Cluster.Settings;
-using EventStore.Core.Tests.Services.Transport.Tcp;
 
 namespace EventStore.Core.Tests.Services.ElectionsService;
 
@@ -14,13 +12,9 @@ public class ClusterSettingsFactory
 
 	private static ClusterVNodeSettings CreateVNode(int nodeNumber, bool isReadOnlyReplica)
 	{
-		int tcpIntPort = StartingPort + nodeNumber * 2,
-			tcpExtPort = tcpIntPort + 1,
-			httpPort = tcpIntPort + 11;
+		var httpPort = StartingPort + nodeNumber;
 
 		return new ClusterVNodeSettings(Guid.NewGuid(), 0,
-			GetLoopbackForPort(tcpIntPort), null,
-			GetLoopbackForPort(tcpExtPort), null,
 			GetLoopbackForPort(httpPort), 0,
 			isReadOnlyReplica);
 	}

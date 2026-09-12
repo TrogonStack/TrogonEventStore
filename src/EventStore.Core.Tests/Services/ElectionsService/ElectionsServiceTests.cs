@@ -29,18 +29,12 @@ public abstract class ElectionsFixture
 
 	protected static Func<int, VNodeInfo> NodeFactory = (id) => new VNodeInfo(
 		Guid.Parse($"00000000-0000-0000-0000-00000000000{id}"), id,
-		new IPEndPoint(IPAddress.Loopback, id),
-		new IPEndPoint(IPAddress.Loopback, id),
-		new IPEndPoint(IPAddress.Loopback, id),
-		new IPEndPoint(IPAddress.Loopback, id),
 		new IPEndPoint(IPAddress.Loopback, id), false);
 
 	protected static readonly Func<VNodeInfo, DateTime, VNodeState, bool, int, Guid, int, MemberInfo> MemberInfoFromVNode =
 		(nodeInfo, timestamp, state, isAlive, epochNumber, epochId, priority) => MemberInfo.ForVNode(
 			nodeInfo.InstanceId, timestamp, state, isAlive,
-			nodeInfo.InternalTcp,
-			nodeInfo.InternalSecureTcp, nodeInfo.ExternalTcp, nodeInfo.ExternalSecureTcp,
-			nodeInfo.HttpEndPoint, null, 0, 0,
+			nodeInfo.HttpEndPoint, null, 0,
 			0, 0, 0, 0, epochNumber, epochId, priority,
 			nodeInfo.IsReadOnlyReplica);
 
@@ -924,9 +918,7 @@ public class when_receiving_a_proposal_as_acceptor : ElectionsFixture
 			new ElectionMessage.ElectionsDone(0,0,
 				MemberInfo.ForVNode(
 					_nodeThree.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-					_nodeThree.InternalTcp,
-					_nodeThree.InternalSecureTcp, _nodeThree.ExternalTcp, _nodeThree.ExternalSecureTcp,
-					_nodeThree.HttpEndPoint, null, 0, 0, 0, 0, 0, 0, 0, _epochId, 0,
+					_nodeThree.HttpEndPoint, null, 0, 0, 0, 0, 0, 0, _epochId, 0,
 					_nodeThree.IsReadOnlyReplica)),
 			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
 				new ElectionMessage.Accept(_node.InstanceId, _node.HttpEndPoint,
@@ -1077,9 +1069,7 @@ public class when_receiving_majority_accept : ElectionsFixture
 			new ElectionMessage.ElectionsDone(0,0,
 				MemberInfo.ForVNode(
 					_nodeTwo.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-					_nodeTwo.InternalTcp,
-					_nodeTwo.InternalSecureTcp, _nodeTwo.ExternalTcp, _nodeTwo.ExternalSecureTcp,
-					_nodeTwo.HttpEndPoint, null, 0, 0, 0, 0, 0, 0, 0, _epochId, 0,
+					_nodeTwo.HttpEndPoint, null, 0, 0, 0, 0, 0, 0, _epochId, 0,
 					_nodeTwo.IsReadOnlyReplica)),
 		};
 		_publisher.Messages.Should().BeEquivalentTo(expected);
@@ -1314,9 +1304,7 @@ public class when_electing_a_leader_and_leader_node_resigned : ElectionsFixture
 			new ElectionMessage.ElectionsDone(3,1,
 				MemberInfo.ForVNode(
 					_nodeTwo.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-					_nodeTwo.InternalTcp,
-					_nodeTwo.InternalSecureTcp, _nodeTwo.ExternalTcp, _nodeTwo.ExternalSecureTcp,
-					_nodeTwo.HttpEndPoint, null, 0, 0, 0, 0, 0, 0, 0, _epochId, 0,
+					_nodeTwo.HttpEndPoint, null, 0, 0, 0, 0, 0, 0, _epochId, 0,
 					_nodeTwo.IsReadOnlyReplica)),
 		};
 		_publisher.Messages.Should().BeEquivalentTo(expected);
@@ -1357,11 +1345,7 @@ public class when_the_elections_service_is_initialized_as_read_only_replica
 		var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
 		var nodeInfo = MemberInfo.Initial(Guid.NewGuid(),
 			DateTime.UtcNow, VNodeState.ReadOnlyLeaderless, true,
-			endpoint,
-			endpoint,
-			endpoint,
-			endpoint,
-			endpoint, null, 0, 0,
+			endpoint, null, 0,
 			0,
 			true);
 
@@ -1405,9 +1389,7 @@ public class when_electing_a_leader_and_prepare_ok_is_received_from_previous_lea
 			new ElectionMessage.ElectionsDone(0,0,
 				MemberInfo.ForVNode(
 					_nodeThree.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-					_nodeThree.InternalTcp,
-					_nodeThree.InternalSecureTcp, _nodeThree.ExternalTcp, _nodeThree.ExternalSecureTcp,
-					_nodeThree.HttpEndPoint, null, 0, 0,
+					_nodeThree.HttpEndPoint, null, 0,
 					0, 0, 0, 0, 0, _epochId, 0,
 					_nodeThree.IsReadOnlyReplica)),
 		};
@@ -1505,9 +1487,7 @@ public class when_electing_a_leader_and_prepare_ok_is_not_received_from_previous
 				new ElectionMessage.ElectionsDone(0,0,
 					MemberInfo.ForVNode(
 						_nodeTwo.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-						_nodeTwo.InternalTcp,
-						_nodeTwo.InternalSecureTcp, _nodeTwo.ExternalTcp, _nodeTwo.ExternalSecureTcp,
-						_nodeTwo.HttpEndPoint, null, 0, 0,
+						_nodeTwo.HttpEndPoint, null, 0,
 						0, 0, 0, 0, 0, _epochId, 0,
 						_nodeTwo.IsReadOnlyReplica)),
 			};
@@ -1541,9 +1521,7 @@ public class when_electing_a_leader_and_prepare_ok_is_not_received_from_previous
 				new ElectionMessage.ElectionsDone(0,0,
 					MemberInfo.ForVNode(
 						_nodeTwo.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-						_nodeTwo.InternalTcp,
-						_nodeTwo.InternalSecureTcp, _nodeTwo.ExternalTcp, _nodeTwo.ExternalSecureTcp,
-						_nodeTwo.HttpEndPoint, null, 0, 0,
+						_nodeTwo.HttpEndPoint, null, 0,
 						0, 0, 0, 0, 0, _epochId, 0,
 						_nodeTwo.IsReadOnlyReplica)),
 			};
@@ -1598,9 +1576,7 @@ public class when_electing_a_leader_and_prepare_ok_is_not_received_from_previous
 				new ElectionMessage.ElectionsDone(0,0,
 					MemberInfo.ForVNode(
 						_nodeTwo.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-						_nodeTwo.InternalTcp,
-						_nodeTwo.InternalSecureTcp, _nodeTwo.ExternalTcp, _nodeTwo.ExternalSecureTcp,
-						_nodeTwo.HttpEndPoint, null, 0, 0,
+						_nodeTwo.HttpEndPoint, null, 0,
 						0, 0, 0, 0, 0, _epochId, 0,
 						_nodeTwo.IsReadOnlyReplica)),
 			};
@@ -1634,9 +1610,7 @@ public class when_electing_a_leader_and_prepare_ok_is_not_received_from_previous
 				new ElectionMessage.ElectionsDone(0,0,
 					MemberInfo.ForVNode(
 						_nodeTwo.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-						_nodeTwo.InternalTcp,
-						_nodeTwo.InternalSecureTcp, _nodeTwo.ExternalTcp, _nodeTwo.ExternalSecureTcp,
-						_nodeTwo.HttpEndPoint, null, 0, 0,
+						_nodeTwo.HttpEndPoint, null, 0,
 						0, 0, 0, 0, 0, _epochId, 0,
 						_nodeTwo.IsReadOnlyReplica)),
 			};

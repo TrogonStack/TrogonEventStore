@@ -1101,14 +1101,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	private void DenyRequestBecauseNotLeader(Guid correlationId, IEnvelope envelope)
 	{
 		LeaderInfoProvider leaderInfoProvider = new LeaderInfoProvider(_node.GossipAdvertiseInfo, _leader);
-		var endpoints = leaderInfoProvider.GetLeaderInfoEndPoints();
 		envelope.ReplyWith(
 			new ClientMessage.NotHandled(correlationId,
 				ClientMessage.NotHandled.Types.NotHandledReason.NotLeader,
-				new ClientMessage.NotHandled.Types.LeaderInfo(endpoints.AdvertisedTcpEndPoint,
-					endpoints.IsTcpEndPointSecure,
-					endpoints.AdvertisedHttpEndPoint
-				)));
+				new ClientMessage.NotHandled.Types.LeaderInfo(leaderInfoProvider.GetLeaderInfoEndPoint())));
 	}
 
 	private ValueTask HandleAsReadOnlyReplica(ClientMessage.WriteEvents message, CancellationToken token)
@@ -1217,14 +1213,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	private void DenyRequestBecauseReadOnly(Guid correlationId, IEnvelope envelope)
 	{
 		LeaderInfoProvider leaderInfoProvider = new LeaderInfoProvider(_node.GossipAdvertiseInfo, _leader);
-		var endpoints = leaderInfoProvider.GetLeaderInfoEndPoints();
 		envelope.ReplyWith(
 			new ClientMessage.NotHandled(correlationId,
 				ClientMessage.NotHandled.Types.NotHandledReason.IsReadOnly,
-				new ClientMessage.NotHandled.Types.LeaderInfo(endpoints.AdvertisedTcpEndPoint,
-					endpoints.IsTcpEndPointSecure,
-					endpoints.AdvertisedHttpEndPoint
-				)));
+				new ClientMessage.NotHandled.Types.LeaderInfo(leaderInfoProvider.GetLeaderInfoEndPoint())));
 	}
 
 	private void DenyRequestBecauseNotReady(IEnvelope envelope, Guid correlationId)
@@ -1536,11 +1528,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		if (IsLegitimateReplicationMessage(message))
 		{
 			Log.Information(
-				"========== [{httpEndPoint}] FOLLOWER ASSIGNMENT RECEIVED FROM [{internalTcp},{internalSecureTcp},{leaderId:B}].",
-				_nodeInfo.HttpEndPoint,
-				_leader.InternalTcpEndPoint == null ? "n/a" : _leader.InternalTcpEndPoint.ToString(),
-				_leader.InternalSecureTcpEndPoint == null ? "n/a" : _leader.InternalSecureTcpEndPoint.ToString(),
-				message.LeaderId);
+				"========== [{httpEndPoint}] FOLLOWER ASSIGNMENT RECEIVED FROM [{leaderEndPoint},{leaderId:B}].",
+				_nodeInfo.HttpEndPoint, _leader.HttpEndPoint, message.LeaderId);
 			await _outputBus.DispatchAsync(message, token);
 			await _fsm.HandleAsync(new SystemMessage.BecomeFollower(_stateCorrelationId, _leader), token);
 		}
@@ -1551,11 +1540,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		if (IsLegitimateReplicationMessage(message))
 		{
 			Log.Information(
-				"========== [{httpEndPoint}] CLONE ASSIGNMENT RECEIVED FROM [{internalTcp},{internalSecureTcp},{leaderId:B}].",
-				_nodeInfo.HttpEndPoint,
-				_leader.InternalTcpEndPoint == null ? "n/a" : _leader.InternalTcpEndPoint.ToString(),
-				_leader.InternalSecureTcpEndPoint == null ? "n/a" : _leader.InternalSecureTcpEndPoint.ToString(),
-				message.LeaderId);
+				"========== [{httpEndPoint}] CLONE ASSIGNMENT RECEIVED FROM [{leaderEndPoint},{leaderId:B}].",
+				_nodeInfo.HttpEndPoint, _leader.HttpEndPoint, message.LeaderId);
 			await _outputBus.DispatchAsync(message, token);
 			await _fsm.HandleAsync(new SystemMessage.BecomeClone(_stateCorrelationId, _leader), token);
 		}
@@ -1569,11 +1555,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			if (IsLegitimateReplicationMessage(message))
 			{
 				Log.Information(
-					"========== [{httpEndPoint}] DROP SUBSCRIPTION REQUEST RECEIVED FROM [{internalTcp},{internalSecureTcp},{leaderId:B}]. THIS MEANS THAT THERE IS A SURPLUS OF NODES IN THE CLUSTER, SHUTTING DOWN.",
-					_nodeInfo.HttpEndPoint,
-					_leader.InternalTcpEndPoint == null ? "n/a" : _leader.InternalTcpEndPoint.ToString(),
-					_leader.InternalSecureTcpEndPoint == null ? "n/a" : _leader.InternalSecureTcpEndPoint.ToString(),
-					message.LeaderId);
+					"========== [{httpEndPoint}] DROP SUBSCRIPTION REQUEST RECEIVED FROM [{leaderEndPoint},{leaderId:B}]. THIS MEANS THAT THERE IS A SURPLUS OF NODES IN THE CLUSTER, SHUTTING DOWN.",
+					_nodeInfo.HttpEndPoint, _leader.HttpEndPoint, message.LeaderId);
 				task = _outputBus.DispatchAsync(
 					new ClientMessage.RequestShutdown(exitProcess: true, shutdownHttp: true), token);
 			}
