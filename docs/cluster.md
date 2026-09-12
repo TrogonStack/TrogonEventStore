@@ -55,13 +55,14 @@ The multi-address DNS name cluster discovery only works for clusters that use ce
 
 ### Internal communication
 
-Cluster nodes use gRPC over each node's HTTP(S) endpoint for replication and
-follower-to-leader request forwarding. Ensure every node can reach every other
-node at its advertised HTTP(S) endpoint. There is no separate replication
-listener or TCP port to expose.
+Cluster nodes use gRPC over each node's dedicated replication HTTP(S) endpoint
+for database replication. Gossip, elections, and follower-to-leader request
+forwarding use the node HTTP(S) endpoint. Ensure every node can reach both
+advertised endpoints on every other node.
 
-Learn more about the shared [HTTP(S) configuration](networking.md#http-configuration)
-before configuring cluster firewall or network policy rules.
+Learn more about the [node](networking.md#http-configuration) and
+[replication](networking.md#internal-cluster-traffic) endpoints before
+configuring cluster firewall or network policy rules.
 
 ## Cluster with DNS
 
@@ -114,7 +115,7 @@ The setting accepts a comma-separated list of IP addresses or host names with th
 TrogonEventStore uses a quorum-based replication model. When working normally, a cluster has one node known as a leader, and the remaining nodes are followers. The leader node is responsible for coordinating writes while it is the leader. Cluster nodes use a consensus algorithm to determine which node should be the leader and which should be followers. TrogonEventStore bases the decision as to which node should be the leader on a number of factors.
 
 For a cluster node to have this information available to them, the nodes gossip
-with other nodes in the cluster over the shared HTTP(S) endpoint.
+with other nodes in the cluster over the node HTTP(S) endpoint.
 
 The gossip protocol configuration can be changed using the settings listed below. Pay attention to the settings related to time, like intervals and timeouts, when running in a cloud environment.
 

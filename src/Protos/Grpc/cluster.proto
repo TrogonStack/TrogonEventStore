@@ -145,4 +145,5 @@ message MemberInfo {
 	reserved 20;
 	reserved "advertise_tcp_port_to_client_as";
 	string es_version = 21;
+	EndPoint replication_end_point = 22;
 }

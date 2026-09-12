@@ -178,10 +178,10 @@ public partial record ClusterVNodeOptions
 		[Description("The maximum size of appends, in bytes. May not exceed 16MB.")]
 		public int MaxAppendSize { get; init; } = 1_024 * 1_024;
 
-		[Description("Disable authentication, authorization, and TLS on the shared HTTP/gRPC listener.")]
+		[Description("Disable authentication, authorization, and TLS on the HTTP/gRPC listeners.")]
 		public bool Insecure { get; init; } = false;
 
-		[Description("Disable TLS on the shared HTTP/gRPC listener while keeping authentication and authorization enabled.")]
+		[Description("Disable TLS on the HTTP/gRPC listeners while keeping authentication and authorization enabled.")]
 		public bool DisableTls { get; init; } = false;
 
 		public bool AuthDisabled() => Insecure;
@@ -620,14 +620,23 @@ public partial record ClusterVNodeOptions
 	[Description("Interface Options")]
 	public record InterfaceOptions
 	{
+		[Description("The IP address used by the gRPC replication listener.")]
+		public IPAddress ReplicationIp { get; init; } = IPAddress.Loopback;
+
 		[Description("The IP Address for the node.")]
 		public IPAddress NodeIp { get; init; } = IPAddress.Loopback;
 
 		[Description("The Port to run the HTTP server on.")]
 		public int NodePort { get; init; } = 2113;
 
+		[Description("The port used by the gRPC replication listener.")]
+		public int ReplicationPort { get; init; } = 1112;
+
 		[Description("Advertise the Node's host name to other nodes and external clients as.")]
 		public string? NodeHostAdvertiseAs { get; init; } = null;
+
+		[Description("Advertise the gRPC replication host name to other nodes in the cluster as.")]
+		public string? ReplicationHostAdvertiseAs { get; init; } = null;
 
 		[Description("Advertise Host in Gossip to Client As.")]
 		public string? AdvertiseHostToClientAs { get; init; } = null;
@@ -637,6 +646,17 @@ public partial record ClusterVNodeOptions
 
 		[Description("Advertise Http Port As.")]
 		public int NodePortAdvertiseAs { get; init; } = 0;
+
+		[Description("Advertise the gRPC replication port as.")]
+		public int ReplicationTcpPortAdvertiseAs { get; init; } = 0;
+
+		[Description("Keepalive ping timeout for gRPC replication connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
+		 Unit("ms")]
+		public int ReplicationHeartbeatTimeout { get; init; } = 700;
+
+		[Description("Keepalive ping interval for gRPC replication connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
+		 Unit("ms")]
+		public int ReplicationHeartbeatInterval { get; init; } = 700;
 
 		[Description("Whether to allow local connections via a UNIX domain socket.")]
 		public bool EnableUnixSocket { get; init; } = false;

@@ -4,22 +4,22 @@ title: Networking
 
 ## Network configuration
 
-TrogonEventStore uses one HTTP(S) endpoint for all network traffic:
+TrogonEventStore provides two HTTP(S) interfaces:
 
-- gRPC carries database client APIs, cluster replication, and follower-to-leader request forwarding.
-- HTTP carries the Admin UI, health probes, metrics, and other operator endpoints.
+- The node endpoint carries database client APIs, cluster coordination, follower-to-leader request forwarding, the Admin UI, health probes, metrics, and other operator endpoints.
+- The replication endpoint carries node-to-node database replication over gRPC.
 
 The node does not open a separate legacy EventStore TCP protocol listener or
-accept its TCP transport configuration. gRPC and HTTP still use TCP at the
-operating-system transport layer. In a cluster, every node must be able to reach
-every other node at its advertised HTTP(S) endpoint. Use network policy and
-ingress rules to control which clients can reach the shared listener.
+accept the legacy TCP client protocol. gRPC traffic on both interfaces uses
+HTTP/2 over TCP at the operating-system transport layer. Keep the replication
+endpoint on the private cluster network and expose the node endpoint according
+to client and operator requirements.
 
 ## HTTP configuration
 
-HTTP(S) is the node's only network endpoint. HTTP/2 carries gRPC traffic for
-database clients and internal cluster operations, while regular HTTP routes
-serve the Admin UI, health checks, metrics, and supported diagnostics.
+HTTP/2 on the node endpoint carries gRPC traffic for database clients and
+internal cluster coordination, while regular HTTP routes serve the Admin UI,
+health checks, metrics, and supported diagnostics.
 The HTTP endpoint always binds to the IP address configured in the `NodeIp` setting (previously referred to as `ExtIp`).
 
 | Format               | Syntax               |
@@ -147,13 +147,51 @@ This is configured with `Kestrel.Limits.Http2.InitialStreamWindowSize` in the se
 
 ## Internal cluster traffic
 
-Cluster replication and follower-to-leader request forwarding use gRPC over
-the same `NodeIp` and `NodePort` binding used by client gRPC calls. There is no
-separate replication interface or port.
+Cluster replication uses a dedicated HTTP/2 listener so it can remain isolated
+from client and operator traffic while using gRPC. Follower-to-leader request
+forwarding and cluster coordination continue to use the node endpoint.
+
+The replication listener binds to `ReplicationIp`:
+
+| Format               | Syntax                      |
+|:---------------------|:----------------------------|
+| Command line         | `--replication-ip`          |
+| YAML                 | `ReplicationIp`             |
+| Environment variable | `EVENTSTORE_REPLICATION_IP` |
+
+**Default**: `127.0.0.1` (loopback).
+
+For a multi-node cluster, bind this setting to an interface reachable by the
+other database nodes. `0.0.0.0` binds all IPv4 interfaces.
+
+The replication listener uses `ReplicationPort`:
+
+| Format               | Syntax                        |
+|:---------------------|:------------------------------|
+| Command line         | `--replication-port`          |
+| YAML                 | `ReplicationPort`             |
+| Environment variable | `EVENTSTORE_REPLICATION_PORT` |
+
+**Default**: `1112`
 
 When TLS is enabled, internal gRPC connections use the configured node
-certificate. `DisableTls` disables encryption for the shared HTTP(S) endpoint
-while preserving authentication and authorization.
+certificate. `DisableTls` disables encryption for both HTTP(S) listeners while
+preserving authentication and authorization.
+
+Replication connections use HTTP/2 keepalive pings for failure detection. The
+existing replication heartbeat settings configure the client-side ping interval
+and acknowledgement timeout:
+
+| Format               | Interval                                   | Timeout                                   |
+|:---------------------|:-------------------------------------------|:------------------------------------------|
+| Command line         | `--replication-heartbeat-interval`         | `--replication-heartbeat-timeout`         |
+| YAML                 | `ReplicationHeartbeatInterval`             | `ReplicationHeartbeatTimeout`             |
+| Environment variable | `EVENTSTORE_REPLICATION_HEARTBEAT_INTERVAL` | `EVENTSTORE_REPLICATION_HEARTBEAT_TIMEOUT` |
+
+**Default**: `700` ms for both settings.
+
+Values below `1000` ms remain valid for configuration compatibility and use the
+HTTP/2 transport minimum of `1000` ms.
 
 ## Network address translation
 
@@ -161,7 +199,7 @@ Due to NAT (network address translation), or other reasons a node may not be bou
 
 Options described below allow you to tell the node that even though it is bound to a given address it should not gossip that address. When returning links over HTTP, TrogonEventStore will also use the specified addresses instead of physical addresses, so the clients that use HTTP can follow those links.
 
-Another case when you might want to specify the advertised address although there's no address translation involved. When you configure TrogonEventStore to bind to `0.0.0.0`, it will use the first non-loopback address for gossip. It might or might not be the address you want it to use. Configure `NodeHostAdvertiseAs` when other nodes and clients must connect using a specific IP address or hostname.
+Another case when you might want to specify the advertised address although there's no address translation involved. When you configure TrogonEventStore to bind to `0.0.0.0`, it will use the first non-loopback address for gossip. It might or might not be the address you want it to use. Configure `NodeHostAdvertiseAs` for the node endpoint and `ReplicationHostAdvertiseAs` for the replication endpoint when other nodes must connect using specific IP addresses or hostnames.
 
 You might also override the advertised address when secure cluster certificates
 contain DNS names rather than IP addresses.
@@ -193,6 +231,21 @@ If you want the node to advertise itself using the hostname rather than its IP a
 ::: warning
 Please note that the `ExtHostAdvertiseAs` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `NodeHostAdvertiseAs` parameter instead.
 :::
+
+## Replication endpoint advertisement
+
+If the bound replication address or port is not reachable as-is from the other
+nodes, override the endpoint advertised through internal gossip.
+
+| Format               | Host syntax                                  | Port syntax                                      |
+|:---------------------|:---------------------------------------------|:-------------------------------------------------|
+| Command line         | `--replication-host-advertise-as`            | `--replication-tcp-port-advertise-as`            |
+| YAML                 | `ReplicationHostAdvertiseAs`                 | `ReplicationTcpPortAdvertiseAs`                  |
+| Environment variable | `EVENTSTORE_REPLICATION_HOST_ADVERTISE_AS`   | `EVENTSTORE_REPLICATION_TCP_PORT_ADVERTISE_AS`   |
+
+The port option retains its existing name for configuration compatibility, but
+the advertised endpoint now carries gRPC replication rather than the removed
+TCP replication protocol.
 
 ### Advertise to clients
 
@@ -249,4 +302,5 @@ You can disable the Prometheus metrics endpoint by setting `DisableStatsOnHttp` 
 Database client APIs, replication, and follower-to-leader forwarding use gRPC.
 The remaining HTTP routes are operator surfaces, not an application event API.
 The server has no legacy EventStore TCP protocol listener, TCP client protocol,
-replication TCP port, or TCP heartbeat configuration.
+or TCP replication protocol. The separately configurable replication listener
+is HTTP/2-only and accepts only the replication gRPC service.

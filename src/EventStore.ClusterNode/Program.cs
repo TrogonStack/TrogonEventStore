@@ -25,6 +25,7 @@ using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -274,6 +275,8 @@ internal static class Program
 						});
 
 					var nodeConnectionTracker = new NodeConnectionTracker();
+					var replicationEndpointPolicy = new ReplicationEndpointPolicy(
+						new System.Net.IPEndPoint(options.Interface.ReplicationIp, options.Interface.ReplicationPort));
 					builder.Services.AddSingleton(nodeConnectionTracker);
 					builder.WebHost.ConfigureKestrel(server =>
 					{
@@ -285,6 +288,9 @@ internal static class Program
 						server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
 							ConfigureHttpOptions(listenOptions, hostedService, nodeConnectionTracker,
 								useHttps: !hostedService.Node.DisableHttps));
+						server.Listen(options.Interface.ReplicationIp, options.Interface.ReplicationPort, listenOptions =>
+							ConfigureHttpOptions(listenOptions, hostedService, nodeConnectionTracker,
+								useHttps: !hostedService.Node.DisableHttps, http2Only: true));
 
 						if (hostedService.Node.EnableUnixSocket)
 						{
@@ -339,6 +345,16 @@ internal static class Program
 							context.Request.Headers["connection-name"].FirstOrDefault(),
 							context.Request.Headers.UserAgent.ToString());
 						return next(context);
+					});
+					app.Use(async (context, next) =>
+					{
+						if (!replicationEndpointPolicy.Allows(context))
+						{
+							context.Response.StatusCode = StatusCodes.Status404NotFound;
+							return;
+						}
+
+						await next(context);
 					});
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					hostedService.Node.Startup.Configure(app);
@@ -395,15 +411,20 @@ internal static class Program
 		ListenOptions listenOptions,
 		ClusterVNodeHostedService hostedService,
 		NodeConnectionTracker connectionTracker,
-		bool useHttps)
+		bool useHttps,
+		bool http2Only = false)
 	{
 		listenOptions.Use(next => context => connectionTracker.Track(context, next, useHttps));
+		if (http2Only)
+		{
+			listenOptions.Protocols = HttpProtocols.Http2;
+		}
 
 		if (useHttps)
 		{
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
 		}
-		else
+		else if (!http2Only)
 		{
 			listenOptions.Use(next =>
 				new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);

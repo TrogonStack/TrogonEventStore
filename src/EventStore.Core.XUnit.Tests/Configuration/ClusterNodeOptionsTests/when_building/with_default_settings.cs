@@ -88,9 +88,12 @@ public class with_default_node_as_node_in_a_cluster<TLogFormat, TStreamId> : Clu
 	[Test]
 	public void should_have_default_endpoint()
 	{
+		var replicationEndPoint = new IPEndPoint(IPAddress.Loopback, 1112);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
+		Assert.AreEqual(replicationEndPoint, _node.NodeInfo.ReplicationEndPoint);
 		Assert.AreEqual(httpEndPoint, _node.NodeInfo.HttpEndPoint);
+		Assert.AreEqual(replicationEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.ReplicationEndPoint);
 		Assert.AreEqual(httpEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.HttpEndPoint);
 	}
 
@@ -115,9 +118,12 @@ public class with_default_node_as_node_in_an_insecure_cluster<TLogFormat, TStrea
 	[Test]
 	public void should_have_default_endpoints()
 	{
+		var replicationEndPoint = new IPEndPoint(IPAddress.Loopback, 1112);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
+		Assert.AreEqual(replicationEndPoint, _node.NodeInfo.ReplicationEndPoint);
 		Assert.AreEqual(httpEndPoint, _node.NodeInfo.HttpEndPoint);
+		Assert.AreEqual(replicationEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.ReplicationEndPoint);
 		Assert.AreEqual(httpEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.HttpEndPoint);
 	}
 

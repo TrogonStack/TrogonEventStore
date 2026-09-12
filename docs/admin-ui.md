@@ -24,7 +24,7 @@ The _Observability_ page focuses on runtime diagnostics:
 
 - queue groups and individual queue rows
 - current and last processed messages
-- active connections on the shared HTTP and gRPC endpoint, including client identity, protocol, security, traffic rates, totals, and pending bytes
+- active connections on the node and replication HTTP/gRPC endpoints, including client identity, protocol, security, traffic rates, totals, and pending bytes
 - live gRPC replication sessions, byte totals, pending bytes, and send queue depth
 - snapshot output for copy-paste debugging
 

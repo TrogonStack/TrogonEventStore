@@ -13,9 +13,9 @@ from this repository.
 - Record the current server version, configuration file, container image, and
   command-line arguments.
 - Check that clients are using gRPC.
-- Remove legacy EventStore TCP protocol listener, replication port,
-  advertisement, and heartbeat settings. They are not supported by the current
-  server.
+- Remove legacy EventStore TCP client-listener settings. Keep the replication
+  endpoint, advertisement, and heartbeat settings because they now configure
+  the dedicated gRPC replication listener.
 - Review changed configuration keys before restarting a durable node.
 - Verify that health probes use `/-/liveness` and `/-/readiness`.
 - Verify that metrics scraping uses `/-/metrics`.
@@ -53,10 +53,11 @@ Before upgrading, search for obsolete client and HTTP-management settings. The
 current product direction is:
 
 - gRPC for database client APIs.
-- gRPC over the node HTTP(S) endpoint for cluster replication and
-  follower-to-leader forwarding.
+- gRPC over the dedicated replication HTTP(S) endpoint for database replication.
+- gRPC over the node HTTP(S) endpoint for follower-to-leader forwarding and
+  cluster coordination.
 - HTTP for Admin UI, health, metrics, and infrastructure concerns.
-- No legacy EventStore TCP protocol listener or TCP transport configuration.
+- No legacy EventStore TCP client protocol listener.
 - No proprietary plugin configuration.
 
 If a setting is no longer documented, remove it rather than carrying it forward
@@ -74,9 +75,9 @@ Use [OpenTelemetry integration](diagnostics/integrations.md) for explicit OTLP
 export and [Metrics](diagnostics/metrics.md) for Prometheus scraping.
 
 The Admin UI continues to show active connections after the legacy protocol is
-removed. The connection table reports the shared HTTP and gRPC listener, while
+removed. The connection table reports the node and replication HTTP/gRPC listeners, while
 the replication table reports the database replication sessions and their byte
-and queue statistics. The shared-endpoint table keeps the live paging and
+and queue statistics. The connection table keeps the live paging and
 per-second traffic view while identifying HTTP, gRPC, TLS, and the observed
 client. These replace the legacy listener-specific TCP table.
 

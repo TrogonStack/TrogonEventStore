@@ -515,10 +515,10 @@ Import-Certificate -FilePath .\ca.crt -CertStoreLocation Cert:\LocalMachine\CA
 ### Internal gRPC security
 
 When TLS is enabled, cluster replication and follower-to-leader forwarding use
-the configured node certificate on the shared HTTPS endpoint. Internal gRPC TLS
-cannot be disabled independently. Use [`DisableTls`](#disable-tls) to disable
-transport encryption for the entire endpoint while preserving authentication
-and authorization.
+the configured node certificate on the replication and node HTTPS endpoints.
+Internal gRPC TLS cannot be disabled independently. Use
+[`DisableTls`](#disable-tls) to disable transport encryption for both listeners
+while preserving authentication and authorization.
 
 ## Authentication
 

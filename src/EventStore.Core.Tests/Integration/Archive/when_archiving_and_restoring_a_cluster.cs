@@ -125,6 +125,7 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 			PathName,
 			index,
 			endpoints.NodeEndPoint,
+			endpoints.ReplicationEndPoint,
 			gossipSeeds,
 			readOnlyReplica: index == ArchiverNodeIndex,
 			archiveOptions: _archiveOptions.Enabled ? _archiveOptions : null,

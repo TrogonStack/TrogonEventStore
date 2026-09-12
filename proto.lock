@@ -462,6 +462,11 @@
                 "id": 21,
                 "name": "es_version",
                 "type": "string"
+              },
+              {
+                "id": 22,
+                "name": "replication_end_point",
+                "type": "EndPoint"
               }
             ],
             "reserved_ids": [

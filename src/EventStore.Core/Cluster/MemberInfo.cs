@@ -14,6 +14,7 @@ namespace EventStore.Core.Cluster
 		public readonly VNodeState State;
 		public readonly bool IsAlive;
 
+		public readonly EndPoint ReplicationEndPoint;
 		public readonly EndPoint HttpEndPoint;
 		public readonly string AdvertiseHostToClientAs;
 		public readonly int AdvertiseHttpPortToClientAs;
@@ -31,11 +32,12 @@ namespace EventStore.Core.Cluster
 		public readonly string ESVersion;
 
 		public static MemberInfo ForManager(Guid instanceId, DateTime timeStamp, bool isAlive,
-			EndPoint httpEndPoint, string esVersion = VersionInfo.UnknownVersion)
+			EndPoint httpEndPoint, string esVersion = VersionInfo.UnknownVersion,
+			EndPoint replicationEndPoint = null)
 		{
 			return new MemberInfo(instanceId, timeStamp, VNodeState.Manager, isAlive,
 				httpEndPoint, null, 0,
-				-1, -1, -1, -1, -1, Guid.Empty, 0, false, esVersion);
+				-1, -1, -1, -1, -1, Guid.Empty, 0, false, esVersion, replicationEndPoint);
 		}
 
 		public static MemberInfo ForVNode(Guid instanceId,
@@ -52,7 +54,8 @@ namespace EventStore.Core.Cluster
 			int epochNumber,
 			Guid epochId,
 			int nodePriority,
-			bool isReadOnlyReplica, string esVersion = VersionInfo.UnknownVersion)
+			bool isReadOnlyReplica, string esVersion = VersionInfo.UnknownVersion,
+			EndPoint replicationEndPoint = null)
 		{
 			if (state == VNodeState.Manager)
 			{
@@ -62,7 +65,8 @@ namespace EventStore.Core.Cluster
 			return new MemberInfo(instanceId, timeStamp, state, isAlive,
 				httpEndPoint, advertiseHostToClientAs, advertiseHttpPortToClientAs,
 				lastCommitPosition, writerCheckpoint, chaserCheckpoint,
-				epochPosition, epochNumber, epochId, nodePriority, isReadOnlyReplica, esVersion);
+				epochPosition, epochNumber, epochId, nodePriority, isReadOnlyReplica, esVersion,
+				replicationEndPoint);
 		}
 
 		public static MemberInfo Initial(Guid instanceId,
@@ -73,7 +77,8 @@ namespace EventStore.Core.Cluster
 			string advertiseHostToClientAs,
 			int advertiseHttpPortToClientAs,
 			int nodePriority,
-			bool isReadOnlyReplica, string esVersion = VersionInfo.UnknownVersion)
+			bool isReadOnlyReplica, string esVersion = VersionInfo.UnknownVersion,
+			EndPoint replicationEndPoint = null)
 		{
 			if (state == VNodeState.Manager)
 			{
@@ -82,13 +87,15 @@ namespace EventStore.Core.Cluster
 
 			return new MemberInfo(instanceId, timeStamp, state, isAlive,
 				httpEndPoint, advertiseHostToClientAs, advertiseHttpPortToClientAs,
-				-1, -1, -1, -1, -1, Guid.Empty, nodePriority, isReadOnlyReplica, esVersion);
+				-1, -1, -1, -1, -1, Guid.Empty, nodePriority, isReadOnlyReplica, esVersion,
+				replicationEndPoint);
 		}
 
 		internal MemberInfo(Guid instanceId, DateTime timeStamp, VNodeState state, bool isAlive,
 			EndPoint httpEndPoint, string advertiseHostToClientAs, int advertiseHttpPortToClientAs,
 			long lastCommitPosition, long writerCheckpoint, long chaserCheckpoint,
-			long epochPosition, int epochNumber, Guid epochId, int nodePriority, bool isReadOnlyReplica, string esVersion = null)
+			long epochPosition, int epochNumber, Guid epochId, int nodePriority, bool isReadOnlyReplica,
+			string esVersion = null, EndPoint replicationEndPoint = null)
 		{
 			Ensure.NotNull(httpEndPoint, nameof(httpEndPoint));
 
@@ -98,6 +105,7 @@ namespace EventStore.Core.Cluster
 			State = state;
 			IsAlive = isAlive;
 
+			ReplicationEndPoint = replicationEndPoint ?? httpEndPoint;
 			HttpEndPoint = httpEndPoint;
 			AdvertiseHostToClientAs = advertiseHostToClientAs;
 			AdvertiseHttpPortToClientAs = advertiseHttpPortToClientAs;
@@ -118,7 +126,8 @@ namespace EventStore.Core.Cluster
 
 		public bool Is(EndPoint endPoint)
 		{
-			return endPoint != null && HttpEndPoint.EndPointEquals(endPoint);
+			return endPoint != null &&
+				(HttpEndPoint.EndPointEquals(endPoint) || ReplicationEndPoint.EndPointEquals(endPoint));
 		}
 
 		public MemberInfo Updated(DateTime utcNow,
@@ -144,7 +153,7 @@ namespace EventStore.Core.Cluster
 				epoch != null ? epoch.EpochNumber : EpochNumber,
 				epoch != null ? epoch.EpochId : EpochId,
 				nodePriority ?? NodePriority,
-				IsReadOnlyReplica, esVersion ?? ESVersion);
+				IsReadOnlyReplica, esVersion ?? ESVersion, ReplicationEndPoint);
 		}
 
 		public override string ToString()
@@ -152,12 +161,12 @@ namespace EventStore.Core.Cluster
 			if (State == VNodeState.Manager)
 			{
 				return
-					$"MAN {InstanceId:B} <{(IsAlive ? "LIVE" : "DEAD")}> [{State}, {HttpEndPoint}] | {TimeStamp:yyyy-MM-dd HH:mm:ss.fff}";
+					$"MAN {InstanceId:B} <{(IsAlive ? "LIVE" : "DEAD")}> [{State}, {ReplicationEndPoint}, {HttpEndPoint}] | {TimeStamp:yyyy-MM-dd HH:mm:ss.fff}";
 			}
 
 			return
 				$"Priority: {NodePriority} VND {InstanceId:B} <{(IsAlive ? "LIVE" : "DEAD")}> [{State}, " +
-				$"{HttpEndPoint}, (ADVERTISED: HTTP:{AdvertiseHostToClientAs}:{AdvertiseHttpPortToClientAs}), " +
+				$"Replication:{ReplicationEndPoint}, {HttpEndPoint}, (ADVERTISED: HTTP:{AdvertiseHostToClientAs}:{AdvertiseHttpPortToClientAs}), " +
 				$"Version: {ESVersion}] " +
 				$"{LastCommitPosition}/{WriterCheckpoint}/{ChaserCheckpoint}/E{EpochNumber}@{EpochPosition}:{EpochId:B} | {TimeStamp:yyyy-MM-dd HH:mm:ss.fff}";
 		}
@@ -178,6 +187,7 @@ namespace EventStore.Core.Cluster
 			return other.InstanceId == InstanceId
 				   && other.State == State
 				   && other.IsAlive == IsAlive
+				   && Equals(other.ReplicationEndPoint, ReplicationEndPoint)
 				   && Equals(other.HttpEndPoint, HttpEndPoint)
 				   && other.AdvertiseHostToClientAs == AdvertiseHostToClientAs
 				   && other.AdvertiseHttpPortToClientAs == AdvertiseHttpPortToClientAs
@@ -216,6 +226,7 @@ namespace EventStore.Core.Cluster
 				int result = InstanceId.GetHashCode();
 				result = (result * 397) ^ State.GetHashCode();
 				result = (result * 397) ^ IsAlive.GetHashCode();
+				result = (result * 397) ^ ReplicationEndPoint.GetHashCode();
 				result = (result * 397) ^ HttpEndPoint.GetHashCode();
 				result = (result * 397) ^ (AdvertiseHostToClientAs != null ? AdvertiseHostToClientAs.GetHashCode() : 0);
 				result = (result * 397) ^ AdvertiseHttpPortToClientAs.GetHashCode();

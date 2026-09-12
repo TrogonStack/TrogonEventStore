@@ -291,10 +291,14 @@ public class ClusterVNode<TStreamId> :
 		OptionsFormatter.LogConfig("Archive", archiveOptions);
 
 		var httpEndPoint = new IPEndPoint(options.Interface.NodeIp, options.Interface.NodePort);
+		var replicationEndPoint = new IPEndPoint(
+			options.Interface.ReplicationIp,
+			options.Interface.ReplicationPort);
 
 		Log.Information("Quorum size set to {quorum}.", options.Cluster.QuorumSize);
 
-		NodeInfo = new VNodeInfo(instanceId.Value, debugIndex, httpEndPoint, options.Cluster.ReadOnlyReplica);
+		NodeInfo = new VNodeInfo(instanceId.Value, debugIndex, httpEndPoint, options.Cluster.ReadOnlyReplica,
+			replicationEndPoint);
 
 		var metricsConfiguration = MetricsConfiguration.Get(configuration);
 		var trackers = new Trackers();
@@ -876,21 +880,39 @@ public class ClusterVNode<TStreamId> :
 		{
 			var nodeIpAddress = options.Interface.NodeIp;
 			var hostToAdvertise = options.Interface.NodeHostAdvertiseAs ?? nodeIpAddress.ToString();
+			var replicationIpAddress = options.Interface.ReplicationIp;
+			var replicationHostToAdvertise =
+				options.Interface.ReplicationHostAdvertiseAs ?? replicationIpAddress.ToString();
 
-			if (nodeIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null)
+			if ((nodeIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null) ||
+				(replicationIpAddress.Equals(IPAddress.Any) && options.Interface.ReplicationHostAdvertiseAs == null))
 			{
 				IPAddress nonLoopbackAddress = IPFinder.GetNonLoopbackAddress();
-				hostToAdvertise =
+				var addressToAdvertise =
 					(options.Cluster.ClusterSize > 1 ? nonLoopbackAddress : IPAddress.Loopback).ToString();
+				if (nodeIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null)
+				{
+					hostToAdvertise = addressToAdvertise;
+				}
+
+				if (replicationIpAddress.Equals(IPAddress.Any) &&
+					options.Interface.ReplicationHostAdvertiseAs == null)
+				{
+					replicationHostToAdvertise = addressToAdvertise;
+				}
 			}
 
 			var httpEndPoint = new DnsEndPoint(hostToAdvertise,
 				options.Interface.NodePortAdvertiseAs > 0
 					? options.Interface.NodePortAdvertiseAs
 					: NodeInfo.HttpEndPoint.GetPort());
+			var advertisedReplicationEndPoint = new DnsEndPoint(replicationHostToAdvertise,
+				options.Interface.ReplicationTcpPortAdvertiseAs > 0
+					? options.Interface.ReplicationTcpPortAdvertiseAs
+					: NodeInfo.ReplicationEndPoint.GetPort());
 
 			return new GossipAdvertiseInfo(httpEndPoint, options.Interface.AdvertiseHostToClientAs,
-				options.Interface.AdvertiseNodePortToClientAs);
+				options.Interface.AdvertiseNodePortToClientAs, advertisedReplicationEndPoint);
 		}
 
 		_httpService = new KestrelHttpService(_mainQueue, NodeInfo.HttpEndPoint);
@@ -1385,7 +1407,8 @@ public class ClusterVNode<TStreamId> :
 			GossipAdvertiseInfo.HttpEndPoint,
 			GossipAdvertiseInfo.AdvertiseHostToClientAs,
 			GossipAdvertiseInfo.AdvertiseHttpPortToClientAs,
-			options.Cluster.NodePriority, options.Cluster.ReadOnlyReplica, VersionInfo.Version);
+			options.Cluster.NodePriority, options.Cluster.ReadOnlyReplica, VersionInfo.Version,
+			GossipAdvertiseInfo.ReplicationEndPoint);
 
 		// ELECTIONS TRACKER
 		_mainBus.Subscribe<ElectionMessage.ElectionsDone>(trackers.ElectionCounterTracker);
@@ -1429,13 +1452,17 @@ public class ClusterVNode<TStreamId> :
 			_grpcReplicaServiceSupervisor = new GrpcReplicaServiceSupervisor(
 				_mainQueue,
 				new GrpcReplicaServiceFactory(
-					new ReplicationGrpcClientFactory(uriScheme, _nodeHttpClientFactory),
+					new ReplicationGrpcClientFactory(
+						uriScheme,
+						_nodeHttpClientFactory,
+						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
+						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout)),
 					new ReplicaSubscriptionDataSource(Db, epochManager),
 					NodeInfo.InstanceId,
 					options.Cluster.ReadOnlyReplica
 						? ReplicaPromotability.NonPromotable
 						: ReplicaPromotability.Promotable),
-				GossipAdvertiseInfo.HttpEndPoint,
+				GossipAdvertiseInfo.ReplicationEndPoint,
 				AddTask);
 			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(_grpcReplicaServiceSupervisor);
 			_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(_grpcReplicaServiceSupervisor);
@@ -2164,5 +2191,5 @@ public class ClusterVNode<TStreamId> :
 	}
 
 	public override string ToString() =>
-		$"[{NodeInfo.InstanceId:B}, {NodeInfo.HttpEndPoint}]";
+		$"[{NodeInfo.InstanceId:B}, {NodeInfo.ReplicationEndPoint}, {NodeInfo.HttpEndPoint}]";
 }

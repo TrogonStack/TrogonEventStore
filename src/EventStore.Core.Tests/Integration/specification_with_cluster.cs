@@ -24,10 +24,12 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	protected class Endpoints
 	{
 		public readonly IPEndPoint NodeEndPoint;
+		public readonly IPEndPoint ReplicationEndPoint;
 
 		public IEnumerable<int> Ports()
 		{
 			yield return NodeEndPoint.Port;
+			yield return ReplicationEndPoint.Port;
 		}
 
 		private readonly List<Socket> _sockets;
@@ -41,8 +43,12 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			var nodeEndpoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			nodeEndpoint.Bind(defaultLoopBack);
 			_sockets.Add(nodeEndpoint);
+			var replicationEndpoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			replicationEndpoint.Bind(defaultLoopBack);
+			_sockets.Add(replicationEndpoint);
 
 			NodeEndPoint = CopyEndpoint((IPEndPoint)nodeEndpoint.LocalEndPoint);
+			ReplicationEndPoint = CopyEndpoint((IPEndPoint)replicationEndpoint.LocalEndPoint);
 		}
 
 		public void DisposeSockets()
@@ -149,7 +155,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected virtual MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		bool wait = true) => new(
-		PathName, index, endpoints.NodeEndPoint,
+		PathName, index, endpoints.NodeEndPoint, endpoints.ReplicationEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
 
 	[TearDown]
