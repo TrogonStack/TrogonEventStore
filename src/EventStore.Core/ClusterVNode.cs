@@ -1032,7 +1032,6 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<SystemMessage.RequestForwardingTimerTick>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.NotHandled>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.NotAuthenticated>(forwardingService);
-		_mainBus.Subscribe<TcpMessage.NotAuthenticated>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.WriteEventsCompleted>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.TransactionStartCompleted>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.TransactionWriteCompleted>(forwardingService);

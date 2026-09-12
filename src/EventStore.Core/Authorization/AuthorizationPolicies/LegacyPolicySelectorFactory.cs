@@ -62,7 +62,6 @@ public class LegacyPolicySelectorFactory(
 		addToPolicy(Operations.Node.Options);
 		addToPolicy(Operations.Node.Statistics.Read);
 		addToPolicy(Operations.Node.Statistics.Replication);
-		addToPolicy(Operations.Node.Statistics.Tcp);
 		addToPolicy(Operations.Node.Statistics.Custom);
 
 		policy.AddMatchAnyAssertion(Operations.Node.Information.Subsystems, Grant.Allow, OperationsOrAdmins);

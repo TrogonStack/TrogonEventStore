@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
+using EventStore.Core.Helpers;
 using EventStore.Core.TransactionLog.LogRecords;
-using EventStore.Transport.Tcp.Framing;
 
 namespace EventStore.Core.Services.Replication;
 
