@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client.Streams;
-using EventStore.ClientAPI;
 using EventStore.Core.Services.Transport.Grpc;
 using Google.Protobuf;
 using Grpc.Core;
@@ -60,8 +60,7 @@ public class ReadStreamsForwardTests
 						[GrpcMetadata.Type] = "$metadata",
 						[GrpcMetadata.ContentType] = GrpcMetadata.ContentTypes.ApplicationJson
 					},
-					Data = ByteString.CopyFrom(StreamMetadata.Build().SetTruncateBefore(81).Build()
-						.AsJsonBytes())
+					Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("{\"$tb\":81}"))
 				}
 			});
 

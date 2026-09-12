@@ -53,7 +53,6 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 			IndexDirectory = GetFilePathFor("epoch-index"),
 		});
 
-		await _node.WaitForTcpEndPoint().WaitAsync(RestartTimeout);
 		var wait = Stopwatch.StartNew();
 		while (wait.Elapsed < RestartTimeout)
 		{

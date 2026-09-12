@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.Core.Tests.ClientAPI.Helpers;
+using EventStore.Client.Streams;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Tests.Transforms.BitFlip;
 using EventStore.Core.Tests.Transforms.ByteDup;
@@ -14,7 +14,11 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.Transforms.Identity;
 using EventStore.Plugins.Transforms;
+using Google.Protobuf;
+using Grpc.Net.Client;
 using NUnit.Framework;
+using GrpcMetadata = EventStore.Core.Services.Transport.Grpc.Constants.Metadata;
+using StreamsClient = EventStore.Client.Streams.Streams.StreamsClient;
 
 namespace EventStore.Core.Tests.Transforms;
 
@@ -33,7 +37,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 	public async Task transform_works(string transform)
 	{
 		MiniNode<TLogFormat, TStreamId> node = null;
-		IEventStoreConnection connection = null;
+		GrpcChannel connection = null;
 		var dbPath = Path.Combine(PathName, $"node-{Guid.NewGuid()}");
 		try
 		{
@@ -82,7 +86,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 		}
 	}
 
-	private async Task<(MiniNode<TLogFormat, TStreamId>, IEventStoreConnection)> CreateNode(string dbPath, string transform)
+	private async Task<(MiniNode<TLogFormat, TStreamId>, GrpcChannel)> CreateNode(string dbPath, string transform)
 	{
 		IDbTransform dbTransform = transform switch
 		{
@@ -103,14 +107,13 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 		await node.Start(StartupTimeout);
 
 		var connection = BuildConnection(node);
-		await connection.ConnectAsync();
 
 		return (node, connection);
 	}
 
 	private static async Task ShutdownNode(
 		MiniNode<TLogFormat, TStreamId> node,
-		IEventStoreConnection connection,
+		GrpcChannel connection,
 		bool keepDb = false)
 	{
 		if (node is not null)
@@ -121,52 +124,82 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 		connection?.Dispose();
 	}
 
-	private static IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	private static GrpcChannel BuildConnection(MiniNode<TLogFormat, TStreamId> node)
 	{
-		return TestConnection.Create(node.TcpEndPoint);
+		return GrpcChannel.ForAddress(new UriBuilder { Scheme = Uri.UriSchemeHttps }.Uri,
+			new GrpcChannelOptions { HttpClient = node.HttpClient, DisposeHttpClient = false });
 	}
 
-	private static async Task<Guid[]> WriteEvents(IEventStoreConnection connection)
+	private static async Task<Guid[]> WriteEvents(GrpcChannel connection)
 	{
 		var writtenIds = new List<Guid>();
+		var client = new StreamsClient(connection);
 
 		for (var i = 0; i < NumEvents / BatchSize; i++)
 		{
 			var events = CreateEventBatch(BatchSize);
-			await connection.AppendToStreamAsync("test", ExpectedVersion.Any, events);
-			writtenIds.AddRange(events.Select(x => x.EventId));
+			using var call = client.Append();
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				Options = new()
+				{
+					Any = new(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("test") }
+				}
+			});
+			foreach (var @event in events)
+				await call.RequestStream.WriteAsync(new AppendReq { ProposedMessage = @event });
+			await call.RequestStream.CompleteAsync();
+			await call.ResponseAsync;
+			writtenIds.AddRange(events.Select(x => Uuid.FromDto(x.Id).ToGuid()));
 		}
 
 		return writtenIds.ToArray();
 	}
 
-	private static EventData[] CreateEventBatch(int numEvents)
+	private static AppendReq.Types.ProposedMessage[] CreateEventBatch(int numEvents)
 	{
-		var events = new EventData[numEvents];
+		var events = new AppendReq.Types.ProposedMessage[numEvents];
 
 		for (var i = 0; i < numEvents; i++)
 		{
-			events[i] = new(eventId: Guid.NewGuid(),
-				type: "testEvent",
-				isJson: true,
-				data: "{ \"foo\":\"bar\" }"u8.ToArray(),
-				metadata: null);
+			events[i] = new()
+			{
+				Id = Uuid.NewUuid().ToDto(),
+				Data = ByteString.CopyFromUtf8("{ \"foo\":\"bar\" }"),
+				CustomMetadata = ByteString.Empty,
+				Metadata = {
+					{ GrpcMetadata.Type, "testEvent" },
+					{ GrpcMetadata.ContentType, GrpcMetadata.ContentTypes.ApplicationJson }
+				}
+			};
 		}
 
 		return events;
 	}
 
-	private static async Task VerifyEvents(IEventStoreConnection connection, Guid[] writtenIds)
+	private static async Task VerifyEvents(GrpcChannel connection, Guid[] writtenIds)
 	{
-		StreamEventsSlice slice;
-		var nextEventNumber = 0L;
-		var readIds = new List<Guid>();
-		do
+		var client = new StreamsClient(connection);
+		using var call = client.Read(new ReadReq
 		{
-			slice = await connection.ReadStreamEventsForwardAsync("test", nextEventNumber, BatchSize, resolveLinkTos: false);
-			readIds.AddRange(slice.Events.Select(evt => evt.Event.EventId));
-			nextEventNumber = slice.NextEventNumber;
-		} while (!slice.IsEndOfStream);
+			Options = new()
+			{
+				Stream = new()
+				{
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("test") },
+					Start = new()
+				},
+				ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
+				Count = ulong.MaxValue,
+				NoFilter = new(),
+				UuidOption = new() { Structured = new() }
+			}
+		});
+		var readIds = new List<Guid>();
+		while (await call.ResponseStream.MoveNext(default))
+			if (call.ResponseStream.Current.Event is { } resolvedEvent)
+				readIds.Add(Uuid.FromDto(resolvedEvent.Event.Id).ToGuid());
 
 		Assert.AreEqual(NumEvents, readIds.Count);
 		Assert.True(writtenIds.SequenceEqual(readIds));
