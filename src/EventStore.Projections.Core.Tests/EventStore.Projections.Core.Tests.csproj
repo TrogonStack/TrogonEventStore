@@ -8,8 +8,6 @@
 		<None Remove="Services\checkpoint_strategy\**" />
 	</ItemGroup>
 	<ItemGroup>
-		<Compile Remove="Playground\Launchpad.cs" />
-		<Compile Remove="Playground\Launchpad2.cs" />
 		<Compile Remove="Playground\Launchpad3.cs" />
 		<Compile Remove="Playground\LaunchpadBase.cs" />
 	</ItemGroup>
