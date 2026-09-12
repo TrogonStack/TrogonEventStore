@@ -20,6 +20,7 @@ using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.OAuth;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -278,6 +279,7 @@ internal static class Program
 					var replicationEndpointPolicy = new ReplicationEndpointPolicy(
 						new System.Net.IPEndPoint(options.Interface.ReplicationIp, options.Interface.ReplicationPort));
 					builder.Services.AddSingleton(nodeConnectionTracker);
+					builder.Services.AddSingleton<IConnectionStatsProvider>(nodeConnectionTracker);
 					builder.WebHost.ConfigureKestrel(server =>
 					{
 						server.Limits.Http2.KeepAlivePingDelay =
