@@ -1015,7 +1015,7 @@ public class ManagedProjection : IDisposable
 		Action completed)
 	{
 		// currently, WrongExpectedVersion is returned when deleting non-existing streams, even when specifying ExpectedVersion.Any.
-		// it is not too intuitive but changing the response would break the contract and compatibility with TCP/gRPC/web clients or require adding a new error code to all clients.
+		// Changing this response requires a coordinated public API and Admin UI contract change.
 		// note: we don't need to check if CurrentVersion == -1 here to make sure it's a non-existing stream since the deletion is done with ExpectedVersion.Any
 		if (message.Result == OperationResult.WrongExpectedVersion)
 		{

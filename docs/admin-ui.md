@@ -10,7 +10,7 @@ The TrogonEventStore Admin UI is available at `http://SERVER_IP:2113/ui` and hel
 
 The dashboard opens at `/ui` and combines the daily operational view in one place:
 
-- _Cluster status_: live gossip membership, node state, checkpoints, TCP and HTTP endpoints, replica status, and a copy-friendly snapshot.
+- _Cluster status_: live gossip membership, node state, checkpoints, HTTP(S) endpoints, replica status, and a copy-friendly snapshot.
 - _Queue pressure_: live queue length, throughput, processing time, and currently processed messages.
 - _Node probes_: inline Ping, Node info, and Gossip checks rendered inside the UI.
 
@@ -24,7 +24,8 @@ The _Observability_ page focuses on runtime diagnostics:
 
 - queue groups and individual queue rows
 - current and last processed messages
-- TCP connection statistics
+- active connections on the node and replication HTTP/gRPC endpoints, including client identity, protocol, security, traffic rates, totals, and pending bytes
+- live gRPC replication sessions, byte totals, pending bytes, and send queue depth
 - snapshot output for copy-paste debugging
 
 ## Configuration

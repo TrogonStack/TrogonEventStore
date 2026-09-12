@@ -27,27 +27,16 @@ public class with_run_on_disk<TLogFormat, TStreamId> : SingleNodeScenario<TLogFo
 public class with_custom_ip_endpoints<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
 {
 	private readonly IPEndPoint _httpEndPoint = new(IPAddress.Parse("127.0.1.15"), 1113);
-	private readonly IPEndPoint _internalTcp = new(IPAddress.Parse("127.0.1.15"), 1114);
-	private readonly IPEndPoint _externalTcp = new(IPAddress.Parse("127.0.1.15"), 1115);
 
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
 	{
-		return options
-			.WithNodeEndpointOn(_httpEndPoint)
-			.WithExternalTcpOn(_externalTcp)
-			.WithReplicationEndpointOn(_internalTcp);
+		return options.WithNodeEndpointOn(_httpEndPoint);
 	}
 
 	[Test]
 	public void should_set_http_endpoint()
 	{
 		Assert.AreEqual(_httpEndPoint, _node.NodeInfo.HttpEndPoint);
-	}
-
-	[Test]
-	public void should_set_internal_tcp_endpoint()
-	{
-		Assert.AreEqual(_internalTcp, _node.NodeInfo.InternalSecureTcp);
 	}
 }
 
@@ -118,10 +107,7 @@ public class
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class with_custom_advertise_as<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
 {
-	private readonly IPEndPoint _intTcpEndpoint = new(IPAddress.Parse(InternalIp), 1111);
-	private readonly IPEndPoint _extTcpEndpoint = new(IPAddress.Parse(ExternalIp), 1113);
 	private readonly IPEndPoint _httpEndpoint = new(IPAddress.Parse(ExternalIp), 1116);
-	const string InternalIp = "127.0.1.1";
 	const string ExternalIp = "127.0.1.2";
 
 
@@ -129,25 +115,15 @@ public class with_custom_advertise_as<TLogFormat, TStreamId> : SingleNodeScenari
 	{
 		return options
 			.WithNodeEndpointOn(_httpEndpoint)
-			.WithExternalTcpOn(_extTcpEndpoint)
-			.WithReplicationEndpointOn(_intTcpEndpoint)
-			.AdvertiseInternalHostAs(new DnsEndPoint($"{InternalIp}.com", _intTcpEndpoint.Port + 1000))
-			.AdvertiseExternalHostAs(new DnsEndPoint($"{ExternalIp}.com", _extTcpEndpoint.Port + 1000))
+			.AdvertiseExternalHostAs(new DnsEndPoint($"{ExternalIp}.com", _httpEndpoint.Port + 1000))
 			.AdvertiseNodeAs(new DnsEndPoint($"{ExternalIp}.com", _httpEndpoint.Port + 1000));
 	}
 
 	[Test]
 	public void should_set_the_advertise_as_info_to_the_specified()
 	{
-		Assert.AreEqual(null, _node.GossipAdvertiseInfo.InternalTcp);
-		Assert.AreEqual(null, _node.GossipAdvertiseInfo.ExternalTcp);
-		Assert.AreEqual(new DnsEndPoint($"{InternalIp}.com", _intTcpEndpoint.Port + 1000),
-			_node.GossipAdvertiseInfo.InternalSecureTcp);
 		Assert.AreEqual(new DnsEndPoint($"{ExternalIp}.com", _httpEndpoint.Port + 1000),
 			_node.GossipAdvertiseInfo.HttpEndPoint);
-		Assert.AreEqual($"{InternalIp}.com", _node.GossipAdvertiseInfo.AdvertiseInternalHostAs);
-		Assert.AreEqual($"{ExternalIp}.com", _node.GossipAdvertiseInfo.AdvertiseExternalHostAs);
-		Assert.AreEqual(_httpEndpoint.Port + 1000, _node.GossipAdvertiseInfo.AdvertiseHttpPortAs);
 	}
 }
 

@@ -5,7 +5,6 @@ using System.Net;
 using EventStore.Client;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
-using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Grpc;
 
 namespace EventStore.Core.Cluster
@@ -24,12 +23,6 @@ namespace EventStore.Core.Cluster
 		{
 			Members = members.Safe().OrderByDescending<MemberInfo, EndPoint>(x => x.HttpEndPoint, Comparer)
 				.ToArray();
-		}
-
-		public ClusterInfo(ClusterInfoDto dto)
-		{
-			Members = dto.Members.Safe().Select(x => new MemberInfo(x))
-				.OrderByDescending<MemberInfo, EndPoint>(x => x.HttpEndPoint, Comparer).ToArray();
 		}
 
 		public override string ToString()
@@ -71,19 +64,15 @@ namespace EventStore.Core.Cluster
 				new MemberInfo(
 					Uuid.FromDto(x.InstanceId).ToGuid(), x.TimeStamp.FromTicksSinceEpoch(), (VNodeState)x.State,
 					x.IsAlive,
-					!x.InternalTcpUsesTls ? new DnsEndPoint(x.InternalTcp.Address, (int)x.InternalTcp.Port).WithClusterDns(clusterDns) : null,
-					x.InternalTcpUsesTls ? new DnsEndPoint(x.InternalTcp.Address, (int)x.InternalTcp.Port).WithClusterDns(clusterDns) : null,
-					!x.ExternalTcpUsesTls && x.ExternalTcp != null
-						? new DnsEndPoint(x.ExternalTcp.Address, (int)x.ExternalTcp.Port).WithClusterDns(clusterDns)
-						: null,
-					x.ExternalTcpUsesTls && x.ExternalTcp != null
-						? new DnsEndPoint(x.ExternalTcp.Address, (int)x.ExternalTcp.Port).WithClusterDns(clusterDns)
-						: null,
 					new DnsEndPoint(x.HttpEndPoint.Address, (int)x.HttpEndPoint.Port).WithClusterDns(clusterDns),
-					x.AdvertiseHostToClientAs, (int)x.AdvertiseHttpPortToClientAs, (int)x.AdvertiseTcpPortToClientAs,
+					x.AdvertiseHostToClientAs, (int)x.AdvertiseHttpPortToClientAs,
 					x.LastCommitPosition, x.WriterCheckpoint, x.ChaserCheckpoint,
 					x.EpochPosition, x.EpochNumber, Uuid.FromDto(x.EpochId).ToGuid(), x.NodePriority,
-					x.IsReadOnlyReplica, x.EsVersion == String.Empty ? null : x.EsVersion
+					x.IsReadOnlyReplica, x.EsVersion == String.Empty ? null : x.EsVersion,
+					x.ReplicationEndPoint is null
+						? null
+						: new DnsEndPoint(x.ReplicationEndPoint.Address, (int)x.ReplicationEndPoint.Port)
+							.WithClusterDns(clusterDns)
 				)).ToArray();
 			return new ClusterInfo(receivedMembers);
 		}
@@ -99,23 +88,9 @@ namespace EventStore.Core.Cluster
 				HttpEndPoint = new EventStore.Cluster.EndPoint(
 					x.HttpEndPoint.GetHost(),
 					(uint)x.HttpEndPoint.GetPort()),
-				InternalTcp = x.InternalSecureTcpEndPoint != null ?
-					new EventStore.Cluster.EndPoint(
-						x.InternalSecureTcpEndPoint.GetHost(),
-						(uint)x.InternalSecureTcpEndPoint.GetPort()) :
-					new EventStore.Cluster.EndPoint(
-					x.InternalTcpEndPoint.GetHost(),
-					(uint)x.InternalTcpEndPoint.GetPort()),
-				InternalTcpUsesTls = x.InternalSecureTcpEndPoint != null,
-				ExternalTcp = x.ExternalSecureTcpEndPoint != null ?
-					new EventStore.Cluster.EndPoint(
-						x.ExternalSecureTcpEndPoint.GetHost(),
-						(uint)x.ExternalSecureTcpEndPoint.GetPort()) :
-					x.ExternalTcpEndPoint != null ?
-					new EventStore.Cluster.EndPoint(
-					x.ExternalTcpEndPoint.GetHost(),
-					(uint)x.ExternalTcpEndPoint.GetPort()) : null,
-				ExternalTcpUsesTls = x.ExternalSecureTcpEndPoint != null,
+				ReplicationEndPoint = new EventStore.Cluster.EndPoint(
+					x.ReplicationEndPoint.GetHost(),
+					(uint)x.ReplicationEndPoint.GetPort()),
 				LastCommitPosition = x.LastCommitPosition,
 				WriterCheckpoint = x.WriterCheckpoint,
 				ChaserCheckpoint = x.ChaserCheckpoint,
@@ -126,7 +101,6 @@ namespace EventStore.Core.Cluster
 				IsReadOnlyReplica = x.IsReadOnlyReplica,
 				AdvertiseHostToClientAs = x.AdvertiseHostToClientAs ?? "",
 				AdvertiseHttpPortToClientAs = (uint)x.AdvertiseHttpPortToClientAs,
-				AdvertiseTcpPortToClientAs = (uint)x.AdvertiseTcpPortToClientAs,
 				EsVersion = x.ESVersion ?? String.Empty
 			}).ToArray();
 			var info = new EventStore.Cluster.ClusterInfo();

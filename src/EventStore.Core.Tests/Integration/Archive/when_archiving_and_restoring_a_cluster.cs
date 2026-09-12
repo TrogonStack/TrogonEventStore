@@ -2,11 +2,12 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
-using EventStore.ClientAPI;
+using EventStore.Client.Streams;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
@@ -18,7 +19,11 @@ using EventStore.Core.Services.UserManagement;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
+using Google.Protobuf;
+using Grpc.Net.Client;
 using NUnit.Framework;
+using GrpcMetadata = EventStore.Core.Services.Transport.Grpc.Constants.Metadata;
+using StreamsClient = EventStore.Client.Streams.Streams.StreamsClient;
 
 namespace EventStore.Core.Tests.Integration.Archive;
 
@@ -44,6 +49,8 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 	private long _archivedCheckpoint;
 	private int _restoredNodeIndex;
 	private int _completedIterations;
+	private GrpcChannel _channel;
+	private StreamsClient _client;
 	protected override int NodeCount => 4;
 	protected override TimeSpan GivenTimeout => SoakTimeout;
 
@@ -117,18 +124,12 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 		new(
 			PathName,
 			index,
-			endpoints.InternalTcp,
-			endpoints.ExternalTcp,
-			endpoints.HttpEndPoint,
+			endpoints.NodeEndPoint,
+			endpoints.ReplicationEndPoint,
 			gossipSeeds,
 			readOnlyReplica: index == ArchiverNodeIndex,
 			archiveOptions: _archiveOptions.Enabled ? _archiveOptions : null,
 			archiver: index == ArchiverNodeIndex);
-
-	protected override IEventStoreConnection CreateConnection() =>
-		EventStoreConnection.Create(
-			ConnectionSettings.Create().DisableServerCertificateValidation(),
-			GetLeader().ExternalTcpEndPoint);
 
 	protected override async Task Given()
 	{
@@ -141,10 +142,30 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 			var leader = await ReconnectToLeader();
 			for (var eventNumber = 0; eventNumber < EventsPerIteration; eventNumber++)
 			{
-				await _conn.AppendToStreamAsync(
-					Stream,
-					EventStore.ClientAPI.ExpectedVersion.Any,
-					new EventData(Guid.NewGuid(), "archive-event", isJson: false, payload, Array.Empty<byte>()));
+				using var call = _client.Append();
+				await call.RequestStream.WriteAsync(new AppendReq
+				{
+					Options = new()
+					{
+						Any = new(),
+						StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(Stream) }
+					}
+				});
+				await call.RequestStream.WriteAsync(new AppendReq
+				{
+					ProposedMessage = new()
+					{
+						Id = Core.Services.Transport.Grpc.Uuid.NewUuid().ToDto(),
+						Data = ByteString.CopyFrom(payload),
+						CustomMetadata = ByteString.Empty,
+						Metadata = {
+							{ GrpcMetadata.Type, "archive-event" },
+							{ GrpcMetadata.ContentType, GrpcMetadata.ContentTypes.ApplicationOctetStream }
+						}
+					}
+				});
+				await call.RequestStream.CompleteAsync();
+				await call.ResponseAsync;
 			}
 
 			AssertEx.IsOrBecomesTrue(
@@ -175,11 +196,16 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 	private async Task<MiniClusterNode<TLogFormat, TStreamId>> ReconnectToLeader()
 	{
 		var leader = GetLeader();
-		_conn?.Close();
-		_conn = EventStoreConnection.Create(
-			ConnectionSettings.Create().DisableServerCertificateValidation(),
-			leader.ExternalTcpEndPoint);
-		await _conn.ConnectAsync();
+		_channel?.Dispose();
+		_channel = GrpcChannel.ForAddress(new Uri($"https://{leader.HttpEndPoint}"),
+			new GrpcChannelOptions
+			{
+				HttpHandler = new SocketsHttpHandler
+				{
+					SslOptions = { RemoteCertificateValidationCallback = delegate { return true; } }
+				}
+			});
+		_client = new StreamsClient(_channel);
 		return leader;
 	}
 
@@ -235,7 +261,7 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 	private EndPoint[] GossipSeedsFor(int nodeIndex) =>
 		_nodeEndpoints
 			.Where((_, index) => index != nodeIndex)
-			.Select(x => (EndPoint)x.HttpEndPoint)
+			.Select(x => (EndPoint)x.NodeEndPoint)
 			.ToArray();
 
 	private async Task WaitForArchiveCheckpoint(long minimum)
@@ -258,6 +284,7 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
+		_channel?.Dispose();
 		await base.TestFixtureTearDown();
 		if (_s3Client is null)
 		{

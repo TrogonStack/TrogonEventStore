@@ -36,31 +36,6 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 				=> new EventTypeRegexStrategy(isAllStream, regex);
 		}
 
-		public static IEventFilter Get(bool isAllStream, Client.Messages.Filter filter)
-		{
-			if (filter == null || filter.Data.Count == 0)
-			{
-				return isAllStream ? (IEventFilter)new DefaultAllFilterStrategy() : new DefaultStreamFilterStrategy();
-			}
-
-			return filter.Context switch
-			{
-				Client.Messages.Filter.Types.FilterContext.EventType when filter.Type ==
-																		  Client.Messages.Filter.Types.FilterType.Prefix =>
-				EventType.Prefixes(isAllStream, filter.Data.ToArray()),
-				Client.Messages.Filter.Types.FilterContext.EventType when filter.Type ==
-																		  Client.Messages.Filter.Types.FilterType.Regex =>
-				EventType.Regex(isAllStream, filter.Data[0]),
-				Client.Messages.Filter.Types.FilterContext.StreamId when filter.Type ==
-																		 Client.Messages.Filter.Types.FilterType.Prefix =>
-				StreamName.Prefixes(isAllStream, filter.Data.ToArray()),
-				Client.Messages.Filter.Types.FilterContext.StreamId when filter.Type ==
-																		 Client.Messages.Filter.Types.FilterType.Regex =>
-				StreamName.Regex(isAllStream, filter.Data[0]),
-				_ => throw new Exception() // Invalid filter
-			};
-		}
-
 		private sealed class DefaultStreamFilterStrategy : IEventFilter
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -281,34 +256,16 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 		public static (bool Success, string Reason) TryParse(string context, bool isAllStream, string type, string data,
 			out IEventFilter filter)
 		{
-			Client.Messages.Filter.Types.FilterContext parsedContext;
-			switch (context)
+			if (context is not EventTypeContext and not StreamIdContext)
 			{
-				case EventTypeContext:
-					parsedContext = Client.Messages.Filter.Types.FilterContext.EventType;
-					break;
-				case StreamIdContext:
-					parsedContext = Client.Messages.Filter.Types.FilterContext.StreamId;
-					break;
-				default:
-					filter = null;
-					var names = string.Join(", ", Enum.GetNames(typeof(Client.Messages.Filter.Types.FilterContext)));
-					return (false, $"Invalid context please provide one of the following: {names}.");
+				filter = null;
+				return (false, "Invalid context please provide one of the following: EventType, StreamId.");
 			}
 
-			Client.Messages.Filter.Types.FilterType parsedType;
-			switch (type)
+			if (type is not RegexType and not PrefixType)
 			{
-				case RegexType:
-					parsedType = Client.Messages.Filter.Types.FilterType.Regex;
-					break;
-				case PrefixType:
-					parsedType = Client.Messages.Filter.Types.FilterType.Prefix;
-					break;
-				default:
-					filter = null;
-					var names = string.Join(", ", Enum.GetNames(typeof(Client.Messages.Filter.Types.FilterType)));
-					return (false, $"Invalid type please provide one of the following: {names}.");
+				filter = null;
+				return (false, "Invalid type please provide one of the following: Regex, Prefix.");
 			}
 
 			if (string.IsNullOrEmpty(data))
@@ -317,14 +274,18 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 				return (false, "Please provide a comma delimited list of data with at least one item.");
 			}
 
-			if (parsedType == Client.Messages.Filter.Types.FilterType.Regex)
+			if (type == RegexType)
 			{
-				filter = Get(isAllStream, new Client.Messages.Filter(parsedContext, parsedType, new[] { data }));
+				filter = context == EventTypeContext
+					? EventType.Regex(isAllStream, data)
+					: StreamName.Regex(isAllStream, data);
 				return (true, null);
 			}
 
-			filter = Get(isAllStream, new Client.Messages.Filter(parsedContext, parsedType,
-				data.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries)));
+			var prefixes = data.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+			filter = context == EventTypeContext
+				? EventType.Prefixes(isAllStream, prefixes)
+				: StreamName.Prefixes(isAllStream, prefixes);
 			return (true, null);
 		}
 	}

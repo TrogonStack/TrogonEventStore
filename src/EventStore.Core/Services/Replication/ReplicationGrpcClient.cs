@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,24 +33,37 @@ public interface IReplicationGrpcCall : IDisposable
 
 public sealed class ReplicationGrpcClientFactory : IReplicationGrpcClientFactory
 {
+	private static readonly TimeSpan DefaultKeepAlivePingDelay = TimeSpan.FromMilliseconds(700);
+	private static readonly TimeSpan DefaultKeepAlivePingTimeout = TimeSpan.FromMilliseconds(700);
+	private static readonly TimeSpan MinimumKeepAlivePingValue = TimeSpan.FromSeconds(1);
 	private readonly string _uriScheme;
 	private readonly INodeHttpClientFactory _nodeHttpClientFactory;
+	private readonly TimeSpan _keepAlivePingDelay;
+	private readonly TimeSpan _keepAlivePingTimeout;
 
 	public ReplicationGrpcClientFactory(
 		string uriScheme,
-		INodeHttpClientFactory nodeHttpClientFactory)
+		INodeHttpClientFactory nodeHttpClientFactory,
+		TimeSpan? keepAlivePingDelay = null,
+		TimeSpan? keepAlivePingTimeout = null)
 	{
 		Ensure.NotNullOrEmpty(uriScheme, nameof(uriScheme));
 		Ensure.NotNull(nodeHttpClientFactory, nameof(nodeHttpClientFactory));
 
 		_uriScheme = uriScheme;
 		_nodeHttpClientFactory = nodeHttpClientFactory;
+		_keepAlivePingDelay = NormalizeKeepAliveValue(keepAlivePingDelay ?? DefaultKeepAlivePingDelay);
+		_keepAlivePingTimeout = NormalizeKeepAliveValue(keepAlivePingTimeout ?? DefaultKeepAlivePingTimeout);
 	}
+
+	private static TimeSpan NormalizeKeepAliveValue(TimeSpan value) =>
+		value < MinimumKeepAlivePingValue ? MinimumKeepAlivePingValue : value;
 
 	public IReplicationGrpcClient Create(EndPoint leaderEndPoint)
 	{
 		Ensure.NotNull(leaderEndPoint, nameof(leaderEndPoint));
-		return new ReplicationGrpcClient(_uriScheme, leaderEndPoint, _nodeHttpClientFactory);
+		return new ReplicationGrpcClient(_uriScheme, leaderEndPoint, _nodeHttpClientFactory,
+			_keepAlivePingDelay, _keepAlivePingTimeout);
 	}
 }
 
@@ -60,9 +74,18 @@ internal sealed class ReplicationGrpcClient : IReplicationGrpcClient
 	public ReplicationGrpcClient(
 		string uriScheme,
 		EndPoint leaderEndPoint,
-		INodeHttpClientFactory nodeHttpClientFactory)
+		INodeHttpClientFactory nodeHttpClientFactory,
+		TimeSpan keepAlivePingDelay,
+		TimeSpan keepAlivePingTimeout)
 	{
-		var httpClient = nodeHttpClientFactory.CreateHttpClient(leaderEndPoint.GetOtherNames());
+		var httpClient = nodeHttpClientFactory.CreateHttpClient(
+			leaderEndPoint.GetOtherNames(),
+			handler =>
+			{
+				handler.KeepAlivePingDelay = keepAlivePingDelay;
+				handler.KeepAlivePingTimeout = keepAlivePingTimeout;
+				handler.KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always;
+			});
 		httpClient.Timeout = Timeout.InfiniteTimeSpan;
 		httpClient.DefaultRequestVersion = new Version(2, 0);
 

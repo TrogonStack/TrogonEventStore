@@ -33,8 +33,6 @@ ipch/
 .DS_Store
 
 src/EventStore/EventStore.Common/Properties/AssemblyVersion.cs
-src/EventStore/EventStore.ClientAPI/Properties/AssemblyVersion.cs
-
 *.o
 *.ii
 *.s

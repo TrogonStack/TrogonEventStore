@@ -5,8 +5,8 @@
 		<GenerateSupportedRuntime>false</GenerateSupportedRuntime>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="EventStore.Client" />
 		<PackageReference Include="EventStore.Client.Grpc.Streams" />
+		<PackageReference Include="EventStore.Client.Grpc.Operations" />
 		<PackageReference Include="Google.Protobuf" />
 		<PackageReference Include="Grpc.Net.Client" />
 		<PackageReference Include="Grpc.Tools">
@@ -18,14 +18,16 @@
 		<PackageReference Include="TrogonEventStore.Plugins" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\EventStore.BufferManagement\EventStore.BufferManagement.csproj" />
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />
 		<ProjectReference Include="..\EventStore.Core\EventStore.Core.csproj" />
-		<ProjectReference Include="..\EventStore.Transport.Tcp\EventStore.Transport.Tcp.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="..\EventStore.ClusterNode\logconfig.json">
 			<Link>logconfig.json</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="..\EventStore.Common\Utils\version.properties">
+			<Link>version.properties</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

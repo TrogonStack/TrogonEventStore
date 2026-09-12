@@ -1,24 +1,26 @@
 using System;
 using System.Text;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.SystemData;
+using EventStore.Client.Streams;
 using EventStore.Common.Options;
-using EventStore.Core.Services;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Tests;
-using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Util;
 using EventStore.Projections.Core.Services.Processing;
+using Google.Protobuf;
+using Grpc.Net.Client;
 using NUnit.Framework;
+using GrpcMetadata = EventStore.Core.Services.Transport.Grpc.Constants.Metadata;
+using StreamsClient = EventStore.Client.Streams.Streams.StreamsClient;
 
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
 public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	protected MiniNode<TLogFormat, TStreamId> _node;
-	protected IEventStoreConnection _connection;
-	protected UserCredentials _credentials;
+	private GrpcChannel _channel;
+	protected StreamsClient _connection;
 	protected TimeSpan _timeout;
 	protected string _tag;
 	protected virtual TimeSpan StartupTimeout => TimeSpan.FromMinutes(5);
@@ -30,20 +32,17 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
-		_credentials = new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword);
 		_timeout = TimeSpan.FromSeconds(20);
 		_tag = "_1";
 
 		_node = CreateNode();
 		await _node.Start(StartupTimeout);
-		await _node.WaitForTcpEndPoint().WithTimeout(StartupTimeout);
 
 		await _systemProjectionsCreated.WithTimeout(_timeout);
 
-		_connection = await TestConnectionLifecycle.ReconnectUntilReady(
-			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
-			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials),
-			StartupTimeout);
+		_channel = GrpcChannel.ForAddress(new UriBuilder { Scheme = Uri.UriSchemeHttps }.Uri,
+			new GrpcChannelOptions { HttpClient = _node.HttpClient, DisposeHttpClient = false });
+		_connection = new StreamsClient(_channel);
 
 		try
 		{
@@ -67,22 +66,7 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
-		if (_connection != null)
-		{
-			try
-			{
-				await TestConnectionLifecycle.CloseConnectionAndWait(_connection, _timeout);
-			}
-			catch
-			{
-				TestConnectionLifecycle.TryCloseConnection(_connection);
-			}
-			finally
-			{
-				TestConnectionLifecycle.DisposeIfNeeded(_connection);
-			}
-		}
-
+		_channel?.Dispose();
 		await _node.Shutdown();
 		await Task.Delay(1000);
 
@@ -101,14 +85,32 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 			subsystems: [_projectionsSubsystem]);
 	}
 
-	protected EventData CreateEvent(string eventType, string data)
+	protected async Task PostEvent(string stream, string eventType, string data)
 	{
-		return new EventData(Guid.NewGuid(), eventType, true, Encoding.UTF8.GetBytes(data), null);
-	}
-
-	protected Task PostEvent(string stream, string eventType, string data)
-	{
-		return _connection.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
+		using var call = _connection.Append();
+		await call.RequestStream.WriteAsync(new AppendReq
+		{
+			Options = new()
+			{
+				Any = new(),
+				StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) }
+			}
+		});
+		await call.RequestStream.WriteAsync(new AppendReq
+		{
+			ProposedMessage = new()
+			{
+				Id = Uuid.NewUuid().ToDto(),
+				Data = ByteString.CopyFromUtf8(data),
+				CustomMetadata = ByteString.Empty,
+				Metadata = {
+					{ GrpcMetadata.Type, eventType },
+					{ GrpcMetadata.ContentType, GrpcMetadata.ContentTypes.ApplicationJson }
+				}
+			}
+		});
+		await call.RequestStream.CompleteAsync();
+		await call.ResponseAsync;
 	}
 
 	protected string CreateStandardQuery(string stream)

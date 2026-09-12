@@ -4,7 +4,6 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="EventStore.Client" />
 		<PackageReference Include="FluentAssertions" />
 		<PackageReference Include="GitHubActionsTestLogger" />
 		<PackageReference Include="Grpc.Core" />
@@ -28,11 +27,8 @@
 		<ProjectReference Include="..\EventStore.Core\EventStore.Core.csproj" />
 		<ProjectReference Include="..\EventStore.ClusterNode\EventStore.ClusterNode.csproj" PrivateAssets="all" />
 		<ProjectReference Include="..\EventStore.PluginHosting\EventStore.PluginHosting.csproj" />
-		<ProjectReference Include="..\EventStore.Transport.Tcp\EventStore.Transport.Tcp.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<EmbeddedResource Include="Services\Transport\Tcp\test_certificates\**\*.crt" />
-		<EmbeddedResource Include="Services\Transport\Tcp\test_certificates\**\*.key" />
 		<EmbeddedResource Remove="FakePlugin\**" />
 	</ItemGroup>
 	<ItemGroup>

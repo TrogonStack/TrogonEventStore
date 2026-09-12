@@ -5,10 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using EventStore.Core.Data;
-using EventStore.Core.Messages;
-using EventStore.Core.Services.Transport.Tcp;
-using EventStore.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 

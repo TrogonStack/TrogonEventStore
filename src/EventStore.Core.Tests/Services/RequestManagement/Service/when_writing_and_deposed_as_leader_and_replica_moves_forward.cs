@@ -37,10 +37,6 @@ public class when_writing_and_deposed_as_leader_and_replica_moves_forward : Requ
 		return EventStore.Core.Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
 			VNodeState.Unknown, true,
 			new IPEndPoint(IPAddress.Parse(ipAddress), port),
-			new IPEndPoint(IPAddress.Parse(ipAddress), port),
-			new IPEndPoint(IPAddress.Parse(ipAddress), port),
-			new IPEndPoint(IPAddress.Parse(ipAddress), port),
-			new IPEndPoint(IPAddress.Parse(ipAddress), port),
-			null, 0, 0, 0, false);
+			null, 0, 0, false);
 	}
 }

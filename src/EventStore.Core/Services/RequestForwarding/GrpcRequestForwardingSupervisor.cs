@@ -136,7 +136,7 @@ public sealed class GrpcRequestForwardingSupervisor :
 						"Request forwarding stream is closed."));
 					break;
 				case RequestForwardingAdmission.CredentialsRequireTls:
-					PublishIfActive(active, new TcpMessage.NotAuthenticated(
+					PublishIfActive(active, new ClientMessage.NotAuthenticated(
 						request.InternalCorrId,
 						"Credentials cannot be forwarded unless transport security is enabled."));
 					break;

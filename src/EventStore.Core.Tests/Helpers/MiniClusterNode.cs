@@ -20,11 +20,10 @@ using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 using EventStore.Core.Services.Storage.ReaderIndex;
-using EventStore.Core.Tests.Services.Transport.Tcp;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins.Subsystems;
-using EventStore.TcpUnitTestPlugin;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -42,9 +41,8 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 
 	private static readonly ILogger Log = Serilog.Log.ForContext<MiniClusterNode<TLogFormat, TStreamId>>();
 
-	public IPEndPoint InternalTcpEndPoint { get; }
-	public IPEndPoint ExternalTcpEndPoint { get; }
 	public IPEndPoint HttpEndPoint { get; }
+	public IPEndPoint ReplicationEndPoint { get; }
 
 	public readonly int DebugIndex;
 
@@ -62,11 +60,11 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	public VNodeState NodeState = VNodeState.Unknown;
 	private readonly IHost _host;
 
-	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint internalTcp, IPEndPoint externalTcp,
-		IPEndPoint httpEndPoint, EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
+	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint nodeEndPoint, IPEndPoint replicationEndPoint,
+		EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
 		bool enableTrustedAuth = false, int memTableSize = 1000,
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
-		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null,
+		IExpiryStrategy expiryStrategy = null,
 		ArchiveOptions archiveOptions = null, bool archiver = false,
 		int clusterSize = 3, bool unsafeAllowSurplusNodes = false)
 	{
@@ -75,19 +73,17 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		RunCount += 1;
 
 		DebugIndex = debugIndex;
-		InternalTcpEndPoint = internalTcp;
-		ExternalTcpEndPoint = externalTcp;
-		HttpEndPoint = httpEndPoint;
+		HttpEndPoint = nodeEndPoint;
+		ReplicationEndPoint = replicationEndPoint;
 
 		_dbPath = Path.Combine(
 			pathname,
-			$"mini-cluster-node-db-{externalTcp.Port}-{httpEndPoint.Port}");
+			$"mini-cluster-node-db-{nodeEndPoint.Port}");
 
 		Directory.CreateDirectory(_dbPath);
 		FileStreamExtensions.ConfigureFlush(disableFlushToDisk);
 
 		subsystems ??= [];
-		subsystems = [.. subsystems, new TcpApiTestPlugin()];
 
 		var options = new ClusterVNodeOptions
 		{
@@ -117,14 +113,11 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			},
 			Interface = new()
 			{
-				ReplicationIp = InternalTcpEndPoint.Address,
-				NodeIp = ExternalTcpEndPoint.Address,
-				ReplicationPort = InternalTcpEndPoint.Port,
+				NodeIp = HttpEndPoint.Address,
 				NodePort = HttpEndPoint.Port,
-				ReplicationHeartbeatTimeout = 2_000,
-				ReplicationHeartbeatInterval = 2_000,
-				EnableTrustedAuth = enableTrustedAuth,
-				ReplicationHostAdvertiseAs = intHostAdvertiseAs
+				ReplicationIp = ReplicationEndPoint.Address,
+				ReplicationPort = ReplicationEndPoint.Port,
+				EnableTrustedAuth = enableTrustedAuth
 			},
 			Database = new()
 			{
@@ -149,14 +142,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			PlugableComponents = subsystems
 		};
 
-		var configuration = new List<KeyValuePair<string, string>> {
-				new("EventStore:TcpPlugin:NodeTcpPort", externalTcp.Port.ToString()),
-				new("EventStore:TcpPlugin:EnableExternalTcp", "true"),
-				new("EventStore:TcpUnitTestPlugin:NodeTcpPort", externalTcp.Port.ToString()),
-				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatInterval", "10000"),
-				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatTimeout", "10000"),
-				new("EventStore:TcpUnitTestPlugin:Insecure", options.Application.Insecure.ToString()),
-			};
+		var configuration = new List<KeyValuePair<string, string>>();
 
 		if (archiveOptions is not null)
 		{
@@ -176,9 +162,9 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		var inMemConf = new ConfigurationBuilder()
 			.AddInMemoryCollection(configuration)
 			.Build();
-		var serverCertificate = ssl_connections.GetServerCertificate();
+		var serverCertificate = TestCertificates.GetServerCertificate();
 		var trustedRootCertificates =
-			new X509Certificate2Collection(ssl_connections.GetRootCertificate());
+			new X509Certificate2Collection(TestCertificates.GetRootCertificate());
 		options = options.Secure(trustedRootCertificates, serverCertificate);
 
 		_isReadOnlyReplica = readOnlyReplica;
@@ -191,8 +177,8 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			RuntimeInformation.RuntimeMode, "GC:",
 			GC.MaxGeneration == 0
 				? "NON-GENERATION (PROBABLY BOEHM)"
-				: $"{GC.MaxGeneration + 1} GENERATIONS", "DBPATH:", _dbPath, "ExTCP ENDPOINT:",
-			ExternalTcpEndPoint, "ExHTTP ENDPOINT:", HttpEndPoint);
+				: $"{GC.MaxGeneration + 1} GENERATIONS", "DBPATH:", _dbPath, "NODE ENDPOINT:",
+			HttpEndPoint, "HTTP ENDPOINT:", HttpEndPoint);
 
 		var logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
 		Node = new ClusterVNode<TStreamId>(options, logFormatFactory, new AuthenticationProviderFactory(
@@ -215,7 +201,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				webHost
 					.UseKestrel(o =>
 					{
-						o.Listen(HttpEndPoint, options =>
+						void ConfigureHttps(ListenOptions options)
 						{
 							options.UseHttps(new HttpsConnectionAdapterOptions
 							{
@@ -233,7 +219,10 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 									return isValid;
 								}
 							});
-						});
+						}
+
+						o.Listen(HttpEndPoint, ConfigureHttps);
+						o.Listen(ReplicationEndPoint, ConfigureHttps);
 					})
 					.UseStartup(Node.Startup);
 			})

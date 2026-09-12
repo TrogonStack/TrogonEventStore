@@ -22,6 +22,16 @@ and sharding work. Features that need their own compute model, query model, or
 serving model should be separate components that consume the database through
 subscriptions or reads.
 
+## Network protocol boundary
+
+gRPC carries database client APIs, cluster replication, and follower-to-leader
+forwarding over the node HTTP(S) endpoint. Ordinary HTTP routes on that endpoint
+serve the Admin UI, health probes, metrics, and other operator workflows.
+
+Keeping one advertised endpoint gives clients and cluster members the same TLS,
+identity, and network-policy boundary. The node therefore has no separate legacy
+EventStore TCP protocol listener or configuration surface.
+
 ## Projection execution
 
 Projection execution is future external component work by default.

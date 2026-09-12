@@ -16,24 +16,14 @@ public class ClusterVNodeSettings
 	public readonly bool ReadOnlyReplica;
 
 	public ClusterVNodeSettings(Guid instanceId, int debugIndex,
-		IPEndPoint internalTcpEndPoint,
-		IPEndPoint internalSecureTcpEndPoint,
-		IPEndPoint externalTcpEndPoint,
-		IPEndPoint externalSecureTcpEndPoint,
 		IPEndPoint httpEndPoint,
 		int nodePriority,
 		bool readOnlyReplica)
 	{
 		Ensure.NotEmptyGuid(instanceId, "instanceId");
-		Ensure.Equal(false, internalTcpEndPoint == null && internalSecureTcpEndPoint == null, "Both internal TCP endpoints are null");
-
 		Ensure.NotNull(httpEndPoint, nameof(httpEndPoint));
 
-		NodeInfo = new VNodeInfo(instanceId, debugIndex,
-			internalTcpEndPoint, internalSecureTcpEndPoint,
-			externalTcpEndPoint, externalSecureTcpEndPoint,
-			httpEndPoint,
-			readOnlyReplica);
+		NodeInfo = new VNodeInfo(instanceId, debugIndex, httpEndPoint, readOnlyReplica);
 
 
 		NodePriority = nodePriority;

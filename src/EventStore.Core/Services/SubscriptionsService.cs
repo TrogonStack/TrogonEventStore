@@ -37,7 +37,6 @@ public class SubscriptionsService<TStreamId> :
 	SubscriptionsService,
 	IHandle<SystemMessage.SystemStart>,
 	IHandle<SystemMessage.BecomeShuttingDown>,
-	IHandle<TcpMessage.ConnectionClosed>,
 	IAsyncHandle<ClientMessage.SubscribeToStream>,
 	IAsyncHandle<ClientMessage.FilteredSubscribeToStream>,
 	IHandle<ClientMessage.UnsubscribeFromStream>,
@@ -109,41 +108,6 @@ public class SubscriptionsService<TStreamId> :
 		}
 
 		_queuedHandler.RequestStop();
-	}
-
-	public void Handle(TcpMessage.ConnectionClosed message)
-	{
-		List<string> subscriptionGroupsToRemove = null;
-		foreach (var subscriptionGroup in _subscriptionTopics)
-		{
-			var subscriptions = subscriptionGroup.Value;
-			for (int i = 0, n = subscriptions.Count; i < n; ++i)
-			{
-				if (subscriptions[i].ConnectionId == message.Connection.ConnectionId)
-				{
-					_subscriptionsById.Remove(subscriptions[i].CorrelationId);
-				}
-			}
-
-			subscriptions.RemoveAll(x => x.ConnectionId == message.Connection.ConnectionId);
-			if (subscriptions.Count == 0) // schedule removal of list instance
-			{
-				if (subscriptionGroupsToRemove == null)
-				{
-					subscriptionGroupsToRemove = new List<string>();
-				}
-
-				subscriptionGroupsToRemove.Add(subscriptionGroup.Key);
-			}
-		}
-
-		if (subscriptionGroupsToRemove != null)
-		{
-			for (int i = 0, n = subscriptionGroupsToRemove.Count; i < n; ++i)
-			{
-				_subscriptionTopics.Remove(subscriptionGroupsToRemove[i]);
-			}
-		}
 	}
 
 	async ValueTask IAsyncHandle<ClientMessage.SubscribeToStream>.HandleAsync(ClientMessage.SubscribeToStream msg,

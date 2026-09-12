@@ -534,7 +534,7 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 			_streams[streamId] = list;
 		}
 
-		if (expectedVersion != EventStore.ClientAPI.ExpectedVersion.Any)
+		if (expectedVersion != EventStore.Core.Data.ExpectedVersion.Any)
 		{
 			if (expectedVersion != list.Count - 1)
 			{

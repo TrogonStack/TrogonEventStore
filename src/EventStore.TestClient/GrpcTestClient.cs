@@ -1,6 +1,5 @@
 using System;
 using EventStore.Client;
-using Connection = EventStore.Transport.Tcp.TcpTypedConnection<byte[]>;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.TestClient;
@@ -34,6 +33,12 @@ public class GrpcTestClient
 		return new EventStoreClient(Settings);
 	}
 
+	internal EventStoreOperationsClient CreateOperationsClient()
+	{
+		_log.Debug("Creating gRPC operations client with connection string '{connectionString}'.", ConnectionString);
+		return new EventStoreOperationsClient(Settings);
+	}
+
 	/// <summary>
 	/// True in case username and/or password are not specified.
 	/// </summary>
@@ -41,7 +46,10 @@ public class GrpcTestClient
 		string.IsNullOrWhiteSpace(Settings.DefaultCredentials?.Username) ||
 		string.IsNullOrWhiteSpace(Settings.DefaultCredentials?.Password);
 
-	private EventStoreClientSettings Settings => EventStoreClientSettings.Create(ConnectionString);
+	internal EventStoreClientSettings Settings => EventStoreClientSettings.Create(ConnectionString);
+
+	internal Uri HttpEndpoint => new(
+		$"{(_options.UseTls ? "https" : "http")}://{_options.Host}:{_options.HttpPort}");
 
 	private string ConnectionString => string.IsNullOrWhiteSpace(_options.ConnectionString)
 		? $"esdb://{_options.Host}:{_options.HttpPort}?tls={_options.UseTls}&tlsVerifyCert={_options.TlsValidateServer}"

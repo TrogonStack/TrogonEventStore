@@ -76,6 +76,9 @@ Before running a durable node or cluster:
 - Store data, index, and logs on durable volumes.
 - Expose `/-/liveness`, `/-/readiness`, and `/-/metrics` to the platform.
 - Use gRPC clients for application reads and writes.
+- Expose only the node HTTP(S) endpoint. Database client APIs, replication, and
+  follower-to-leader forwarding use gRPC on that endpoint; no separate legacy
+  EventStore TCP protocol listener is required or supported.
 
 ## Linux service notes
 

@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
@@ -20,13 +19,11 @@ using EventStore.Core.Messages;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.Index.Hashers;
-using EventStore.Core.Tests.Services.Transport.Tcp;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins.Authentication;
 using EventStore.Plugins.Authorization;
 using EventStore.Plugins.Subsystems;
 using EventStore.Plugins.Transforms;
-using EventStore.TcpUnitTestPlugin;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
@@ -45,8 +42,6 @@ public class MiniNode
 	public const int CachedChunkSize = ChunkSize + ChunkHeader.Size + ChunkFooter.Size;
 
 	protected static readonly ILogger Log = Serilog.Log.ForContext<MiniNode>();
-	public IPEndPoint TcpEndPoint { get; protected set; }
-	public IPEndPoint IntTcpEndPoint { get; protected set; }
 	public IPEndPoint HttpEndPoint { get; protected set; }
 }
 
@@ -71,7 +66,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 	public Task AdminUserCreated => _adminUserCreated.Task;
 
 	public MiniNode(string pathname,
-		int? tcpPort = null, int? httpPort = null,
+		int? httpPort = null,
 		ISubsystem[] subsystems = null,
 		int chunkSize = ChunkSize, int cachedChunkSize = CachedChunkSize, bool enableTrustedAuth = false,
 		int memTableSize = 1000,
@@ -97,26 +92,21 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 
 		var ip = IPAddress.Loopback;
 
-		int extTcpPort = tcpPort ?? PortsHelper.GetAvailablePort(ip);
 		int httpEndPointPort = httpPort ?? PortsHelper.GetAvailablePort(ip);
-		int intTcpPort = PortsHelper.GetAvailablePort(ip);
 
 		if (string.IsNullOrEmpty(dbPath))
 		{
 			DbPath = Path.Combine(pathname,
-				$"mini-node-db-{extTcpPort}-{httpEndPointPort}");
+				$"mini-node-db-{httpEndPointPort}");
 		}
 		else
 		{
 			DbPath = dbPath;
 		}
 
-		TcpEndPoint = new IPEndPoint(ip, extTcpPort);
-		IntTcpEndPoint = new IPEndPoint(ip, intTcpPort);
 		HttpEndPoint = new IPEndPoint(ip, httpEndPointPort);
 
 		subsystems ??= [];
-		subsystems = [.. subsystems, new TcpApiTestPlugin()];
 
 		var options = new ClusterVNodeOptions
 		{
@@ -130,8 +120,6 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			},
 			Interface = new()
 			{
-				ReplicationHeartbeatInterval = 10_000,
-				ReplicationHeartbeatTimeout = 10_000,
 				EnableTrustedAuth = enableTrustedAuth
 			},
 			Cluster = new()
@@ -162,21 +150,11 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			LoadedOptions = ClusterVNodeOptions.GetLoadedOptions(new ConfigurationBuilder()
 					.AddEventStoreDefaultValues()
 					.Build()),
-		}.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
-				ssl_connections.GetServerCertificate())
-			.WithReplicationEndpointOn(IntTcpEndPoint)
-			.WithExternalTcpOn(TcpEndPoint)
+		}.Secure(new X509Certificate2Collection(TestCertificates.GetRootCertificate()),
+				TestCertificates.GetServerCertificate())
 			.WithNodeEndpointOn(HttpEndPoint);
 
-		var inMemConf = new ConfigurationBuilder()
-			.AddInMemoryCollection(new KeyValuePair<string, string>[] {
-				new("EventStore:TcpPlugin:NodeTcpPort", extTcpPort.ToString()),
-				new("EventStore:TcpPlugin:EnableExternalTcp", "true"),
-				new("EventStore:TcpUnitTestPlugin:NodeTcpPort", extTcpPort.ToString()),
-				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatInterval", "10000"),
-				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatTimeout", "10000"),
-				new("EventStore:TcpUnitTestPlugin:Insecure", options.Application.Insecure.ToString()),
-			}).Build();
+		var inMemConf = new ConfigurationBuilder().Build();
 
 		if (advertisedExtHostAddress != null)
 		{
@@ -200,7 +178,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 				? "NON-GENERATION (PROBABLY BOEHM)"
 				: $"{GC.MaxGeneration + 1} GENERATIONS",
 			"DBPATH:", DbPath,
-			"TCP ENDPOINT:", TcpEndPoint,
+			"NODE ENDPOINT:", HttpEndPoint,
 			"HTTP ENDPOINT:", HttpEndPoint);
 
 		var logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory
@@ -244,12 +222,12 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 							{
 								options.UseHttps(new HttpsConnectionAdapterOptions
 								{
-									ServerCertificate = ssl_connections.GetServerCertificate(),
+									ServerCertificate = TestCertificates.GetServerCertificate(),
 									ClientCertificateMode = ClientCertificateMode.AllowCertificate,
 									ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
 									{
 										var (isValid, error) =
-											ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => new X509Certificate2Collection(ssl_connections.GetRootCertificate()));
+											ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => new X509Certificate2Collection(TestCertificates.GetRootCertificate()));
 										if (!isValid && error != null)
 										{
 											Log.Error("Client certificate validation error: {e}", error);
@@ -333,25 +311,6 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 
 		StartingTime.Stop();
 		Log.Information("MiniNode successfully started!");
-	}
-
-	public async Task WaitForTcpEndPoint()
-	{
-		while (true)
-		{
-			using var client = new TcpClient();
-
-			try
-			{
-				await client.ConnectAsync(TcpEndPoint.Address, TcpEndPoint.Port)
-					.WaitAsync(TimeSpan.FromMilliseconds(250));
-				return;
-			}
-			catch (Exception ex) when (ex is SocketException or TimeoutException)
-			{
-				await Task.Delay(100);
-			}
-		}
 	}
 
 	public async Task Shutdown(bool keepDb = false)

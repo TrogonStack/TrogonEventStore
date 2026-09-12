@@ -137,13 +137,11 @@ namespace EventStore.Core.Services
 					_timeProvider.UtcNow,
 					VNodeState.Initializing,
 					true,
-					memberInfo.InternalTcpEndPoint, memberInfo.InternalSecureTcpEndPoint,
-					memberInfo.ExternalTcpEndPoint, memberInfo.ExternalSecureTcpEndPoint,
 					memberInfo.HttpEndPoint,
-					memberInfo.AdvertiseHostToClientAs, memberInfo.AdvertiseHttpPortToClientAs, memberInfo.AdvertiseTcpPortToClientAs,
+					memberInfo.AdvertiseHostToClientAs, memberInfo.AdvertiseHttpPortToClientAs,
 					ownInfo.LastCommitPosition, ownInfo.WriterCheckpoint, ownInfo.ChaserCheckpoint,
 					ownInfo.EpochPosition, ownInfo.EpochNumber, ownInfo.EpochId, ownInfo.NodePriority,
-					memberInfo.IsReadOnlyReplica, VersionInfo.Version)
+					memberInfo.IsReadOnlyReplica, VersionInfo.Version, memberInfo.ReplicationEndPoint)
 			};
 		}
 

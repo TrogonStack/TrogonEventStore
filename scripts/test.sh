@@ -5,10 +5,6 @@ set -o xtrace
 
 update-ca-certificates
 
-core_clientapi_projects=(
-    EventStore.Core.Tests
-)
-
 core_rest_projects=(
     EventStore.Core.Tests
 )
@@ -52,6 +48,7 @@ misc_projects=(
     EventStore.Common.Tests
     EventStore.SourceGenerators.Tests
     EventStore.SystemRuntime.Tests
+    EventStore.TestClient.Tests
 )
 
 declare -a requested_projects
@@ -60,18 +57,6 @@ load_requested_projects() {
     case "${TEST_GROUP:-all}" in
         all)
             requested_projects=()
-            ;;
-        core-clientapi)
-            requested_projects=("${core_clientapi_projects[@]}")
-            ;;
-        core-clientapi-persistent)
-            requested_projects=("${core_clientapi_projects[@]}")
-            ;;
-        core-clientapi-security)
-            requested_projects=("${core_clientapi_projects[@]}")
-            ;;
-        core-clientapi-streams)
-            requested_projects=("${core_clientapi_projects[@]}")
             ;;
         core-rest)
             requested_projects=("${core_rest_projects[@]}")
@@ -115,8 +100,7 @@ validate_shard_coverage() {
 
     declared_projects="$(
         printf '%s\n' \
-            "${core_clientapi_projects[@]}" \
-            "${core_rest_projects[@]}" \
+			"${core_rest_projects[@]}" \
             "${core_services_projects[@]}" \
             "${core_cluster_services_projects[@]}" \
             "${core_storage_projects[@]}" \
@@ -203,23 +187,11 @@ project_filter() {
     local proj="$1"
 
     case "${TEST_GROUP:-all}:$proj" in
-        core-clientapi:EventStore.Core.Tests)
-            printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI"
-            ;;
-        core-clientapi-persistent:EventStore.Core.Tests)
-            printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI&(FullyQualifiedName~persistent|FullyQualifiedName~Persistent)&FullyQualifiedName!~EventStore.Core.Tests.ClientAPI.Security"
-            ;;
-        core-clientapi-security:EventStore.Core.Tests)
-            printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI.Security"
-            ;;
-        core-clientapi-streams:EventStore.Core.Tests)
-            printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI&FullyQualifiedName!~persistent&FullyQualifiedName!~Persistent&FullyQualifiedName!~EventStore.Core.Tests.ClientAPI.Security"
-            ;;
         core-http:EventStore.Core.Tests)
-            printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Http|FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Http)&FullyQualifiedName!~EventStore.Core.Tests.ClientAPI"
+            printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Http|FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Http)"
             ;;
         core-services:EventStore.Core.Tests)
-            printf '%s\n' "((FullyQualifiedName~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Services.Storage&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Http&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Grpc.ServerFeaturesTests&FullyQualifiedName!~EventStore.Core.Tests.Services.ElectionsService)|FullyQualifiedName~EventStore.Core.Tests.Bus|FullyQualifiedName~EventStore.Core.Tests.Helpers|FullyQualifiedName~EventStore.Core.Tests.ClientOperations|FullyQualifiedName~EventStore.Core.Tests.Authentication|FullyQualifiedName~EventStore.Core.Tests.Authorization|FullyQualifiedName~EventStore.Core.Tests.Certificates|FullyQualifiedName~EventStore.Core.Tests.AwakeService|FullyQualifiedName~EventStore.Core.Tests.Settings|FullyQualifiedName~EventStore.Core.Tests.TcpApiTestPlugin)"
+            printf '%s\n' "((FullyQualifiedName~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Services.Storage&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Http&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Grpc.ServerFeaturesTests&FullyQualifiedName!~EventStore.Core.Tests.Services.ElectionsService)|FullyQualifiedName~EventStore.Core.Tests.Bus|FullyQualifiedName~EventStore.Core.Tests.Helpers|FullyQualifiedName~EventStore.Core.Tests.ClientOperations|FullyQualifiedName~EventStore.Core.Tests.Authentication|FullyQualifiedName~EventStore.Core.Tests.Authorization|FullyQualifiedName~EventStore.Core.Tests.Certificates|FullyQualifiedName~EventStore.Core.Tests.AwakeService|FullyQualifiedName~EventStore.Core.Tests.Settings)"
             ;;
         core-cluster-services:EventStore.Core.Tests)
             printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Integration|FullyQualifiedName~EventStore.Core.Tests.Cluster|FullyQualifiedName~EventStore.Core.Tests.Replication|FullyQualifiedName~EventStore.Core.Tests.Synchronization|FullyQualifiedName~EventStore.Core.Tests.Services.ElectionsService|FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Grpc.ServerFeaturesTests)"
@@ -234,7 +206,7 @@ project_filter() {
             printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.Transforms"
             ;;
         core-rest:EventStore.Core.Tests)
-            printf '%s\n' "FullyQualifiedName!~EventStore.Core.Tests.ClientAPI&FullyQualifiedName!~EventStore.Core.Tests.Http&FullyQualifiedName!~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Integration&FullyQualifiedName!~EventStore.Core.Tests.Cluster&FullyQualifiedName!~EventStore.Core.Tests.Bus&FullyQualifiedName!~EventStore.Core.Tests.Helpers&FullyQualifiedName!~EventStore.Core.Tests.ClientOperations&FullyQualifiedName!~EventStore.Core.Tests.Authentication&FullyQualifiedName!~EventStore.Core.Tests.Authorization&FullyQualifiedName!~EventStore.Core.Tests.Certificates&FullyQualifiedName!~EventStore.Core.Tests.AwakeService&FullyQualifiedName!~EventStore.Core.Tests.Replication&FullyQualifiedName!~EventStore.Core.Tests.Settings&FullyQualifiedName!~EventStore.Core.Tests.Synchronization&FullyQualifiedName!~EventStore.Core.Tests.TcpApiTestPlugin&FullyQualifiedName!~EventStore.Core.Tests.Index&FullyQualifiedName!~EventStore.Core.Tests.TransactionLog&FullyQualifiedName!~EventStore.Core.Tests.Caching&FullyQualifiedName!~EventStore.Core.Tests.DataStructures&FullyQualifiedName!~EventStore.Core.Tests.Transforms&FullyQualifiedName!~EventStore.Core.Tests.Hashes"
+            printf '%s\n' "FullyQualifiedName!~EventStore.Core.Tests.Http&FullyQualifiedName!~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Integration&FullyQualifiedName!~EventStore.Core.Tests.Cluster&FullyQualifiedName!~EventStore.Core.Tests.Bus&FullyQualifiedName!~EventStore.Core.Tests.Helpers&FullyQualifiedName!~EventStore.Core.Tests.ClientOperations&FullyQualifiedName!~EventStore.Core.Tests.Authentication&FullyQualifiedName!~EventStore.Core.Tests.Authorization&FullyQualifiedName!~EventStore.Core.Tests.Certificates&FullyQualifiedName!~EventStore.Core.Tests.AwakeService&FullyQualifiedName!~EventStore.Core.Tests.Replication&FullyQualifiedName!~EventStore.Core.Tests.Settings&FullyQualifiedName!~EventStore.Core.Tests.Synchronization&FullyQualifiedName!~EventStore.Core.Tests.Index&FullyQualifiedName!~EventStore.Core.Tests.TransactionLog&FullyQualifiedName!~EventStore.Core.Tests.Caching&FullyQualifiedName!~EventStore.Core.Tests.DataStructures&FullyQualifiedName!~EventStore.Core.Tests.Transforms&FullyQualifiedName!~EventStore.Core.Tests.Hashes"
             ;;
     esac
 }
@@ -243,18 +215,6 @@ project_timeout() {
     local proj="$1"
 
     case "${TEST_GROUP:-all}:$proj" in
-        core-clientapi:EventStore.Core.Tests)
-            printf '%s\n' "20m"
-            ;;
-        core-clientapi-persistent:EventStore.Core.Tests)
-            printf '%s\n' "20m"
-            ;;
-        core-clientapi-security:EventStore.Core.Tests)
-            printf '%s\n' "20m"
-            ;;
-        core-clientapi-streams:EventStore.Core.Tests)
-            printf '%s\n' "20m"
-            ;;
         core-rest:EventStore.Core.Tests)
             printf '%s\n' "15m"
             ;;
