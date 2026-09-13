@@ -9,8 +9,9 @@ namespace EventStore.TestClient;
 /// </summary>
 public class GrpcTestClient
 {
-	private ClientOptions _options;
-	private ILogger _log;
+	private readonly ClientOptions _options;
+	private readonly ILogger _log;
+	private readonly Func<EventStoreClientSettings> _settingsFactory;
 
 	/// <summary>
 	/// Constructs a new <see cref="GrpcTestClient"/>
@@ -18,9 +19,18 @@ public class GrpcTestClient
 	/// <param name="options"></param>
 	/// <param name="log"></param>
 	public GrpcTestClient(ClientOptions options, ILogger log)
+		: this(options, log, null)
+	{
+	}
+
+	internal GrpcTestClient(
+		ClientOptions options,
+		ILogger log,
+		Func<EventStoreClientSettings> settingsFactory)
 	{
 		_options = options;
 		_log = log;
+		_settingsFactory = settingsFactory;
 	}
 
 	/// <summary>
@@ -28,9 +38,21 @@ public class GrpcTestClient
 	/// </summary>
 	/// <returns></returns>
 	public EventStoreClient CreateGrpcClient()
+		=> CreateGrpcClient(requireLeader: true);
+
+	internal EventStoreClient CreateGrpcClient(bool requireLeader)
 	{
 		_log.Debug("Creating gRPC client with connection string '{connectionString}'.", ConnectionString);
-		return new EventStoreClient(Settings);
+		return new EventStoreClient(CreateClientSettings(requireLeader));
+	}
+
+	internal EventStoreClientSettings CreateClientSettings(bool requireLeader)
+	{
+		var settings = Settings;
+		settings.ConnectivitySettings.NodePreference = requireLeader
+			? NodePreference.Leader
+			: NodePreference.Random;
+		return settings;
 	}
 
 	internal EventStoreOperationsClient CreateOperationsClient()
@@ -46,7 +68,9 @@ public class GrpcTestClient
 		string.IsNullOrWhiteSpace(Settings.DefaultCredentials?.Username) ||
 		string.IsNullOrWhiteSpace(Settings.DefaultCredentials?.Password);
 
-	internal EventStoreClientSettings Settings => EventStoreClientSettings.Create(ConnectionString);
+	internal EventStoreClientSettings Settings =>
+		_settingsFactory?.Invoke() ?? EventStoreClientSettings.Create(ConnectionString);
+	internal ClientOptions Options => _options;
 
 	internal Uri HttpEndpoint => new(
 		$"{(_options.UseTls ? "https" : "http")}://{_options.Host}:{_options.HttpPort}");

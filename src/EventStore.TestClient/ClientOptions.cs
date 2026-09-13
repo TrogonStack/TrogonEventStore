@@ -19,6 +19,9 @@ public sealed record ClientOptions
 	public string Host { get; init; }
 	public int HttpPort { get; init; }
 	public int Timeout { get; init; }
+	public int ReadWindow { get; init; }
+	public int WriteWindow { get; init; }
+	public int PingWindow { get; init; }
 	public string[] Command { get; init; }
 
 	public bool UseTls { get; init; }
@@ -34,6 +37,9 @@ public sealed record ClientOptions
 		Host = IPAddress.Loopback.ToString();
 		HttpPort = 2113;
 		Timeout = -1;
+		ReadWindow = 2000;
+		WriteWindow = 2000;
+		PingWindow = 2000;
 		UseTls = false;
 		TlsValidateServer = false;
 		ConnectionString = string.Empty;

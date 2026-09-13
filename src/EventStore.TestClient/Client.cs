@@ -23,12 +23,20 @@ public class Client
 	private readonly CommandsProcessor _commands = new CommandsProcessor(Log);
 
 	public Client(ClientOptions options, CancellationTokenSource cancellationTokenSource)
+		: this(options, cancellationTokenSource, null)
+	{
+	}
+
+	internal Client(
+		ClientOptions options,
+		CancellationTokenSource cancellationTokenSource,
+		GrpcTestClient grpcTestClient)
 	{
 		Options = options;
 
 		InteractiveMode = options.Command.IsEmpty();
 
-		_grpcTestClient = new GrpcTestClient(options, Log);
+		_grpcTestClient = grpcTestClient ?? new GrpcTestClient(options, Log);
 
 		RegisterProcessors(cancellationTokenSource);
 	}
@@ -43,19 +51,13 @@ public class Client
 		_commands.Register(writeFlood);
 
 		foreach (var processor in GrpcCommands.CompatibilityProcessor.CreateSupportedProcessors())
+		{
 			_commands.Register(processor);
+		}
 
 		_commands.Register(new GrpcCommands.DelegatingProcessor(
 			"WRFL",
 			"WRFL [<clients> <requests> [<streams-cnt> [<size> [<batchsize> [<stream-prefix>]]]]]",
-			writeFlood));
-		_commands.Register(new GrpcCommands.DelegatingProcessor(
-			"WRFLCA",
-			"WRFLCA [<clients> <requests> [<streams-cnt> [<size>]]]",
-			writeFlood));
-		_commands.Register(new GrpcCommands.DelegatingProcessor(
-			"WRFLTCP",
-			"WRFLTCP [<clients> <requests> [<streams-cnt> [<size> [<batchsize> [<stream-prefix>]]]]]",
 			writeFlood));
 	}
 

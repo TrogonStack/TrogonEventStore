@@ -22,52 +22,9 @@ internal class ReadAllProcessor : ICmdProcessor
 
 	public bool Execute(CommandProcessorContext context, string[] args)
 	{
-		Direction direction = Direction.Forwards;
-		Position position = Position.Start;
-		bool forward = true;
-		bool positionOverridden = false;
-		int clientCount = 1;
-
-		if (args.Length > 0)
+		if (!ReadAllWorkload.TryParse(args, out var workload))
 		{
-			if (args.Length > 4)
-			{
-				return false;
-			}
-
-			if (args[0].ToUpper() == "F")
-			{
-				forward = true;
-			}
-			else if (args[0].ToUpper() == "B")
-			{
-				forward = false;
-			}
-			else
-			{
-				return false;
-			}
-
-			if (args.Length > 1)
-			{
-				clientCount = MetricPrefixValue.ParseInt(args[1]);
-			}
-
-			if (args.Length == 4)
-			{
-				positionOverridden = true;
-				if (!ulong.TryParse(args[2], out var commitPos) || !ulong.TryParse(args[3], out var preparePos))
-				{
-					return false;
-				}
-
-				position = new Position(commitPos, preparePos);
-			}
-		}
-
-		if (!positionOverridden)
-		{
-			position = forward ? Position.Start : Position.End;
+			return false;
 		}
 
 		context.IsAsync();
@@ -78,25 +35,22 @@ internal class ReadAllProcessor : ICmdProcessor
 			return true;
 		}
 
-		var task = ReadAll(context, clientCount, direction, position);
+		var task = ReadAll(context, workload);
 		task.Wait();
 
 		return true;
 	}
 
-	private async Task ReadAll(CommandProcessorContext context, int clientCount, Direction direction, Position position)
+	private async Task ReadAll(CommandProcessorContext context, ReadAllWorkload workload)
 	{
-
-		var cts = new CancellationTokenSource();
-
 		ProgressMonitor monitor = new ProgressMonitor(context.Log);
 
 		var clientTasks = new List<Task>();
-		for (int i = 0; i < clientCount; i++)
+		for (int i = 0; i < workload.ClientCount; i++)
 		{
 			if (i > 0)
 			{
-				await Task.Delay(TimeSpan.FromSeconds(30));
+				await Task.Delay(TimeSpan.FromSeconds(30), context.CancellationToken);
 			}
 
 			EventStoreClient client = context._grpcTestClient.CreateGrpcClient();
@@ -107,13 +61,16 @@ internal class ReadAllProcessor : ICmdProcessor
 
 		monitor.Stop();
 		context.Log.Information("=== Reading ALL {readDirection} completed in {elapsed}. Total read: {total}",
-			direction, monitor.Duration, monitor.Total);
+			workload.Direction, monitor.Duration, monitor.Total);
 		context.Success();
 
 		async Task ReadAllTask(EventStoreClient c)
 		{
-			var r = c.ReadAllAsync(direction, position, cancellationToken: cts.Token);
-			await foreach (var _ in r.Messages.WithCancellation(cts.Token))
+			var r = c.ReadAllAsync(
+				workload.Direction,
+				workload.Position,
+				cancellationToken: context.CancellationToken);
+			await foreach (var _ in r.Messages.WithCancellation(context.CancellationToken))
 			{
 				monitor.Increment();
 			}

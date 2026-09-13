@@ -78,8 +78,6 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 			args => args.Length == 0 || args.Length is 2 or 3);
 		yield return new CompatibilityProcessor("MWRFLW", "MWRFLW [<events-count> [<clients> <requests>]]", MultiWriteFloodWaiting,
 			args => args.Length is 0 or 1 or 3);
-		yield return new CompatibilityProcessor("TWR", "TWR [<stream-id> [<expected-version> [<events-cnt>]]]", TransactionWrite,
-			args => args.Length <= 3);
 		yield return new CompatibilityProcessor("DEL", "DEL [<stream-id> [<expected-version>]]", Delete,
 			args => args.Length <= 2);
 		yield return new CompatibilityProcessor("RD", "RD [<stream-id> [<from-number> [<only-if-leader>]]]", Read,
@@ -102,8 +100,12 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 			args => args.Length == 0);
 	}
 
-	private static EventData Event(string data = "test-data", string metadata = "", bool isJson = false) =>
-		new(Uuid.FromGuid(Guid.NewGuid()), "TakeSomeSpaceEvent", Utf8NoBom.GetBytes(data), Utf8NoBom.GetBytes(metadata),
+	private static EventData Event(
+		string data = "test-data",
+		string metadata = "",
+		bool isJson = false,
+		string eventType = "TakeSomeSpaceEvent") =>
+		new(Uuid.FromGuid(Guid.NewGuid()), eventType, Utf8NoBom.GetBytes(data), Utf8NoBom.GetBytes(metadata),
 			isJson ? "application/json" : "application/octet-stream");
 
 	private static async Task Append(
@@ -126,7 +128,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 
 	private static async Task Ping(CommandProcessorContext context, string[] args)
 	{
-		var client = context._grpcTestClient.CreateGrpcClient();
+		var client = context._grpcTestClient.CreateGrpcClient(requireLeader: false);
 		await Ping(client, context.CancellationToken);
 	}
 
@@ -139,28 +141,94 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 
 	private static async Task PingFlood(CommandProcessorContext context, string[] args)
 	{
-		var clients = args.Length == 0 ? 1 : MetricPrefixValue.ParseInt(args[0]);
-		var messages = args.Length == 0 ? 5000 : MetricPrefixValue.ParseInt(args[1]);
-		await Task.WhenAll(Enumerable.Range(0, clients).Select(_ =>
+		var workload = FloodWorkload.Parse(
+			args,
+			defaultRequestCount: 1_000_000,
+			maxInFlight: context._grpcTestClient.Options.PingWindow);
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		await Task.WhenAll(Enumerable.Range(0, workload.ClientCount).Select(clientIndex =>
 		{
-			var client = context._grpcTestClient.CreateGrpcClient();
-			return Task.WhenAll(Enumerable.Range(0, messages)
-				.Select(_ => Ping(client, context.CancellationToken)));
+			var client = context._grpcTestClient.CreateGrpcClient(requireLeader: false);
+			return RunBounded(
+				workload.RequestsForClient(clientIndex),
+				workload.MaxInFlightPerClient,
+				() => Ping(client, context.CancellationToken));
 		}));
+		stopwatch.Stop();
+		LogFloodCompletion(context, "PINGFL", workload, stopwatch.Elapsed);
 	}
 
 	private static async Task PingFloodWaiting(CommandProcessorContext context, string[] args)
 	{
-		var clients = args.Length == 0 ? 1 : MetricPrefixValue.ParseInt(args[0]);
-		var messages = args.Length == 0 ? 5000 : MetricPrefixValue.ParseInt(args[1]);
-		await Task.WhenAll(Enumerable.Range(0, clients).Select(async _ =>
+		var workload = FloodWorkload.Parse(args, defaultRequestCount: 100_000, maxInFlight: 1);
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		await Task.WhenAll(Enumerable.Range(0, workload.ClientCount).Select(async clientIndex =>
 		{
-			var client = context._grpcTestClient.CreateGrpcClient();
-			for (var i = 0; i < messages; i++)
+			var client = context._grpcTestClient.CreateGrpcClient(requireLeader: false);
+			for (long i = 0; i < workload.RequestsForClient(clientIndex); i++)
 			{
 				await Ping(client, context.CancellationToken);
 			}
 		}));
+		stopwatch.Stop();
+		LogFloodCompletion(context, "PINGFLW", workload, stopwatch.Elapsed, includeLatency: true);
+	}
+
+	private static void LogFloodCompletion(
+		CommandProcessorContext context,
+		string command,
+		FloodWorkload workload,
+		TimeSpan elapsed,
+		bool includeLatency = false)
+	{
+		var rate = elapsed.TotalMilliseconds == 0
+			? 0
+			: workload.RequestCount / elapsed.TotalMilliseconds * 1_000;
+		context.Log.Information(
+			"{requests} requests completed in {elapsed}ms ({rate:0.00} reqs per sec).",
+			workload.RequestCount,
+			elapsed.TotalMilliseconds,
+			rate);
+		PerfUtils.LogData(
+			command,
+			PerfUtils.Row(
+				PerfUtils.Col("clientsCnt", workload.ClientCount),
+				PerfUtils.Col("requestsCnt", workload.RequestCount),
+				PerfUtils.Col("ElapsedMilliseconds", elapsed.TotalMilliseconds)));
+		PerfUtils.LogTeamCityGraphData(
+			$"{command}-{workload.ClientCount}-{workload.RequestCount}-reqPerSec",
+			(int)rate);
+		if (includeLatency && workload.RequestCount > 0)
+		{
+			PerfUtils.LogTeamCityGraphData(
+				$"{command}-latency-ms",
+				(int)Math.Round(elapsed.TotalMilliseconds / workload.RequestCount));
+		}
+	}
+
+	private static async Task RunBounded(long requestCount, int maxInFlight, Func<Task> operation)
+	{
+		var pending = new List<Task>(maxInFlight);
+		for (long request = 0; request < requestCount; request++)
+		{
+			pending.Add(operation());
+			if (pending.Count < maxInFlight)
+			{
+				continue;
+			}
+
+			await Task.WhenAny(pending);
+			for (var index = pending.Count - 1; index >= 0; index--)
+			{
+				if (pending[index].IsCompleted)
+				{
+					await pending[index];
+					pending.RemoveAt(index);
+				}
+			}
+		}
+
+		await Task.WhenAll(pending);
 	}
 
 	private static async Task Write(CommandProcessorContext context, string[] args)
@@ -197,30 +265,25 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		var stream = args.Length >= 2 ? args[1] : "test-stream";
 		var expected = ExpectedRevision.Parse(args.Length >= 3 ? args[2] : "ANY");
 		await Append(context._grpcTestClient.CreateGrpcClient(), stream, expected,
-			Enumerable.Range(0, count).Select(i => Event($"event-{i}")), null, context.CancellationToken);
-	}
-
-	private static Task TransactionWrite(CommandProcessorContext context, string[] args)
-	{
-		var stream = args.Length >= 1 ? args[0] : "test-stream";
-		var expected = args.Length >= 2 ? args[1] : "ANY";
-		var count = args.Length >= 3 ? args[2] : "10";
-		return MultiWrite(context, [count, stream, expected]);
+			Enumerable.Range(0, count).Select(_ => Event(eventType: "type")), null, context.CancellationToken);
 	}
 
 	private static async Task WriteFloodWaiting(CommandProcessorContext context, string[] args)
 	{
 		var clients = args.Length == 0 ? 1 : MetricPrefixValue.ParseInt(args[0]);
 		var requests = args.Length == 0 ? 5000 : MetricPrefixValue.ParseInt(args[1]);
-		var payloadSize = args.Length == 3 ? MetricPrefixValue.ParseInt(args[2]) : 1024;
-		var data = new string('*', Math.Max(0, payloadSize));
+		var payloadSize = args.Length == 3 ? MetricPrefixValue.ParseInt(args[2]) : 356;
+		var dataSize = Math.Max(0, payloadSize - 100);
+		var metadataSize = Math.Min(100, payloadSize);
+		var data = "DATA" + new string('*', dataSize);
+		var metadata = "METADATA" + new string('$', metadataSize);
 		await Task.WhenAll(Enumerable.Range(0, clients).Select(async clientIndex =>
 		{
 			var client = context._grpcTestClient.CreateGrpcClient();
 			var stream = $"write-flood-waiting-{clientIndex}-{Guid.NewGuid():N}";
 			for (var i = clientIndex; i < requests; i += clients)
 			{
-				await client.AppendToStreamAsync(stream, StreamState.Any, [Event(data)],
+				await client.AppendToStreamAsync(stream, StreamState.Any, [Event(data, metadata)],
 					cancellationToken: context.CancellationToken);
 			}
 		}));
@@ -238,7 +301,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 			for (var i = clientIndex; i < requests; i += clients)
 			{
 				await client.AppendToStreamAsync(stream, StreamState.Any,
-					Enumerable.Range(0, eventCount).Select(eventIndex => Event($"event-{eventIndex}")),
+					Enumerable.Range(0, eventCount).Select(_ => Event(eventType: "type")),
 					cancellationToken: context.CancellationToken);
 			}
 		}));
@@ -251,11 +314,11 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		var client = context._grpcTestClient.CreateGrpcClient();
 		if (expected.Revision is { } revision)
 		{
-			await client.DeleteAsync(stream, revision, cancellationToken: context.CancellationToken);
+			await client.TombstoneAsync(stream, revision, cancellationToken: context.CancellationToken);
 		}
 		else
 		{
-			await client.DeleteAsync(stream, expected.State, cancellationToken: context.CancellationToken);
+			await client.TombstoneAsync(stream, expected.State, cancellationToken: context.CancellationToken);
 		}
 	}
 
@@ -263,8 +326,14 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 	{
 		var stream = args.Length >= 1 ? args[0] : "test-stream";
 		var start = args.Length >= 2 ? StreamPosition.FromInt64(MetricPrefixValue.ParseLong(args[1])) : StreamPosition.Start;
-		var read = context._grpcTestClient.CreateGrpcClient().ReadStreamAsync(Direction.Forwards, stream, start,
+		var requireLeader = args.Length >= 3 && bool.Parse(args[2]);
+		var read = context._grpcTestClient.CreateGrpcClient(requireLeader).ReadStreamAsync(Direction.Forwards, stream, start,
 			maxCount: 1, cancellationToken: context.CancellationToken);
+		if (await read.ReadState != ReadState.Ok)
+		{
+			throw new InvalidOperationException($"Stream {stream} was not found.");
+		}
+
 		await foreach (var message in read.Messages.WithCancellation(context.CancellationToken))
 		{
 			context.Log.Information("Read {messageType} from {stream}", message.GetType().Name, stream);
@@ -274,19 +343,39 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 	private static async Task ReadFlood(CommandProcessorContext context, string[] args)
 	{
 		var clients = args.Length == 0 ? 1 : MetricPrefixValue.ParseInt(args[0]);
-		var requests = args.Length == 0 ? 5000 : MetricPrefixValue.ParseInt(args[1]);
-		var streams = args.Length >= 3 ? MetricPrefixValue.ParseInt(args[2]) : 1000;
+		var requests = args.Length == 0 ? 5000 : MetricPrefixValue.ParseLong(args[1]);
+		var streams = args.Length >= 3 ? MetricPrefixValue.ParseInt(args[2]) : 1;
 		var prefix = args.Length >= 4 ? args[3] : "test-stream";
+		var requireLeader = args.Length >= 5 && bool.Parse(args[4]);
+		if (streams <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(args), "Stream count must be positive.");
+		}
+
+		var workload = FloodWorkload.Create(clients, requests, context._grpcTestClient.Options.ReadWindow);
 		await Task.WhenAll(Enumerable.Range(0, clients).Select(async clientIndex =>
 		{
-			var client = context._grpcTestClient.CreateGrpcClient();
-			for (var i = clientIndex; i < requests; i += clients)
-			{
-				var read = client.ReadStreamAsync(Direction.Forwards, $"{prefix}-{i % streams}", StreamPosition.Start,
-					maxCount: 1, cancellationToken: context.CancellationToken);
-				await read.ReadState;
-			}
+			var client = context._grpcTestClient.CreateGrpcClient(requireLeader);
+			var streamIndex = streams / clients * clientIndex;
+			await RunBounded(
+				workload.RequestsForClient(clientIndex),
+				workload.MaxInFlightPerClient,
+				() => ReadOne(client, streams == 1 ? prefix : $"{prefix}-{streamIndex++ % streams}", context.CancellationToken));
 		}));
+	}
+
+	private static async Task ReadOne(EventStoreClient client, string stream, CancellationToken cancellationToken)
+	{
+		var read = client.ReadStreamAsync(
+			Direction.Forwards,
+			stream,
+			StreamPosition.Start,
+			maxCount: 1,
+			cancellationToken: cancellationToken);
+		if (await read.ReadState != ReadState.Ok)
+		{
+			throw new InvalidOperationException($"Stream {stream} was not found.");
+		}
 	}
 
 	private static async Task ReadAll(CommandProcessorContext context, string[] args)
@@ -297,8 +386,9 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		{
 			position = new Position(ulong.Parse(args[1]), ulong.Parse(args[2]));
 		}
+		var requireLeader = args.Length >= 4 && bool.Parse(args[3]);
 
-		var read = context._grpcTestClient.CreateGrpcClient().ReadAllAsync(
+		var read = context._grpcTestClient.CreateGrpcClient(requireLeader).ReadAllAsync(
 			forwards ? Direction.Forwards : Direction.Backwards,
 			position,
 			cancellationToken: context.CancellationToken);
@@ -314,33 +404,128 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		var maxRate = args.Length == 0 ? 2 : MetricPrefixValue.ParseInt(args[2]);
 		var minutes = args.Length == 0 ? 1 : MetricPrefixValue.ParseInt(args[3]);
 		var stream = args.Length == 5 ? args[4] : null;
+		if (clients <= 0 || minRate <= 0 || maxRate < minRate || minutes < 0)
+		{
+			throw new ArgumentOutOfRangeException(
+				nameof(args),
+				"Clients and request rates must be positive, max rate cannot be below min rate, and duration cannot be negative.");
+		}
+
 		using var duration = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
 		duration.CancelAfter(TimeSpan.FromMinutes(minutes));
-		var random = new Random();
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		long successes = 0;
+		long failures = 0;
+		var maxInFlight = Math.Max(1, context._grpcTestClient.Options.WriteWindow / clients);
 		await Task.WhenAll(Enumerable.Range(0, clients).Select(async clientIndex =>
 		{
 			var client = context._grpcTestClient.CreateGrpcClient();
+			var pending = new List<Task>(maxInFlight);
 			while (!duration.IsCancellationRequested)
 			{
-				var rate = minRate == maxRate ? minRate : random.Next(minRate, maxRate + 1);
+				var rate = minRate == maxRate ? minRate : Random.Shared.Next(minRate, maxRate + 1);
+				var interval = TimeSpan.FromSeconds(1d / rate);
 				for (var i = 0; i < rate; i++)
 				{
-					await client.AppendToStreamAsync(stream ?? $"Stream-{clientIndex % 3}", StreamState.Any, [Event()], cancellationToken: duration.Token);
+					if (duration.IsCancellationRequested)
+					{
+						break;
+					}
+
+					var dataSize = Random.Shared.Next(8, 256) * 8;
+					pending.Add(RecordWrite(
+						client,
+						stream ?? $"Stream-{clientIndex % 3}",
+						Event(
+							$"DATA {dataSize:00000} {new string('*', dataSize)}",
+							"METADATA" + new string('$', 100)),
+						context.CancellationToken));
+					if (pending.Count >= maxInFlight)
+					{
+						await DrainCompleted(pending);
+					}
+
+					try
+					{
+						await Task.Delay(interval, duration.Token);
+					}
+					catch (OperationCanceledException) when (duration.IsCancellationRequested)
+					{
+						break;
+					}
 				}
-
-				await Task.Delay(TimeSpan.FromSeconds(1), duration.Token);
 			}
-		}).Select(IgnoreExpectedCancellation));
-	}
 
-	private static async Task IgnoreExpectedCancellation(Task task)
-	{
-		try
+			await Task.WhenAll(pending);
+		}));
+		stopwatch.Stop();
+		var requestCount = successes + failures;
+		var ratePerSecond = stopwatch.ElapsedMilliseconds == 0
+			? 0
+			: 1000d * requestCount / stopwatch.ElapsedMilliseconds;
+		context.Log.Information(
+			"Completed. Successes: {successes}, failures: {failures}. {requests} requests completed in {elapsed}ms ({rate:0.00} reqs per sec).",
+			successes,
+			failures,
+			requestCount,
+			stopwatch.ElapsedMilliseconds,
+			ratePerSecond);
+		PerfUtils.LogData(
+			"WRLT",
+			PerfUtils.Row(
+				PerfUtils.Col("clientsCnt", clients),
+				PerfUtils.Col("requestsCnt", requestCount),
+				PerfUtils.Col("ElapsedMilliseconds", stopwatch.ElapsedMilliseconds)),
+			PerfUtils.Row(PerfUtils.Col("successes", successes), PerfUtils.Col("failures", failures)));
+		PerfUtils.LogTeamCityGraphData($"WRLT-{clients}-{requestCount}-reqPerSec", (int)ratePerSecond);
+		if (requestCount > 0)
 		{
-			await task;
+			PerfUtils.LogTeamCityGraphData(
+				$"WRLT-{clients}-{requestCount}-failureSuccessRate",
+				(int)(100 * failures / requestCount));
 		}
-		catch (OperationCanceledException)
+
+		if (failures > 0)
 		{
+			throw new InvalidOperationException($"{failures} long-term write requests failed.");
+		}
+
+		async Task RecordWrite(
+			EventStoreClient client,
+			string targetStream,
+			EventData eventData,
+			CancellationToken cancellationToken)
+		{
+			try
+			{
+				await client.AppendToStreamAsync(
+					targetStream,
+					StreamState.Any,
+					[eventData],
+					cancellationToken: cancellationToken);
+				Interlocked.Increment(ref successes);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+				throw;
+			}
+			catch
+			{
+				Interlocked.Increment(ref failures);
+			}
+		}
+
+		static async Task DrainCompleted(List<Task> pending)
+		{
+			await Task.WhenAny(pending);
+			for (var index = pending.Count - 1; index >= 0; index--)
+			{
+				if (pending[index].IsCompleted)
+				{
+					await pending[index];
+					pending.RemoveAt(index);
+				}
+			}
 		}
 	}
 
@@ -466,7 +651,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 							client,
 							$"account-{streamIndex}",
 							expected,
-							[VerificationEvent(nextVersion)],
+							[VerificationEventFactory.Create(nextVersion)],
 							null,
 							context.CancellationToken);
 						Volatile.Write(ref heads[streamIndex], nextVersion);
@@ -532,13 +717,6 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		}
 	}
 
-	private static EventData VerificationEvent(int version) =>
-		new(
-			Uuid.FromGuid(Guid.NewGuid()),
-			"BankAccountVerificationEvent",
-			Utf8NoBom.GetBytes($"account-event-{version}"),
-			contentType: "application/octet-stream");
-
 	private static async Task VerifyEventAt(
 		EventStoreClient client,
 		string stream,
@@ -558,7 +736,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 				continue;
 			}
 
-			var expected = VerificationEvent(eventNumber);
+			var expected = VerificationEventFactory.Create(eventNumber);
 			if (observed.ResolvedEvent.Event.EventType != expected.Type ||
 				!observed.ResolvedEvent.Event.Data.Span.SequenceEqual(expected.Data.Span))
 			{

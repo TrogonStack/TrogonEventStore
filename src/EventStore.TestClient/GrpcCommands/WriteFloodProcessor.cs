@@ -110,7 +110,7 @@ internal class WriteFloodProcessor : ICmdProcessor
 		var start = new TaskCompletionSource();
 		stats.StartTime = DateTime.UtcNow;
 		var sw2 = new Stopwatch();
-		var capacity = 2000 / clientsCnt;
+		var capacity = Math.Max(1, context._grpcTestClient.Options.WriteWindow / clientsCnt);
 		var clientTasks = new List<Task>();
 		for (int i = 0; i < clientsCnt; i++)
 		{
