@@ -65,9 +65,6 @@ load_requested_projects() {
         core-clientapi)
             requested_projects=("${core_clientapi_projects[@]}")
             ;;
-        core-clientapi-persistent)
-            requested_projects=("${core_clientapi_projects[@]}")
-            ;;
         core-clientapi-security)
             requested_projects=("${core_clientapi_projects[@]}")
             ;;
@@ -207,9 +204,6 @@ project_filter() {
         core-clientapi:EventStore.Core.Tests)
             printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI"
             ;;
-        core-clientapi-persistent:EventStore.Core.Tests)
-            printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI&(FullyQualifiedName~persistent|FullyQualifiedName~Persistent)&FullyQualifiedName!~EventStore.Core.Tests.ClientAPI.Security"
-            ;;
         core-clientapi-security:EventStore.Core.Tests)
             printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI.Security"
             ;;
@@ -245,9 +239,6 @@ project_timeout() {
 
     case "${TEST_GROUP:-all}:$proj" in
         core-clientapi:EventStore.Core.Tests)
-            printf '%s\n' "20m"
-            ;;
-        core-clientapi-persistent:EventStore.Core.Tests)
             printf '%s\n' "20m"
             ;;
         core-clientapi-security:EventStore.Core.Tests)

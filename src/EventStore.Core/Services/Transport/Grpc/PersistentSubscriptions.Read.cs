@@ -339,7 +339,8 @@ internal partial class PersistentSubscriptions
 		public ValueTask DisposeAsync()
 		{
 			_publisher.Publish(new ClientMessage.UnsubscribeFromStream(Guid.NewGuid(), _correlationId,
-				new NoopEnvelope(), _user));
+				new NoopEnvelope(), _user,
+				ClientMessage.UnsubscribeFromStream.SubscriptionEndReason.ConnectionClosed));
 			_channel.Writer.TryComplete();
 			return new ValueTask(Task.CompletedTask);
 		}

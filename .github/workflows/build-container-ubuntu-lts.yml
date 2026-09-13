@@ -35,7 +35,6 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - test-group-name: core-clientapi-persistent
           - test-group-name: core-clientapi-security
           - test-group-name: core-clientapi-streams
           - test-group-name: core-http

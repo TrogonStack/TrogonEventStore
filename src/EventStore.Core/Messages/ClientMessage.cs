@@ -1928,10 +1928,20 @@ public static partial class ClientMessage
 	[DerivedMessage(CoreMessage.Client)]
 	public partial class UnsubscribeFromStream : ReadRequestMessage
 	{
+		public enum SubscriptionEndReason
+		{
+			Unsubscribed,
+			ConnectionClosed
+		}
+
+		public readonly SubscriptionEndReason Reason;
+
 		public UnsubscribeFromStream(Guid internalCorrId, Guid correlationId, IEnvelope envelope,
-			ClaimsPrincipal user, DateTime? expires = null)
+			ClaimsPrincipal user, SubscriptionEndReason reason = SubscriptionEndReason.Unsubscribed,
+			DateTime? expires = null)
 			: base(internalCorrId, correlationId, envelope, user, expires)
 		{
+			Reason = reason;
 		}
 	}
 

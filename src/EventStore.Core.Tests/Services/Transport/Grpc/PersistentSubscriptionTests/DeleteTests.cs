@@ -168,6 +168,61 @@ public class DeleteTests
 		}
 	}
 
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class deleting_persistent_subscriptions_to_all<TLogFormat, TStreamId>
+		: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private PersistentSubscriptions.PersistentSubscriptionsClient _client;
+
+		protected override Task Given()
+		{
+			_client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+			return Task.CompletedTask;
+		}
+
+		protected override Task When() => Task.CompletedTask;
+
+		[Test]
+		public async Task removes_an_existing_subscription()
+		{
+			var groupName = Guid.NewGuid().ToString();
+			await _client.CreateAsync(CreateAllRequest(groupName), GetCallOptions(AdminCredentials));
+
+			await _client.DeleteAsync(DeleteAllRequest(groupName), GetCallOptions(AdminCredentials));
+
+			var exception = Assert.ThrowsAsync<RpcException>(async () =>
+				await _client.GetInfoAsync(GetAllInfoRequest(groupName), GetCallOptions(AdminCredentials)));
+			Assert.AreEqual(StatusCode.NotFound, exception.StatusCode);
+		}
+
+		[Test]
+		public void deleting_a_missing_subscription_returns_not_found()
+		{
+			var exception = Assert.ThrowsAsync<RpcException>(async () =>
+				await _client.DeleteAsync(
+					DeleteAllRequest(Guid.NewGuid().ToString()),
+					GetCallOptions(AdminCredentials)));
+
+			Assert.AreEqual(StatusCode.NotFound, exception.StatusCode);
+		}
+
+		[Test]
+		public async Task deleting_without_permission_returns_permission_denied_and_preserves_the_subscription()
+		{
+			var groupName = Guid.NewGuid().ToString();
+			await _client.CreateAsync(CreateAllRequest(groupName), GetCallOptions(AdminCredentials));
+
+			var exception = Assert.ThrowsAsync<RpcException>(async () =>
+				await _client.DeleteAsync(DeleteAllRequest(groupName), GetCallOptions()));
+			Assert.AreEqual(StatusCode.PermissionDenied, exception.StatusCode);
+
+			var response = await _client.GetInfoAsync(
+				GetAllInfoRequest(groupName),
+				GetCallOptions(AdminCredentials));
+			Assert.AreEqual(groupName, response.SubscriptionInfo.GroupName);
+		}
+	}
+
 	private static async Task<AsyncDuplexStreamingCall<ReadReq, ReadResp>> SubscribeToPersistentSubscription(
 		PersistentSubscriptions.PersistentSubscriptionsClient client, string streamName, string groupName, CallOptions callOptions)
 	{
@@ -216,6 +271,20 @@ public class DeleteTests
 		}
 	};
 
+	private static CreateReq CreateAllRequest(string groupName) => new()
+	{
+		Options = new CreateReq.Types.Options
+		{
+			GroupName = groupName,
+			All = new CreateReq.Types.AllOptions
+			{
+				Start = new Empty(),
+				NoFilter = new Empty()
+			},
+			Settings = Settings
+		}
+	};
+
 	private static DeleteReq DeleteRequest(string streamName, string groupName) => new()
 	{
 		Options = new DeleteReq.Types.Options
@@ -228,6 +297,15 @@ public class DeleteTests
 		}
 	};
 
+	private static DeleteReq DeleteAllRequest(string groupName) => new()
+	{
+		Options = new DeleteReq.Types.Options
+		{
+			All = new Empty(),
+			GroupName = groupName
+		}
+	};
+
 	private static GetInfoReq GetInfoRequest(string streamName, string groupName) => new()
 	{
 		Options = new GetInfoReq.Types.Options
@@ -237,6 +315,15 @@ public class DeleteTests
 			{
 				StreamName = ByteString.CopyFromUtf8(streamName)
 			}
+		}
+	};
+
+	private static GetInfoReq GetAllInfoRequest(string groupName) => new()
+	{
+		Options = new GetInfoReq.Types.Options
+		{
+			All = new Empty(),
+			GroupName = groupName
 		}
 	};
 
