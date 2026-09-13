@@ -6,14 +6,20 @@ not a release-note mirror for another distribution.
 ## Current baseline
 
 - TrogonEventStore is documented as a FOSS-only server distribution.
-- Application event access is documented as gRPC-first.
+- Database client APIs, cluster replication, and follower-to-leader forwarding
+  are documented as gRPC-only.
 - HTTP documentation is limited to browser UI, health probes, metrics, and
   infrastructure concerns.
+- The server has no documented legacy EventStore TCP protocol listener or TCP
+  transport configuration.
 - Health probes are exposed on `/-/liveness` and `/-/readiness`.
 - Prometheus scraping is exposed on `/-/metrics`.
 - OpenTelemetry documentation covers explicit OTLP export for logs, metrics,
   and traces.
 - The Admin UI is the embedded Blazor UI served by the node.
+- The Admin UI reports shared-endpoint connections and gRPC replication sessions
+  without depending on the removed legacy listener.
+- EventStore.TestClient operational commands exercise the supported gRPC APIs.
 - User-defined projection execution, connector runtimes, SQL-like query
   surfaces, and rich read models are documented as external component work by
   default.
