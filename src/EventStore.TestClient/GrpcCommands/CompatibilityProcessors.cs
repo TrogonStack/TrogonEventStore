@@ -134,7 +134,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 
 	private static async Task Ping(EventStoreClient client, CancellationToken cancellationToken)
 	{
-		var read = client.ReadStreamAsync(Direction.Forwards, $"$test-client-ping-{Guid.NewGuid():N}", StreamPosition.Start,
+		var read = client.ReadStreamAsync(Direction.Forwards, $"test-client-ping-{Guid.NewGuid():N}", StreamPosition.Start,
 			maxCount: 1, cancellationToken: cancellationToken);
 		await read.ReadState;
 	}
@@ -353,6 +353,9 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		}
 
 		var workload = FloodWorkload.Create(clients, requests, context._grpcTestClient.Options.ReadWindow);
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		long successes = 0;
+		long failures = 0;
 		await Task.WhenAll(Enumerable.Range(0, clients).Select(async clientIndex =>
 		{
 			var client = context._grpcTestClient.CreateGrpcClient(requireLeader);
@@ -360,11 +363,34 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 			await RunBounded(
 				workload.RequestsForClient(clientIndex),
 				workload.MaxInFlightPerClient,
-				() => ReadOne(client, streams == 1 ? prefix : $"{prefix}-{streamIndex++ % streams}", context.CancellationToken));
+				async () =>
+				{
+					if (await ReadOne(
+						client,
+						streams == 1 ? prefix : $"{prefix}-{streamIndex++ % streams}",
+						context.CancellationToken))
+					{
+						Interlocked.Increment(ref successes);
+					}
+					else
+					{
+						Interlocked.Increment(ref failures);
+					}
+				});
 		}));
+		stopwatch.Stop();
+		context.Log.Information(
+			"Completed. READS succ: {successes}, fail: {failures}.",
+			successes,
+			failures);
+		LogFloodCompletion(context, "RDFL", workload, stopwatch.Elapsed);
+		if (successes != workload.RequestCount)
+		{
+			throw new InvalidOperationException("There were errors or not all requests completed.");
+		}
 	}
 
-	private static async Task ReadOne(EventStoreClient client, string stream, CancellationToken cancellationToken)
+	private static async Task<bool> ReadOne(EventStoreClient client, string stream, CancellationToken cancellationToken)
 	{
 		var read = client.ReadStreamAsync(
 			Direction.Forwards,
@@ -372,10 +398,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 			StreamPosition.Start,
 			maxCount: 1,
 			cancellationToken: cancellationToken);
-		if (await read.ReadState != ReadState.Ok)
-		{
-			throw new InvalidOperationException($"Stream {stream} was not found.");
-		}
+		return await read.ReadState == ReadState.Ok;
 	}
 
 	private static async Task ReadAll(CommandProcessorContext context, string[] args)
@@ -538,7 +561,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		{
 			context.Log.Information("Subscribing to all streams over gRPC");
 			subscriptions.Add(await client.SubscribeToAllAsync(
-				FromAll.Start,
+				FromAll.End,
 				(_, resolvedEvent, _) => LogSubscriptionEvent(context, resolvedEvent),
 				cancellationToken: context.CancellationToken));
 		}
@@ -549,7 +572,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 				context.Log.Information("Subscribing to stream {stream} over gRPC", stream);
 				subscriptions.Add(await client.SubscribeToStreamAsync(
 					stream,
-					FromStream.Start,
+					FromStream.End,
 					(_, resolvedEvent, _) => LogSubscriptionEvent(context, resolvedEvent),
 					cancellationToken: context.CancellationToken));
 			}
@@ -568,7 +591,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		var interval = System.Diagnostics.Stopwatch.StartNew();
 		for (var i = 0; i < count; i++)
 		{
-			subscriptions.Add(await client.SubscribeToStreamAsync($"stream-{i}", FromStream.Start,
+			subscriptions.Add(await client.SubscribeToStreamAsync($"stream-{i}", FromStream.End,
 				(_, _, _) =>
 				{
 					var observed = Interlocked.Increment(ref appeared);
@@ -779,8 +802,8 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 	{
 		public static ExpectedRevision Parse(string value) => value.ToUpperInvariant() switch
 		{
-			"ANY" => new(StreamState.Any, null),
-			"NO_STREAM" or "NOSTREAM" => new(StreamState.NoStream, null),
+			"ANY" or "-2" => new(StreamState.Any, null),
+			"NO_STREAM" or "NOSTREAM" or "-1" => new(StreamState.NoStream, null),
 			_ => new(default, StreamRevision.FromInt64(long.Parse(value)))
 		};
 	}

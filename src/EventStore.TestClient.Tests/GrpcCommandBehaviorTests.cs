@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client;
@@ -151,6 +152,105 @@ public class GrpcCommandBehaviorTests
 	}
 
 	[Test]
+	public void ping_uses_a_user_stream_for_unauthenticated_connectivity_checks()
+	{
+		var handler = new RecordingGrpcHandler();
+		var result = RunCommand("PING", handler);
+		var request = handler.Requests.Single(request => request.Path.EndsWith("/Read", StringComparison.Ordinal));
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(result, Is.Zero);
+			Assert.That(Encoding.UTF8.GetString(request.Body), Does.Not.Contain("$test-client-ping"));
+		});
+	}
+
+	[TestCase("SUBSCR", true, null)]
+	[TestCase("SUBSCR test-stream", false, "test-stream")]
+	[TestCase("SST 1", false, "stream-0")]
+	public async Task subscriptions_start_from_the_live_position(string command, bool subscribeToAll, string stream)
+	{
+		var expected = await RecordSubscriptionRequest(subscribeToAll, stream);
+		var handler = new RecordingGrpcHandler
+		{
+			Failure = new HttpRequestException("stop after recording"),
+			FailurePath = "/event_store.client.streams.Streams/Read"
+		};
+
+		RunCommand(command, handler);
+
+		Assert.That(
+			handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body,
+			Is.EqualTo(expected));
+	}
+
+	[Test]
+	public void read_flood_completes_every_request_before_reporting_missing_streams()
+	{
+		var handler = new RecordingGrpcHandler();
+		var result = RunCommand("RDFL 2 5 1 missing-stream", handler, new ClientOptions { ReadWindow = 1 });
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(result, Is.Not.Zero);
+			Assert.That(handler.Requests.Count(request => request.Path.EndsWith("/Read", StringComparison.Ordinal)),
+				Is.EqualTo(5));
+		});
+	}
+
+	[TestCase("-1", "NOSTREAM")]
+	[TestCase("-2", "ANY")]
+	public void expected_version_sentinels_preserve_their_historical_meaning(string sentinel, string name)
+	{
+		var expectedHandler = new RecordingGrpcHandler();
+		Assert.That(RunCommand($"DEL test-stream {name}", expectedHandler), Is.Zero);
+
+		var sentinelHandler = new RecordingGrpcHandler();
+		Assert.That(RunCommand($"DEL test-stream {sentinel}", sentinelHandler), Is.Zero);
+
+		Assert.That(
+			sentinelHandler.Requests.Single(request => request.Path.EndsWith("/Tombstone", StringComparison.Ordinal)).Body,
+			Is.EqualTo(expectedHandler.Requests.Single(request => request.Path.EndsWith("/Tombstone", StringComparison.Ordinal)).Body));
+	}
+
+	[Test]
+	public void grpc_http_endpoint_uses_the_resolved_single_node_address()
+	{
+		var settings = EventStoreClientSettings.Create("esdb://configured.example:3210?tls=false");
+		var grpcClient = new GrpcTestClient(
+			new ClientOptions { Host = "ignored.example", HttpPort = 9999 },
+			Serilog.Log.Logger,
+			() => settings);
+
+		Assert.That(grpcClient.HttpEndpoint, Is.EqualTo(settings.ConnectivitySettings.Address));
+	}
+
+	[Test]
+	public void grpc_http_endpoint_rejects_discovery_connections()
+	{
+		var settings = EventStoreClientSettings.Create("esdb+discover://localhost:2113?tls=false");
+		var grpcClient = new GrpcTestClient(new ClientOptions(), Serilog.Log.Logger, () => settings);
+
+		Assert.That(() => grpcClient.HttpEndpoint, Throws.InvalidOperationException);
+	}
+
+	[Test]
+	public void what_if_options_do_not_render_connection_string_credentials()
+	{
+		var rendered = new ClientOptions
+		{
+			ConnectionString = "esdb://test-user:test-password@localhost:2113?tls=false"
+		}.ToString();
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(rendered, Does.Not.Contain("test-user"));
+			Assert.That(rendered, Does.Not.Contain("test-password"));
+			Assert.That(rendered, Does.Contain("ConnectionString: [REDACTED]"));
+		});
+	}
+
+	[Test]
 	public void grpc_read_all_preserves_backward_direction_and_default_position()
 	{
 		Assert.That(ReadAllWorkload.TryParse(["B", "1"], out var workload), Is.True);
@@ -162,11 +262,54 @@ public class GrpcCommandBehaviorTests
 		});
 	}
 
+	private static int RunCommand(string command, RecordingGrpcHandler handler, ClientOptions options = null)
+	{
+		options = (options ?? new ClientOptions()) with { Command = [command] };
+		var grpcClient = new GrpcTestClient(options, Serilog.Log.Logger, () =>
+		{
+			var settings = EventStoreClientSettings.Create("esdb://localhost:2113?tls=false");
+			settings.CreateHttpMessageHandler = () => handler;
+			return settings;
+		});
+		using var cancellation = new CancellationTokenSource();
+		return new Client(options, cancellation, grpcClient).Run(cancellation.Token);
+	}
+
+	private static async Task<byte[]> RecordSubscriptionRequest(bool subscribeToAll, string stream)
+	{
+		var handler = new RecordingGrpcHandler
+		{
+			Failure = new HttpRequestException("stop after recording"),
+			FailurePath = "/event_store.client.streams.Streams/Read"
+		};
+		var settings = EventStoreClientSettings.Create("esdb://localhost:2113?tls=false");
+		settings.CreateHttpMessageHandler = () => handler;
+		using var client = new EventStoreClient(settings);
+		try
+		{
+			if (subscribeToAll)
+			{
+				await client.SubscribeToAllAsync(FromAll.End, (_, _, _) => Task.CompletedTask);
+			}
+			else
+			{
+				await client.SubscribeToStreamAsync(stream, FromStream.End, (_, _, _) => Task.CompletedTask);
+			}
+		}
+		catch (Grpc.Core.RpcException)
+		{
+		}
+
+		return handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body;
+	}
+
 	private sealed class RecordingGrpcHandler : HttpMessageHandler
 	{
 		public ConcurrentBag<RecordedGrpcRequest> Requests { get; } = [];
+		public Exception Failure { get; init; }
+		public string FailurePath { get; init; }
 
-		protected override Task<HttpResponseMessage> SendAsync(
+		protected override async Task<HttpResponseMessage> SendAsync(
 			HttpRequestMessage request,
 			CancellationToken cancellationToken)
 		{
@@ -174,7 +317,15 @@ public class GrpcCommandBehaviorTests
 			var requiresLeader = request.Headers.TryGetValues("requires-leader", out var values)
 				? values.Single()
 				: null;
-			Requests.Add(new RecordedGrpcRequest(path, requiresLeader));
+			var body = request.Content is null
+				? []
+				: await request.Content.ReadAsByteArrayAsync(cancellationToken);
+			Requests.Add(new RecordedGrpcRequest(path, requiresLeader, body));
+			if (Failure is not null && (FailurePath is null || path == FailurePath))
+			{
+				throw Failure;
+			}
+
 			var payload = path.EndsWith("/Tombstone", StringComparison.Ordinal)
 				? new byte[] { 0x0a, 0x00 }
 				: path.EndsWith("/Read", StringComparison.Ordinal)
@@ -190,9 +341,9 @@ public class GrpcCommandBehaviorTests
 			};
 			response.Content.Headers.ContentType = new("application/grpc");
 			response.TrailingHeaders.Add("grpc-status", "0");
-			return Task.FromResult(response);
+			return response;
 		}
 	}
 
-	private sealed record RecordedGrpcRequest(string Path, string RequiresLeader);
+	private sealed record RecordedGrpcRequest(string Path, string RequiresLeader, byte[] Body);
 }

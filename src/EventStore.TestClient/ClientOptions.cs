@@ -54,8 +54,12 @@ public sealed record ClientOptions
 				(builder, option) => builder.AppendLine($"{option.Name}: {GetValue(option)}"))
 			.ToString();
 
-		object GetValue(PropertyInfo propertyInfo) => propertyInfo.PropertyType.IsArray
-			? string.Join(",", ((IEnumerable)propertyInfo.GetValue(this)).OfType<object>())
-			: propertyInfo.GetValue(this);
+		object GetValue(PropertyInfo propertyInfo) => propertyInfo.Name switch
+		{
+			nameof(ConnectionString) when !string.IsNullOrEmpty(ConnectionString) => "[REDACTED]",
+			_ when propertyInfo.PropertyType.IsArray =>
+				string.Join(",", ((IEnumerable)propertyInfo.GetValue(this)).OfType<object>()),
+			_ => propertyInfo.GetValue(this)
+		};
 	}
 }

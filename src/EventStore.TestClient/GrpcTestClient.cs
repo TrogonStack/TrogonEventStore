@@ -42,7 +42,7 @@ public class GrpcTestClient
 
 	internal EventStoreClient CreateGrpcClient(bool requireLeader)
 	{
-		_log.Debug("Creating gRPC client with connection string '{connectionString}'.", ConnectionString);
+		_log.Debug("Creating gRPC client.");
 		return new EventStoreClient(CreateClientSettings(requireLeader));
 	}
 
@@ -57,7 +57,7 @@ public class GrpcTestClient
 
 	internal EventStoreOperationsClient CreateOperationsClient()
 	{
-		_log.Debug("Creating gRPC operations client with connection string '{connectionString}'.", ConnectionString);
+		_log.Debug("Creating gRPC operations client.");
 		return new EventStoreOperationsClient(Settings);
 	}
 
@@ -72,8 +72,8 @@ public class GrpcTestClient
 		_settingsFactory?.Invoke() ?? EventStoreClientSettings.Create(ConnectionString);
 	internal ClientOptions Options => _options;
 
-	internal Uri HttpEndpoint => new(
-		$"{(_options.UseTls ? "https" : "http")}://{_options.Host}:{_options.HttpPort}");
+	internal Uri HttpEndpoint => Settings.ConnectivitySettings.Address ??
+		throw new InvalidOperationException("CHKGRPC requires a single-node connection string.");
 
 	private string ConnectionString => string.IsNullOrWhiteSpace(_options.ConnectionString)
 		? $"esdb://{_options.Host}:{_options.HttpPort}?tls={_options.UseTls}&tlsVerifyCert={_options.TlsValidateServer}"
