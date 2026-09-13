@@ -37,7 +37,30 @@ public class GrpcReplicaServiceFactoryTests
 
 		Assert.That(nodeHttpClientFactory.AdditionalCertificateNames, Is.EqualTo(new[] { "cluster.internal" }));
 		client.Dispose();
-		Assert.That(nodeHttpClientFactory.Handler.Disposed, Is.True);
+		Assert.That(nodeHttpClientFactory.TransportHandler.Disposed, Is.True);
+	}
+
+	[Test]
+	public void replication_client_normalizes_legacy_sub_second_heartbeat_values()
+	{
+		var nodeHttpClientFactory = new RecordingNodeHttpClientFactory();
+		var factory = new ReplicationGrpcClientFactory(
+			Uri.UriSchemeHttps,
+			nodeHttpClientFactory,
+			TimeSpan.FromMilliseconds(700),
+			TimeSpan.FromMilliseconds(700));
+
+		using var client = factory.Create(new DnsEndPoint("leader.internal", 1112));
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(nodeHttpClientFactory.SocketsHandler.KeepAlivePingDelay,
+				Is.EqualTo(TimeSpan.FromSeconds(1)));
+			Assert.That(nodeHttpClientFactory.SocketsHandler.KeepAlivePingTimeout,
+				Is.EqualTo(TimeSpan.FromSeconds(1)));
+			Assert.That(nodeHttpClientFactory.SocketsHandler.KeepAlivePingPolicy,
+				Is.EqualTo(HttpKeepAlivePingPolicy.Always));
+		});
 	}
 
 	[Test]
@@ -99,7 +122,8 @@ public class GrpcReplicaServiceFactoryTests
 
 	private sealed class RecordingNodeHttpClientFactory : INodeHttpClientFactory
 	{
-		public RecordingHttpMessageHandler Handler { get; } = new();
+		public RecordingHttpMessageHandler TransportHandler { get; } = new();
+		public SocketsHttpHandler SocketsHandler { get; } = new();
 		public string[] AdditionalCertificateNames { get; private set; }
 
 		public HttpClient CreateHttpClient(
@@ -107,7 +131,8 @@ public class GrpcReplicaServiceFactoryTests
 			Action<SocketsHttpHandler> configureSocketsHttpHandler = null)
 		{
 			AdditionalCertificateNames = additionalCertificateNames;
-			return new HttpClient(Handler);
+			configureSocketsHttpHandler?.Invoke(SocketsHandler);
+			return new HttpClient(TransportHandler);
 		}
 	}
 

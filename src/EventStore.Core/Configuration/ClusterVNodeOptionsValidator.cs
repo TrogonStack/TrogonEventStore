@@ -32,6 +32,23 @@ public static class ClusterVNodeOptionsValidator
 			throw new ArgumentNullException(nameof(options.Interface.ReplicationIp));
 		}
 
+		if (options.Interface.NodePort == options.Interface.ReplicationPort &&
+			EndpointsOverlap(options.Interface.NodeIp, options.Interface.ReplicationIp))
+		{
+			throw new ArgumentException(
+				$"{nameof(options.Interface.NodePort)} and {nameof(options.Interface.ReplicationPort)} cannot bind the same endpoint.");
+		}
+
+		if (options.Interface.ReplicationHeartbeatInterval <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(options.Interface.ReplicationHeartbeatInterval));
+		}
+
+		if (options.Interface.ReplicationHeartbeatTimeout <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(options.Interface.ReplicationHeartbeatTimeout));
+		}
+
 		if (options.Cluster.ClusterSize <= 0)
 		{
 			throw new ArgumentOutOfRangeException(nameof(options.Cluster.ClusterSize), options.Cluster.ClusterSize,
@@ -173,5 +190,12 @@ public static class ClusterVNodeOptionsValidator
 
 		return true;
 	}
+
+	private static bool EndpointsOverlap(System.Net.IPAddress first, System.Net.IPAddress second) =>
+		first.Equals(second) ||
+		first.Equals(System.Net.IPAddress.Any) ||
+		second.Equals(System.Net.IPAddress.Any) ||
+		first.Equals(System.Net.IPAddress.IPv6Any) ||
+		second.Equals(System.Net.IPAddress.IPv6Any);
 
 }

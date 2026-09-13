@@ -188,8 +188,8 @@ enum NotHandledReason {
 }
 
 message LeaderInfo {
-	EndPoint external_tcp = 1;
-	bool is_secure = 2;
+	reserved 1, 2;
+	reserved "external_tcp", "is_secure";
 	EndPoint http = 3;
 }
 

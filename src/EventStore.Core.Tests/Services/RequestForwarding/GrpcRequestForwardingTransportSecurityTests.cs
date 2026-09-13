@@ -53,7 +53,7 @@ public class GrpcRequestForwardingTransportSecurityTests
 
 		supervisor.Handle(new ClientMessage.ForwardMessage(request));
 
-		var response = publisher.Messages.OfType<TcpMessage.NotAuthenticated>().Single();
+		var response = publisher.Messages.OfType<ClientMessage.NotAuthenticated>().Single();
 		Assert.That(response.CorrelationId, Is.EqualTo(request.InternalCorrId));
 	}
 
@@ -119,13 +119,8 @@ public class GrpcRequestForwardingTransportSecurityTests
 		DateTime.UtcNow,
 		VNodeState.Leader,
 		true,
-		new DnsEndPoint("leader-replication.internal", 1112),
-		new DnsEndPoint("leader-replication.internal", 1113),
-		null,
-		null,
 		new DnsEndPoint("leader.internal", 2113),
 		null,
-		0,
 		0,
 		0,
 		0,

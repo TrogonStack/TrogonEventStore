@@ -57,14 +57,9 @@ namespace EventStore.Core.Services.Gossip
 				_timeProvider.UtcNow,
 				initialState,
 				true,
-				_memberInfo.InternalTcpEndPoint,
-				_memberInfo.InternalSecureTcpEndPoint,
-				_memberInfo.ExternalTcpEndPoint,
-				_memberInfo.ExternalSecureTcpEndPoint,
 				_memberInfo.HttpEndPoint,
 				_memberInfo.AdvertiseHostToClientAs,
 				_memberInfo.AdvertiseHttpPortToClientAs,
-				_memberInfo.AdvertiseTcpPortToClientAs,
 				_getLastCommitPosition(),
 				_writerCheckpoint.Read(),
 				_chaserCheckpoint.Read(),
@@ -72,7 +67,8 @@ namespace EventStore.Core.Services.Gossip
 				lastEpoch == null ? -1 : lastEpoch.EpochNumber,
 				lastEpoch == null ? Guid.Empty : lastEpoch.EpochId,
 				_nodePriority,
-				_memberInfo.IsReadOnlyReplica, _memberInfo.ESVersion);
+				_memberInfo.IsReadOnlyReplica, _memberInfo.ESVersion,
+				_memberInfo.ReplicationEndPoint);
 		}
 
 		protected override MemberInfo GetUpdatedMe(MemberInfo me)
