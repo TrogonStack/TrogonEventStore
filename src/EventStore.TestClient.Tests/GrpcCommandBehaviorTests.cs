@@ -151,6 +151,53 @@ public class GrpcCommandBehaviorTests
 		});
 	}
 
+	[TestCase("WRFLW 2 4")]
+	[TestCase("MWRFLW 2 2 4")]
+	public void waiting_write_floods_finish_every_request_before_reporting_failures(string command)
+	{
+		var handler = new RecordingGrpcHandler
+		{
+			Failure = new HttpRequestException("first append failed"),
+			FailurePath = "/event_store.client.streams.Streams/Append",
+			FailureLimit = 1
+		};
+
+		var result = RunCommand(command, handler);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(result, Is.Not.Zero);
+			Assert.That(handler.Requests.Count(request => request.Path.EndsWith("/Append", StringComparison.Ordinal)),
+				Is.EqualTo(4));
+		});
+	}
+
+	[TestCase("WRFLW 1 3G")]
+	[TestCase("MWRFLW 1 1 3G")]
+	public void waiting_write_floods_accept_long_request_totals(string command)
+	{
+		using var cancellation = new CancellationTokenSource();
+		var handler = new RecordingGrpcHandler
+		{
+			OnRequest = request =>
+			{
+				if (request.RequestUri!.AbsolutePath.EndsWith("/Append", StringComparison.Ordinal))
+				{
+					cancellation.Cancel();
+				}
+			}
+		};
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(
+				() => RunCommand(command, handler, new ClientOptions { Timeout = 2 }, cancellation),
+				Throws.InstanceOf<OperationCanceledException>());
+			Assert.That(handler.Requests.Count(request => request.Path.EndsWith("/Append", StringComparison.Ordinal)),
+				Is.EqualTo(1));
+		});
+	}
+
 	[Test]
 	public void ping_uses_a_user_stream_for_unauthenticated_connectivity_checks()
 	{
@@ -182,6 +229,23 @@ public class GrpcCommandBehaviorTests
 		Assert.That(
 			handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body,
 			Is.EqualTo(expected));
+	}
+
+	[TestCase("SUBSCR test-stream")]
+	[TestCase("SST 1")]
+	public void subscriptions_report_server_drops(string command)
+	{
+		var handler = new RecordingGrpcHandler
+		{
+			ReadPayload = [0x12, 0x00],
+			GrpcStatus = "13"
+		};
+		var result = 0;
+
+		Assert.That(
+			() => result = RunCommand(command, handler, new ClientOptions { Timeout = 1 }),
+			Throws.Nothing);
+		Assert.That(result, Is.Not.Zero);
 	}
 
 	[Test]
@@ -340,7 +404,11 @@ public class GrpcCommandBehaviorTests
 		});
 	}
 
-	private static int RunCommand(string command, RecordingGrpcHandler handler, ClientOptions options = null)
+	private static int RunCommand(
+		string command,
+		RecordingGrpcHandler handler,
+		ClientOptions options = null,
+		CancellationTokenSource cancellation = null)
 	{
 		options = (options ?? new ClientOptions()) with { Command = [command] };
 		var grpcClient = new GrpcTestClient(options, Serilog.Log.Logger, () =>
@@ -349,8 +417,19 @@ public class GrpcCommandBehaviorTests
 			settings.CreateHttpMessageHandler = () => handler;
 			return settings;
 		});
-		using var cancellation = new CancellationTokenSource();
-		return new Client(options, cancellation, grpcClient).Run(cancellation.Token);
+		var ownsCancellation = cancellation is null;
+		cancellation ??= new CancellationTokenSource();
+		try
+		{
+			return new Client(options, cancellation, grpcClient).Run(cancellation.Token);
+		}
+		finally
+		{
+			if (ownsCancellation)
+			{
+				cancellation.Dispose();
+			}
+		}
 	}
 
 	private static async Task<byte[]> RecordSubscriptionRequest(bool subscribeToAll, string stream)
@@ -432,12 +511,17 @@ public class GrpcCommandBehaviorTests
 
 	private sealed class RecordingGrpcHandler : HttpMessageHandler
 	{
+		private int _failuresIssued;
+
 		public ConcurrentBag<RecordedGrpcRequest> Requests { get; } = [];
 		public TimeSpan Delay { get; init; }
 		public string DelayPath { get; init; }
 		public Exception Failure { get; init; }
+		public int? FailureLimit { get; init; }
 		public string FailurePath { get; init; }
+		public Action<HttpRequestMessage> OnRequest { get; init; }
 		public byte[] ReadPayload { get; init; } = [0x22, 0x00];
+		public string GrpcStatus { get; init; } = "0";
 
 		protected override async Task<HttpResponseMessage> SendAsync(
 			HttpRequestMessage request,
@@ -456,7 +540,10 @@ public class GrpcCommandBehaviorTests
 				? []
 				: await request.Content.ReadAsByteArrayAsync(cancellationToken);
 			Requests.Add(new RecordedGrpcRequest(path, requiresLeader, body));
-			if (Failure is not null && (FailurePath is null || path == FailurePath))
+			OnRequest?.Invoke(request);
+			cancellationToken.ThrowIfCancellationRequested();
+			if (Failure is not null && (FailurePath is null || path == FailurePath) &&
+				(FailureLimit is null || Interlocked.Increment(ref _failuresIssued) <= FailureLimit))
 			{
 				throw Failure;
 			}
@@ -475,7 +562,7 @@ public class GrpcCommandBehaviorTests
 				Content = new ByteArrayContent(frame)
 			};
 			response.Content.Headers.ContentType = new("application/grpc");
-			response.TrailingHeaders.Add("grpc-status", "0");
+			response.TrailingHeaders.Add("grpc-status", GrpcStatus);
 			return response;
 		}
 	}

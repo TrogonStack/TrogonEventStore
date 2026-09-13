@@ -273,40 +273,75 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 	private static async Task WriteFloodWaiting(CommandProcessorContext context, string[] args)
 	{
 		var clients = args.Length == 0 ? 1 : MetricPrefixValue.ParseInt(args[0]);
-		var requests = args.Length == 0 ? 5000 : MetricPrefixValue.ParseInt(args[1]);
+		var requests = args.Length == 0 ? 5000 : MetricPrefixValue.ParseLong(args[1]);
 		var payloadSize = args.Length == 3 ? MetricPrefixValue.ParseInt(args[2]) : 356;
 		var dataSize = Math.Max(0, payloadSize - 100);
 		var metadataSize = Math.Min(100, payloadSize);
 		var data = "DATA" + new string('*', dataSize);
 		var metadata = "METADATA" + new string('$', metadataSize);
-		await Task.WhenAll(Enumerable.Range(0, clients).Select(async clientIndex =>
-		{
-			var client = context._grpcTestClient.CreateGrpcClient();
-			var stream = $"write-flood-waiting-{clientIndex}-{Guid.NewGuid():N}";
-			for (var i = clientIndex; i < requests; i += clients)
-			{
-				await client.AppendToStreamAsync(stream, StreamState.Any, [Event(data, metadata)],
-					cancellationToken: context.CancellationToken);
-			}
-		}));
+		await RunWaitingWriteFlood(
+			context,
+			"WRFLW",
+			FloodWorkload.Create(clients, requests, maxInFlight: 1),
+			() => [Event(data, metadata)]);
 	}
 
 	private static async Task MultiWriteFloodWaiting(CommandProcessorContext context, string[] args)
 	{
 		var eventCount = args.Length == 0 ? 10 : MetricPrefixValue.ParseInt(args[0]);
 		var clients = args.Length == 3 ? MetricPrefixValue.ParseInt(args[1]) : 1;
-		var requests = args.Length == 3 ? MetricPrefixValue.ParseInt(args[2]) : 5000;
-		await Task.WhenAll(Enumerable.Range(0, clients).Select(async clientIndex =>
+		var requests = args.Length == 3 ? MetricPrefixValue.ParseLong(args[2]) : 5000;
+		await RunWaitingWriteFlood(
+			context,
+			"MWRFLW",
+			FloodWorkload.Create(clients, requests, maxInFlight: 1),
+			() => Enumerable.Range(0, eventCount).Select(_ => Event(eventType: "type")));
+	}
+
+	private static async Task RunWaitingWriteFlood(
+		CommandProcessorContext context,
+		string command,
+		FloodWorkload workload,
+		Func<IEnumerable<EventData>> createEvents)
+	{
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		long successes = 0;
+		long failures = 0;
+		await Task.WhenAll(Enumerable.Range(0, workload.ClientCount).Select(async clientIndex =>
 		{
 			var client = context._grpcTestClient.CreateGrpcClient();
-			var stream = $"multi-write-flood-waiting-{clientIndex}-{Guid.NewGuid():N}";
-			for (var i = clientIndex; i < requests; i += clients)
+			var stream = $"{command.ToLowerInvariant()}-{clientIndex}-{Guid.NewGuid():N}";
+			for (long request = 0; request < workload.RequestsForClient(clientIndex); request++)
 			{
-				await client.AppendToStreamAsync(stream, StreamState.Any,
-					Enumerable.Range(0, eventCount).Select(_ => Event(eventType: "type")),
-					cancellationToken: context.CancellationToken);
+				try
+				{
+					await client.AppendToStreamAsync(
+						stream,
+						StreamState.Any,
+						createEvents(),
+						cancellationToken: context.CancellationToken);
+					Interlocked.Increment(ref successes);
+				}
+				catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
+				{
+					throw;
+				}
+				catch
+				{
+					Interlocked.Increment(ref failures);
+				}
 			}
 		}));
+		stopwatch.Stop();
+		context.Log.Information(
+			"Completed. Successes: {successes}, failures: {failures}",
+			successes,
+			failures);
+		LogFloodCompletion(context, command, workload, stopwatch.Elapsed, includeLatency: true);
+		if (successes != workload.RequestCount)
+		{
+			throw new InvalidOperationException("There were errors or not all requests completed.");
+		}
 	}
 
 	private static async Task Delete(CommandProcessorContext context, string[] args)
@@ -590,6 +625,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 	{
 		var client = context._grpcTestClient.CreateGrpcClient();
 		var subscriptions = new List<StreamSubscription>();
+		var dropped = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		if (args.Length == 0)
 		{
@@ -597,6 +633,8 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 			subscriptions.Add(await client.SubscribeToAllAsync(
 				FromAll.End,
 				(_, resolvedEvent, _) => LogSubscriptionEvent(context, resolvedEvent),
+				subscriptionDropped: (_, reason, exception) => dropped.TrySetResult(
+					exception ?? new InvalidOperationException($"Subscription dropped: {reason}.")),
 				cancellationToken: context.CancellationToken));
 		}
 		else
@@ -608,12 +646,14 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 					stream,
 					FromStream.End,
 					(_, resolvedEvent, _) => LogSubscriptionEvent(context, resolvedEvent),
+					subscriptionDropped: (_, reason, exception) => dropped.TrySetResult(
+						exception ?? new InvalidOperationException($"Subscription dropped: {reason}.")),
 					cancellationToken: context.CancellationToken));
 			}
 		}
 
 		context.Log.Information("Subscribed to {subscriptionCount} streams over gRPC", subscriptions.Count);
-		await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, context.CancellationToken);
+		throw await dropped.Task.WaitAsync(context.CancellationToken);
 	}
 
 	private static async Task SubscriptionStress(CommandProcessorContext context, string[] args)
@@ -621,6 +661,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		var count = args.Length == 0 ? 5000 : MetricPrefixValue.ParseInt(args[0]);
 		var client = context._grpcTestClient.CreateGrpcClient();
 		var subscriptions = new List<StreamSubscription>(count);
+		var dropped = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
 		long appeared = 0;
 		var interval = System.Diagnostics.Stopwatch.StartNew();
 		for (var i = 0; i < count; i++)
@@ -639,11 +680,14 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 					}
 
 					return Task.CompletedTask;
-				}, cancellationToken: context.CancellationToken));
+				},
+				subscriptionDropped: (_, reason, exception) => dropped.TrySetResult(
+					exception ?? new InvalidOperationException($"Subscription dropped: {reason}.")),
+				cancellationToken: context.CancellationToken));
 		}
 
 		context.Log.Information("Subscribed to {subscriptionCount} streams over gRPC", subscriptions.Count);
-		await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, context.CancellationToken);
+		throw await dropped.Task.WaitAsync(context.CancellationToken);
 	}
 
 	private static Task LogSubscriptionEvent(CommandProcessorContext context, ResolvedEvent resolvedEvent)
