@@ -85,7 +85,9 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		yield return new CompatibilityProcessor("RDFL", "RDFL [<clients> <requests> [<streams-cnt> [<stream-prefix> [<require-leader>]]]]", ReadFlood,
 			args => args.Length == 0 || args.Length is >= 2 and <= 5);
 		yield return new CompatibilityProcessor("RDALL", "RDALL [[F|B] [<commit pos> <prepare pos> [<only-if-leader>]]]", ReadAll,
-			args => args.Length is 0 or 1 or 3 or 4);
+			args => args.Length is 0 or 1 or 3 or 4 &&
+				(args.Length == 0 || args[0].Equals("F", StringComparison.OrdinalIgnoreCase) ||
+					args[0].Equals("B", StringComparison.OrdinalIgnoreCase)));
 		yield return new CompatibilityProcessor("WRLT", "WRLT <clients> <min req. per second> <max req. per second> <run for n minutes> [<event-stream>]", WriteLongTerm,
 			args => args.Length == 0 || args.Length is 4 or 5);
 		yield return new CompatibilityProcessor("SUBSCR", "SUBSCR [<stream_1> <stream_2> ... <stream_n>]", Subscribe,

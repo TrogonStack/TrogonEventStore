@@ -240,6 +240,21 @@ public class GrpcCommandBehaviorTests
 		});
 	}
 
+	[Test]
+	public void read_all_rejects_unknown_directions()
+	{
+		var handler = new RecordingGrpcHandler { ReadPayload = [] };
+
+		var result = RunCommand("RDALL SIDEWAYS", handler);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(result, Is.Not.Zero);
+			Assert.That(handler.Requests.Select(request => request.Path),
+				Does.Not.Contain("/event_store.client.streams.Streams/Read"));
+		});
+	}
+
 	[TestCase("-1", "NOSTREAM")]
 	[TestCase("-2", "ANY")]
 	public void expected_version_sentinels_preserve_their_historical_meaning(string sentinel, string name)
@@ -267,10 +282,11 @@ public class GrpcCommandBehaviorTests
 		Assert.That(grpcClient.HttpEndpoint, Is.EqualTo(settings.ConnectivitySettings.Address));
 	}
 
-	[Test]
-	public void grpc_http_endpoint_rejects_discovery_connections()
+	[TestCase("esdb+discover://localhost:2113?tls=false")]
+	[TestCase("esdb://node-1:2113,node-2:2113?tls=false")]
+	public void grpc_http_endpoint_rejects_connections_without_one_resolved_address(string connectionString)
 	{
-		var settings = EventStoreClientSettings.Create("esdb+discover://localhost:2113?tls=false");
+		var settings = EventStoreClientSettings.Create(connectionString);
 		var grpcClient = new GrpcTestClient(new ClientOptions(), Serilog.Log.Logger, () => settings);
 
 		Assert.That(() => grpcClient.HttpEndpoint, Throws.InvalidOperationException);
