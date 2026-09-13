@@ -325,9 +325,17 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 	private static async Task Read(CommandProcessorContext context, string[] args)
 	{
 		var stream = args.Length >= 1 ? args[0] : "test-stream";
-		var start = args.Length >= 2 ? StreamPosition.FromInt64(MetricPrefixValue.ParseLong(args[1])) : StreamPosition.Start;
+		var eventNumber = args.Length >= 2 ? MetricPrefixValue.ParseLong(args[1]) : 0;
+		if (eventNumber < -1)
+		{
+			throw new ArgumentOutOfRangeException(nameof(args), "Event number cannot be less than -1.");
+		}
+
+		var readLast = eventNumber == -1;
+		var direction = readLast ? Direction.Backwards : Direction.Forwards;
+		var start = readLast ? StreamPosition.End : StreamPosition.FromInt64(eventNumber);
 		var requireLeader = args.Length >= 3 && bool.Parse(args[2]);
-		var read = context._grpcTestClient.CreateGrpcClient(requireLeader).ReadStreamAsync(Direction.Forwards, stream, start,
+		var read = context._grpcTestClient.CreateGrpcClient(requireLeader).ReadStreamAsync(direction, stream, start,
 			maxCount: 1, cancellationToken: context.CancellationToken);
 		if (await read.ReadState != ReadState.Ok)
 		{
@@ -336,8 +344,19 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 
 		await foreach (var message in read.Messages.WithCancellation(context.CancellationToken))
 		{
-			context.Log.Information("Read {messageType} from {stream}", message.GetType().Name, stream);
+			if (message is not StreamMessage.Event observed)
+			{
+				continue;
+			}
+
+			context.Log.Information(
+				"Read event {eventNumber} from {stream}",
+				observed.ResolvedEvent.Event.EventNumber,
+				stream);
+			return;
 		}
+
+		throw new InvalidOperationException($"Event {eventNumber} was not found in stream {stream}.");
 	}
 
 	private static async Task ReadFlood(CommandProcessorContext context, string[] args)
@@ -407,7 +426,20 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 		var position = forwards ? Position.Start : Position.End;
 		if (args.Length >= 3)
 		{
-			position = new Position(ulong.Parse(args[1]), ulong.Parse(args[2]));
+			var commitPosition = long.Parse(args[1]);
+			var preparePosition = long.Parse(args[2]);
+			if (commitPosition == -1 && preparePosition == -1)
+			{
+				position = Position.End;
+			}
+			else if (commitPosition < 0 || preparePosition < 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(args), "Read-all positions must both be -1 or non-negative.");
+			}
+			else
+			{
+				position = new Position((ulong)commitPosition, (ulong)preparePosition);
+			}
 		}
 		var requireLeader = args.Length >= 4 && bool.Parse(args[3]);
 

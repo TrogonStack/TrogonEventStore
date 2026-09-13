@@ -198,6 +198,48 @@ public class GrpcCommandBehaviorTests
 		});
 	}
 
+	[Test]
+	public void read_command_fails_when_the_requested_event_is_missing()
+	{
+		var handler = new RecordingGrpcHandler { ReadPayload = [] };
+
+		Assert.That(RunCommand("RD test-stream 42", handler), Is.Not.Zero);
+	}
+
+	[Test]
+	public async Task read_command_preserves_the_last_event_sentinel()
+	{
+		var expected = await RecordStreamReadRequest(Direction.Backwards, StreamPosition.End);
+		var handler = new RecordingGrpcHandler
+		{
+			Failure = new HttpRequestException("stop after recording"),
+			FailurePath = "/event_store.client.streams.Streams/Read"
+		};
+
+		RunCommand("RD test-stream -1", handler);
+
+		Assert.That(
+			handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body,
+			Is.EqualTo(expected));
+	}
+
+	[Test]
+	public async Task read_all_accepts_explicit_end_position_sentinels()
+	{
+		var expected = await RecordReadAllRequest(Direction.Backwards, Position.End);
+		var handler = new RecordingGrpcHandler { ReadPayload = [] };
+
+		var result = RunCommand("RDALL B -1 -1", handler);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(result, Is.Zero);
+			Assert.That(
+				handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body,
+				Is.EqualTo(expected));
+		});
+	}
+
 	[TestCase("-1", "NOSTREAM")]
 	[TestCase("-2", "ANY")]
 	public void expected_version_sentinels_preserve_their_historical_meaning(string sentinel, string name)
@@ -303,11 +345,61 @@ public class GrpcCommandBehaviorTests
 		return handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body;
 	}
 
+	private static async Task<byte[]> RecordStreamReadRequest(Direction direction, StreamPosition position)
+	{
+		var handler = new RecordingGrpcHandler
+		{
+			Failure = new HttpRequestException("stop after recording"),
+			FailurePath = "/event_store.client.streams.Streams/Read"
+		};
+		using var client = CreateClient(handler);
+		try
+		{
+			var read = client.ReadStreamAsync(direction, "test-stream", position, maxCount: 1);
+			await read.ReadState;
+		}
+		catch (Grpc.Core.RpcException)
+		{
+		}
+
+		return handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body;
+	}
+
+	private static async Task<byte[]> RecordReadAllRequest(Direction direction, Position position)
+	{
+		var handler = new RecordingGrpcHandler
+		{
+			Failure = new HttpRequestException("stop after recording"),
+			FailurePath = "/event_store.client.streams.Streams/Read"
+		};
+		using var client = CreateClient(handler);
+		try
+		{
+			var read = client.ReadAllAsync(direction, position);
+			await foreach (var _ in read.Messages)
+			{
+			}
+		}
+		catch (Grpc.Core.RpcException)
+		{
+		}
+
+		return handler.Requests.Single(request => request.Path == "/event_store.client.streams.Streams/Read").Body;
+	}
+
+	private static EventStoreClient CreateClient(HttpMessageHandler handler)
+	{
+		var settings = EventStoreClientSettings.Create("esdb://localhost:2113?tls=false");
+		settings.CreateHttpMessageHandler = () => handler;
+		return new EventStoreClient(settings);
+	}
+
 	private sealed class RecordingGrpcHandler : HttpMessageHandler
 	{
 		public ConcurrentBag<RecordedGrpcRequest> Requests { get; } = [];
 		public Exception Failure { get; init; }
 		public string FailurePath { get; init; }
+		public byte[] ReadPayload { get; init; } = [0x22, 0x00];
 
 		protected override async Task<HttpResponseMessage> SendAsync(
 			HttpRequestMessage request,
@@ -329,7 +421,7 @@ public class GrpcCommandBehaviorTests
 			var payload = path.EndsWith("/Tombstone", StringComparison.Ordinal)
 				? new byte[] { 0x0a, 0x00 }
 				: path.EndsWith("/Read", StringComparison.Ordinal)
-					? new byte[] { 0x22, 0x00 }
+					? ReadPayload
 					: [];
 			var frame = new byte[payload.Length + 5];
 			frame[4] = (byte)payload.Length;
