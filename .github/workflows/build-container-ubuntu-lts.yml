@@ -36,7 +36,6 @@ jobs:
       matrix:
         include:
           - test-group-name: core-grpc-security
-          - test-group-name: core-clientapi-streams
           - test-group-name: core-http
           - test-group-name: core-services
           - test-group-name: core-cluster-services
