@@ -8,7 +8,7 @@ using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Certificates;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Tests;
-using EventStore.Core.Tests.Services.Transport.Tcp;
+using EventStore.Core.Tests.Helpers;
 using NUnit.Framework;
 
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests;
@@ -33,8 +33,8 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemo
 
 		_options = WithOptions(options
 			.RunOnDisk(PathName)
-			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
-				ssl_connections.GetServerCertificate()));
+			.Secure(new X509Certificate2Collection(TestCertificates.GetRootCertificate()),
+				TestCertificates.GetServerCertificate()));
 		_node = new ClusterVNode<TStreamId>(_options, _logFormatFactory,
 			new AuthenticationProviderFactory(c =>
 				new InternalAuthenticationProviderFactory(c, _options.DefaultUser)),
@@ -84,8 +84,8 @@ public abstract class ClusterMemberScenario<TLogFormat, TStreamId> : Specificati
 			.ReduceMemoryUsageForTests()
 			.InCluster(_clusterSize)
 			.RunOnDisk(PathName)
-			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
-				ssl_connections.GetServerCertificate()));
+			.Secure(new X509Certificate2Collection(TestCertificates.GetRootCertificate()),
+				TestCertificates.GetServerCertificate()));
 		_node = new ClusterVNode<TStreamId>(_options, _logFormatFactory,
 			new AuthenticationProviderFactory(_ =>
 				new InternalAuthenticationProviderFactory(_, _options.DefaultUser)),

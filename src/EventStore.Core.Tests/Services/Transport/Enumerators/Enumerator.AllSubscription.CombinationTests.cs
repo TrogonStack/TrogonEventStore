@@ -2,15 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.Common;
+using EventStore.Client.Streams;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Transport.Enumerators;
 using EventStore.Core.Services.UserManagement;
 using NUnit.Framework;
-using ExpectedVersion = EventStore.ClientAPI.ExpectedVersion;
 using Position = EventStore.Core.Services.Transport.Common.Position;
-using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
+using RecordedEvent = EventStore.Client.Streams.ReadResp.Types.ReadEvent.Types.RecordedEvent;
+using SystemStreams = EventStore.Core.Services.SystemStreams;
 
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
@@ -120,7 +119,7 @@ public partial class EnumeratorTests
 
 		private readonly string _streamPrefix;
 		private int _streamSuffix;
-		private List<ResolvedEvent> _events = new();
+		private List<RecordedEvent> _events = new();
 
 		private int _nextEventIndex;
 
@@ -130,19 +129,18 @@ public partial class EnumeratorTests
 			_streamPrefix = $"stream-{Guid.NewGuid()}-";
 		}
 
-		private Position GetPosition(ResolvedEvent @event)
+		private static Position GetPosition(RecordedEvent @event)
 		{
-			var pos = @event.OriginalPosition!.Value;
-			return Position.FromInt64(pos.CommitPosition, pos.PreparePosition);
+			return new Position(@event.CommitPosition, @event.PreparePosition);
 		}
 
-		private Position GetPositionPlusOneByte(ResolvedEvent @event)
+		private static Position GetPositionPlusOneByte(RecordedEvent @event)
 		{
 			var pos = GetPosition(@event);
 			return new Position(pos.CommitPosition + 1, pos.PreparePosition + 1);
 		}
 
-		private Position GetPositionMinusOneByte(ResolvedEvent @event)
+		private static Position GetPositionMinusOneByte(RecordedEvent @event)
 		{
 			var pos = GetPosition(@event);
 			return new Position(pos.CommitPosition - 1, pos.PreparePosition - 1);
@@ -161,23 +159,14 @@ public partial class EnumeratorTests
 		{
 			_events.Clear();
 
-			var result = await NodeConnection.ReadAllEventsForwardAsync(
-				position: EventStore.ClientAPI.Position.Start,
-				maxCount: 1000,
-				resolveLinkTos: false);
-
-			foreach (var @event in result.Events)
-			{
-				_events.Add(@event);
-			}
+			_events.AddRange(await ReadAllEvents());
 		}
 
 		private async Task WriteEvent(string stream, string eventType, string data, string metadata)
 		{
 			data ??= string.Empty;
 			metadata ??= string.Empty;
-			var eventData = new EventData(Guid.NewGuid(), eventType, true, Encoding.UTF8.GetBytes(data), Encoding.UTF8.GetBytes(metadata));
-			await NodeConnection.AppendToStreamAsync(stream, ExpectedVersion.Any, eventData);
+			await AppendToStream(stream, eventType, data, metadata);
 		}
 		private Task WriteEvent() => WriteEvent(_streamPrefix + _streamSuffix++, "type", "{}", null);
 		private Task RevokeAccessWithStreamAcl() => WriteEvent(SystemStreams.MetastreamOf(Core.Services.SystemStreams.AllStream), "$metadata", @"{ ""$acl"": { ""$r"": [] } }", null);
@@ -275,8 +264,8 @@ public partial class EnumeratorTests
 				switch (response)
 				{
 					case Event evt:
-						var evtPos = _events[nextEventIndex++].OriginalPosition!.Value;
-						var evtTfPos = new TFPos(evtPos.CommitPosition, evtPos.PreparePosition);
+						var expectedEvent = _events[nextEventIndex++];
+						var evtTfPos = new TFPos((long)expectedEvent.CommitPosition, (long)expectedEvent.PreparePosition);
 						Assert.AreEqual(evtTfPos, evt.EventPosition!.Value);
 						break;
 					case FellBehind:
