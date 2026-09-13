@@ -43,15 +43,11 @@
 	<ItemGroup>
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />
 		<ProjectReference Include="..\EventStore.LogCommon\EventStore.LogCommon.csproj" />
-		<ProjectReference Include="..\EventStore.Transport.Tcp\EventStore.Transport.Tcp.csproj" />
 		<ProjectReference Include="..\EventStore.NETCore.Compatibility\EventStore.NETCore.Compatibility.csproj" />
 		<ProjectReference Include="..\EventStore.SourceGenerators\EventStore.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\TrogonEventStore.SemanticConventions\TrogonEventStore.SemanticConventions.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<Protobuf Include="..\Protos\ClientAPI\ClientMessageDtos.proto">
-			<Link>Services\Transport\Tcp\protos\ClientMessageDtos.proto</Link>
-		</Protobuf>
 		<Protobuf Include="..\Protos\Grpc\code.proto" GrpcServices="Server" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
 			<Link>Services\Transport\Grpc\Protos\code.proto</Link>
 		</Protobuf>
@@ -97,8 +93,5 @@
 		<Protobuf Include="..\Protos\Grpc\forwarding.proto" GrpcServices="Both" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
 			<Link>Services\Transport\Grpc\Protos\forwarding.proto</Link>
 		</Protobuf>
-	</ItemGroup>
-	<ItemGroup>
-		<Folder Include="Services\Transport\Tcp\protos\" />
 	</ItemGroup>
 </Project>

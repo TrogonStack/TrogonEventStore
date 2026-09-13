@@ -208,15 +208,6 @@ public static partial class ClientMessage
 					Http = http;
 				}
 
-				public LeaderInfo(EndPoint externalTcp, bool isSecure, EndPoint http)
-				{
-					ExternalTcp = externalTcp;
-					IsSecure = isSecure;
-					Http = http;
-				}
-
-				public bool IsSecure { get; }
-				public EndPoint ExternalTcp { get; }
 				public EndPoint Http { get; }
 			}
 		}

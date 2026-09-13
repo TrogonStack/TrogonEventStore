@@ -11,7 +11,6 @@ namespace EventStore.Core.Services
 		IHandle<SystemMessage.RequestForwardingTimerTick>,
 		IHandle<ClientMessage.NotHandled>,
 		IHandle<ClientMessage.NotAuthenticated>,
-		IHandle<TcpMessage.NotAuthenticated>,
 		IHandle<ClientMessage.WriteEventsCompleted>,
 		IHandle<ClientMessage.TransactionStartCompleted>,
 		IHandle<ClientMessage.TransactionWriteCompleted>,
@@ -60,13 +59,6 @@ namespace EventStore.Core.Services
 			_forwardingProxy.TryForwardReply(
 				message.CorrelationId, message,
 				(clientCorrId, m) => new ClientMessage.NotAuthenticated(clientCorrId, m.Reason));
-		}
-
-		public void Handle(TcpMessage.NotAuthenticated message)
-		{
-			_forwardingProxy.TryForwardReply(
-				message.CorrelationId, message,
-				(clientCorrId, m) => new TcpMessage.NotAuthenticated(clientCorrId, m.Reason));
 		}
 
 		public void Handle(ClientMessage.WriteEventsCompleted message)
