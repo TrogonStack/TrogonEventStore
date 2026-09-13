@@ -684,6 +684,9 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 
 		var heads = Enumerable.Repeat(-1, streams).ToArray();
 		var streamGates = Enumerable.Range(0, streams).Select(_ => new SemaphoreSlim(1, 1)).ToArray();
+		var streamReady = Enumerable.Range(0, streams)
+			.Select(_ => new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously))
+			.ToArray();
 		var stopReading = false;
 		try
 		{
@@ -710,6 +713,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 							null,
 							context.CancellationToken);
 						Volatile.Write(ref heads[streamIndex], nextVersion);
+						streamReady[streamIndex].TrySetResult(true);
 					}
 					finally
 					{
@@ -728,7 +732,7 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 					var head = Volatile.Read(ref heads[streamIndex]);
 					if (head < 0)
 					{
-						await Task.Yield();
+						await streamReady[streamIndex].Task.WaitAsync(context.CancellationToken);
 						continue;
 					}
 
@@ -747,6 +751,11 @@ internal sealed class CompatibilityProcessor : ICmdProcessor
 			finally
 			{
 				Volatile.Write(ref stopReading, true);
+				foreach (var ready in streamReady)
+				{
+					ready.TrySetResult(true);
+				}
+
 				await Task.WhenAll(readerTasks);
 			}
 

@@ -293,6 +293,26 @@ public class GrpcCommandBehaviorTests
 	}
 
 	[Test]
+	public void verification_readers_wait_without_reposting_while_streams_are_empty()
+	{
+		var handler = new RecordingGrpcHandler
+		{
+			Delay = TimeSpan.FromMilliseconds(100),
+			DelayPath = "/event_store.client.streams.Streams/Append"
+		};
+		var completedWorkItems = ThreadPool.CompletedWorkItemCount;
+		var command = Task.Run(() =>
+			RunCommand("VERIFY 1 2 1 1 bank", handler, new ClientOptions { Timeout = 2 }));
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(command.Wait(TimeSpan.FromSeconds(5)), Is.True);
+			Assert.That(handler.Requests.Select(request => request.Path), Does.Contain(handler.DelayPath));
+			Assert.That(ThreadPool.CompletedWorkItemCount - completedWorkItems, Is.LessThan(100));
+		});
+	}
+
+	[Test]
 	public void grpc_read_all_preserves_backward_direction_and_default_position()
 	{
 		Assert.That(ReadAllWorkload.TryParse(["B", "1"], out var workload), Is.True);
@@ -397,6 +417,8 @@ public class GrpcCommandBehaviorTests
 	private sealed class RecordingGrpcHandler : HttpMessageHandler
 	{
 		public ConcurrentBag<RecordedGrpcRequest> Requests { get; } = [];
+		public TimeSpan Delay { get; init; }
+		public string DelayPath { get; init; }
 		public Exception Failure { get; init; }
 		public string FailurePath { get; init; }
 		public byte[] ReadPayload { get; init; } = [0x22, 0x00];
@@ -406,6 +428,11 @@ public class GrpcCommandBehaviorTests
 			CancellationToken cancellationToken)
 		{
 			var path = request.RequestUri!.AbsolutePath;
+			if (Delay > TimeSpan.Zero && (DelayPath is null || path == DelayPath))
+			{
+				await Task.Delay(Delay, cancellationToken);
+			}
+
 			var requiresLeader = request.Headers.TryGetValues("requires-leader", out var values)
 				? values.Single()
 				: null;
