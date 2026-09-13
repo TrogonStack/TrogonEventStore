@@ -52,6 +52,7 @@ misc_projects=(
     EventStore.Common.Tests
     EventStore.SourceGenerators.Tests
     EventStore.SystemRuntime.Tests
+    EventStore.TestClient.Tests
 )
 
 declare -a requested_projects

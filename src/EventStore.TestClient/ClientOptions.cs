@@ -17,14 +17,12 @@ namespace EventStore.TestClient;
 public sealed record ClientOptions
 {
 	public string Host { get; init; }
-	public int TcpPort { get; init; }
 	public int HttpPort { get; init; }
 	public int Timeout { get; init; }
 	public int ReadWindow { get; init; }
 	public int WriteWindow { get; init; }
 	public int PingWindow { get; init; }
 	public string[] Command { get; init; }
-	public bool Reconnect { get; set; }
 
 	public bool UseTls { get; init; }
 	public bool TlsValidateServer { get; init; }
@@ -37,13 +35,11 @@ public sealed record ClientOptions
 	{
 		Command = Array.Empty<string>();
 		Host = IPAddress.Loopback.ToString();
-		TcpPort = 1113;
 		HttpPort = 2113;
 		Timeout = -1;
 		ReadWindow = 2000;
 		WriteWindow = 2000;
 		PingWindow = 2000;
-		Reconnect = true;
 		UseTls = false;
 		TlsValidateServer = false;
 		ConnectionString = string.Empty;
@@ -58,8 +54,12 @@ public sealed record ClientOptions
 				(builder, option) => builder.AppendLine($"{option.Name}: {GetValue(option)}"))
 			.ToString();
 
-		object GetValue(PropertyInfo propertyInfo) => propertyInfo.PropertyType.IsArray
-			? string.Join(",", ((IEnumerable)propertyInfo.GetValue(this)).OfType<object>())
-			: propertyInfo.GetValue(this);
+		object GetValue(PropertyInfo propertyInfo) => propertyInfo.Name switch
+		{
+			nameof(ConnectionString) when !string.IsNullOrEmpty(ConnectionString) => "[REDACTED]",
+			_ when propertyInfo.PropertyType.IsArray =>
+				string.Join(",", ((IEnumerable)propertyInfo.GetValue(this)).OfType<object>()),
+			_ => propertyInfo.GetValue(this)
+		};
 	}
 }

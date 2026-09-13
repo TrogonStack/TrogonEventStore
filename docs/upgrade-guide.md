@@ -68,6 +68,25 @@ methods. Avoid depending on undocumented authentication plugins.
 Use [OpenTelemetry integration](diagnostics/integrations.md) for explicit OTLP
 export and [Metrics](diagnostics/metrics.md) for Prometheus scraping.
 
+## TestClient review
+
+The TestClient keeps command names only when their observable behavior can be
+preserved over the supported gRPC APIs. Reads, writes, hard deletes,
+subscriptions, scavenging, data verification, and load operations use the gRPC
+client on `NodePort`. The generic `WRFL` alias remains available and runs the
+same workload as `WRFLGRPC`.
+
+The following commands are intentionally retired:
+
+- `TWR`, because the public gRPC streams API does not expose the transaction
+  start, write, and commit lifecycle. A batch append is not an equivalent test.
+- `WRFLTCP` and `WRFLCA`, because transport-specific aliases would hide which
+  protocol the workload exercises.
+- `RT`, because its projection and node-failure scenarios require a dedicated
+  replacement rather than a different command behind the same name.
+- `CHKTCP`, because it validates a retired frame protocol. Use `CHKGRPC` to
+  validate malformed gRPC-frame handling.
+
 Legacy usage telemetry is separate from OTLP observability. See
 [Usage telemetry](usage-telemetry.md) before running a node in an environment
 that should not make outbound telemetry calls.

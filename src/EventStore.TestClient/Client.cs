@@ -4,8 +4,6 @@ using System.Text;
 using System.Threading;
 using EventStore.Common.Utils;
 using EventStore.TestClient.Commands;
-using EventStore.TestClient.Commands.DvuBasic;
-using Connection = EventStore.Transport.Tcp.TcpTypedConnection<byte[]>;
 using ILogger = Serilog.ILogger;
 #pragma warning disable 1591
 
@@ -20,23 +18,25 @@ public class Client
 
 	public readonly ClientOptions Options;
 
-	public readonly TcpTestClient _tcpTestClient;
 	public readonly GrpcTestClient _grpcTestClient;
-	public readonly ClientApiTcpTestClient _clientApiTestClient;
 
 	private readonly CommandsProcessor _commands = new CommandsProcessor(Log);
 
 	public Client(ClientOptions options, CancellationTokenSource cancellationTokenSource)
+		: this(options, cancellationTokenSource, null)
+	{
+	}
+
+	internal Client(
+		ClientOptions options,
+		CancellationTokenSource cancellationTokenSource,
+		GrpcTestClient grpcTestClient)
 	{
 		Options = options;
 
-		var interactiveMode = options.Command.IsEmpty();
-
 		InteractiveMode = options.Command.IsEmpty();
 
-		_tcpTestClient = new TcpTestClient(options, interactiveMode, Log);
-		_grpcTestClient = new GrpcTestClient(options, Log);
-		_clientApiTestClient = new ClientApiTcpTestClient(options, Log);
+		_grpcTestClient = grpcTestClient ?? new GrpcTestClient(options, Log);
 
 		RegisterProcessors(cancellationTokenSource);
 	}
@@ -46,46 +46,19 @@ public class Client
 		_commands.Register(new UsageProcessor(_commands), usageProcessor: true);
 		_commands.Register(new ExitProcessor(cancellationTokenSource));
 
-		_commands.Register(new PingProcessor());
-		_commands.Register(new PingFloodProcessor());
-		_commands.Register(new PingFloodWaitingProcessor());
-
-		_commands.Register(new WriteProcessor());
-		_commands.Register(new WriteJsonProcessor());
-		_commands.Register(new WriteFloodProcessor());
-		_commands.Register(new WriteFloodClientApiProcessor());
-		_commands.Register(new WriteFloodWaitingProcessor());
-
-		_commands.Register(new MultiWriteProcessor());
-		_commands.Register(new MultiWriteFloodWaitingProcessor());
-
-		_commands.Register(new TransactionWriteProcessor());
-
-		_commands.Register(new DeleteProcessor());
-
-		_commands.Register(new ReadAllProcessor());
-		_commands.Register(new ReadProcessor());
-		_commands.Register(new ReadFloodProcessor());
-
-		_commands.Register(new WriteLongTermProcessor());
-
-		_commands.Register(new DvuBasicProcessor());
-		_commands.Register(new RunTestScenariosProcessor());
-
-		_commands.Register(new SubscribeToStreamProcessor());
-
-		_commands.Register(new ScavengeProcessor());
-
-		_commands.Register(new TcpSanitazationCheckProcessor());
-
-		_commands.Register(new SubscriptionStressTestProcessor());
-
-		// gRPC
 		_commands.Register(new GrpcCommands.ReadAllProcessor());
-		_commands.Register(new GrpcCommands.WriteFloodProcessor());
+		var writeFlood = new GrpcCommands.WriteFloodProcessor();
+		_commands.Register(writeFlood);
 
-		// TCP Client API
-		_commands.Register(new ClientApiTcpCommands.WriteFloodProcessor());
+		foreach (var processor in GrpcCommands.CompatibilityProcessor.CreateSupportedProcessors())
+		{
+			_commands.Register(processor);
+		}
+
+		_commands.Register(new GrpcCommands.DelegatingProcessor(
+			"WRFL",
+			"WRFL [<clients> <requests> [<streams-cnt> [<size> [<batchsize> [<stream-prefix>]]]]]",
+			writeFlood));
 	}
 
 	public string GetCommandList()
@@ -149,7 +122,7 @@ public class Client
 	{
 		Log.Information("Processing command: {command}.", string.Join(" ", args));
 
-		var context = new CommandProcessorContext(_tcpTestClient, _grpcTestClient, _clientApiTestClient, Options.Timeout,
+		var context = new CommandProcessorContext(_grpcTestClient, Options.Timeout,
 			Log, Options.StatsLog, Options.OutputCsv, new ManualResetEventSlim(true), cancellationToken);
 
 		int exitCode;
