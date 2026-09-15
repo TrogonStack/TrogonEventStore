@@ -2,10 +2,15 @@ name: Cherry pick PR commits for label
 on:
   pull_request_target:
     types: [closed]
+permissions: {}
+
 jobs:
   cherry_pick_pr_for_label:
     name: Cherry pick PR commits for label
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Cherry Pick PR for label
