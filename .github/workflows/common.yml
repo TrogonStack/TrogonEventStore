@@ -24,9 +24,6 @@ permissions:
 jobs:
   changes:
     name: Changes
-    permissions:
-      contents: read
-      pull-requests: read
     uses: ./.github/workflows/changes-reusable.yml
 
   semantic-conventions:
