@@ -17,7 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Changes
+    uses: ./.github/workflows/changes-reusable.yml
+
   build-images:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     name: Build Images
     uses: ./.github/workflows/build-container-reusable.yml
     with:
@@ -30,7 +36,10 @@ jobs:
 
   test:
     name: Build (${{ matrix.test-group-name }})
-    needs: build-images
+    needs:
+      - changes
+      - build-images
+    if: ${{ needs.changes.outputs.code == 'true' }}
     strategy:
       fail-fast: true
       matrix:
@@ -58,8 +67,10 @@ jobs:
   client-compatibility:
     name: Client Compatibility
     needs:
+      - changes
       - build-images
       - test
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -137,6 +148,7 @@ jobs:
     name: Container CI
     if: ${{ always() }}
     needs:
+      - changes
       - build-images
       - test
       - client-compatibility
@@ -146,4 +158,9 @@ jobs:
       - name: Require successful jobs
         env:
           REQUIRED_JOBS: ${{ toJSON(needs) }}
-        run: jq -e 'all(.[]; .result == "success")' <<< "$REQUIRED_JOBS"
+          EXPECTED_RESULT: ${{ needs.changes.outputs.code == 'true' && 'success' || 'skipped' }}
+        run: |
+          jq -e --arg expected "$EXPECTED_RESULT" '
+            .changes.result == "success" and
+            (del(.changes) | all(.[]; .result == $expected))
+          ' <<< "$REQUIRED_JOBS"

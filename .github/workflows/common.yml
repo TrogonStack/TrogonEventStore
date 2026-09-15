@@ -22,7 +22,13 @@ permissions:
   packages: read
 
 jobs:
+  changes:
+    name: Changes
+    uses: ./.github/workflows/changes-reusable.yml
+
   semantic-conventions:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Semantic Conventions
     steps:
@@ -40,6 +46,8 @@ jobs:
         run: mise run --skip-tools semconv:check
 
   csharp-quality:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: C# Quality
     steps:
@@ -88,6 +96,8 @@ jobs:
             src/TrogonEventStore.SemanticConventions/TrogonEventStore.SemanticConventions.csproj
 
   vulnerability-scan:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Scan for Vulnerabilities
     steps:
@@ -112,6 +122,8 @@ jobs:
         run: mise run --skip-tools github-actions:vulnerability-scan
 
   protolock:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Protolock Status
     steps:
@@ -123,6 +135,8 @@ jobs:
           ./protolock.sh status --uptodate
 
   release-metadata:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Release Metadata
     steps:
@@ -143,6 +157,8 @@ jobs:
         run: mise run --skip-tools github-actions:publish-container-test
 
   archive-storage-contract:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Archive Storage Contract
     env:
@@ -214,6 +230,8 @@ jobs:
         run: mise run --skip-tools github-actions:archive-storage-contract -- cluster-restore
 
   docker-compose:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Docker Compose Smoke Test
     steps:
@@ -241,6 +259,7 @@ jobs:
     name: Common CI
     if: ${{ always() }}
     needs:
+      - changes
       - semantic-conventions
       - csharp-quality
       - vulnerability-scan
@@ -254,4 +273,9 @@ jobs:
       - name: Require successful jobs
         env:
           REQUIRED_JOBS: ${{ toJSON(needs) }}
-        run: jq -e 'all(.[]; .result == "success")' <<< "$REQUIRED_JOBS"
+          EXPECTED_RESULT: ${{ needs.changes.outputs.code == 'true' && 'success' || 'skipped' }}
+        run: |
+          jq -e --arg expected "$EXPECTED_RESULT" '
+            .changes.result == "success" and
+            (del(.changes) | all(.[]; .result == $expected))
+          ' <<< "$REQUIRED_JOBS"

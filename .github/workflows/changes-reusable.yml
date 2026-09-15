@@ -1,0 +1,48 @@
+name: Changes - Reusable
+
+on:
+  workflow_call:
+    outputs:
+      code:
+        description: Whether the change set reaches past the documentation site
+        value: ${{ jobs.detect.outputs.code }}
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    name: Changes
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install task runner
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
+      - name: Resolve comparison refs
+        id: refs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: mise run --skip-tools github-actions:resolve-comparison-refs
+      - name: Resolve change scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ steps.refs.outputs.base }}
+          HEAD_REF: ${{ steps.refs.outputs.head }}
+        run: mise run --skip-tools github-actions:changed-scope
