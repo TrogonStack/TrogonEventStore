@@ -97,7 +97,7 @@ jobs:
           rustup default stable
       - name: Resolve client revisions
         id: clients
-        run: mise run --skip-tools github-actions:client-compatibility -- refs
+        run: mise run --skip-tools github:actions:client-compatibility -- refs
       - name: Checkout C# client
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -117,9 +117,9 @@ jobs:
         with:
           name: eventstore-image-noble-linux-x64
       - name: Load server image
-        run: mise run --skip-tools github-actions:container -- load-runtime
+        run: mise run --skip-tools github:actions:container -- load-runtime
       - name: Run client compatibility gate
-        run: mise run --skip-tools github-actions:client-compatibility -- run
+        run: mise run --skip-tools github:actions:client-compatibility -- run
       - name: Publish compatibility evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

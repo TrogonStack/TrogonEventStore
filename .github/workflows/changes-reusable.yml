@@ -38,11 +38,11 @@ jobs:
           MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
           BEFORE_SHA: ${{ github.event.before }}
           CURRENT_SHA: ${{ github.sha }}
-        run: mise run --skip-tools github-actions:resolve-comparison-refs
+        run: mise run --skip-tools github:actions:resolve-comparison-refs
       - name: Resolve change scope
         id: scope
         env:
           EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ steps.refs.outputs.base }}
           HEAD_REF: ${{ steps.refs.outputs.head }}
-        run: mise run --skip-tools github-actions:changed-scope
+        run: mise run --skip-tools github:actions:changed-scope

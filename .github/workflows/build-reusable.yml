@@ -42,26 +42,26 @@ jobs:
         env:
           NUGET_GITHUB_ACTOR: ${{ github.actor }}
           NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise run --skip-tools github-actions:nuget-authenticate
+        run: mise run --skip-tools github:actions:nuget-authenticate
       - name: Compile
         env:
           BUILD_CONFIGURATION: ${{ matrix.configuration }}
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_ARCH: ${{ inputs.arch }}
-        run: mise run --skip-tools github-actions:dotnet-build -- compile
+        run: mise run --skip-tools github:actions:dotnet-build -- compile
       - name: Verify Build
         env:
           BUILD_CONFIGURATION: ${{ matrix.configuration }}
           TARGET_ARCH: ${{ inputs.arch }}
-        run: mise run --skip-tools github-actions:dotnet-build -- verify
+        run: mise run --skip-tools github:actions:dotnet-build -- verify
       - name: Run Tests
         env:
           BUILD_CONFIGURATION: ${{ matrix.configuration }}
           TARGET_ARCH: ${{ inputs.arch }}
-        run: mise run --skip-tools github-actions:dotnet-build -- test
+        run: mise run --skip-tools github:actions:dotnet-build -- test
       - name: Collect Test Results
         if: ${{ always() && steps.mise.outcome == 'success' }}
-        run: mise run --skip-tools github-actions:dotnet-build -- collect-results
+        run: mise run --skip-tools github:actions:dotnet-build -- collect-results
       - name: Publish Test Results (HTML)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

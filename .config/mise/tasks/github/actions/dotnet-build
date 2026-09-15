@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-root=$(cd -- "$(dirname -- "$0")/../../../.." && pwd)
+root=$(cd -- "$(dirname -- "$0")/../../../../.." && pwd)
 phase=${1:?dotnet build phase is required}
 
 case "$phase" in
