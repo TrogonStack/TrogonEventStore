@@ -8,7 +8,8 @@ overrides:
   braces: 3.0.3
   esbuild: 0.25.12
   immutable: 4.3.9
-  js-yaml@>=4.0.0 <4.3.1: 4.3.1
+  js-yaml@>=3.0.0 <3.15.2: 3.15.2
+  js-yaml@>=4.0.0 <4.3.2: 4.3.2
   lodash: 4.18.1
   micromatch: 4.0.8
   postcss: 8.5.23
@@ -2487,12 +2488,12 @@ packages:
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
-  js-yaml@3.15.1:
-    resolution: {integrity: sha512-S99WuO3HlhO3XN41EtYUNl9zzXjoJx7QvmipxsJVxtCBT0YHEFy+iOJhjSvrmV12nYhWpZaM8lPHkJm0yUMbag==}
+  js-yaml@3.15.2:
+    resolution: {integrity: sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==}
     hasBin: true
 
-  js-yaml@4.3.1:
-    resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
+  js-yaml@4.3.2:
+    resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
 
   jsesc@3.1.0:
@@ -6010,7 +6011,7 @@ snapshots:
 
   gray-matter@4.0.3:
     dependencies:
-      js-yaml: 3.15.1
+      js-yaml: 3.15.2
       kind-of: 6.0.3
       section-matter: 1.0.0
       strip-bom-string: 1.0.0
@@ -6209,12 +6210,12 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  js-yaml@3.15.1:
+  js-yaml@3.15.2:
     dependencies:
       argparse: 1.0.10
       esprima: 4.0.1
 
-  js-yaml@4.3.1:
+  js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
 
@@ -7466,7 +7467,7 @@ snapshots:
       '@vuepress/plugin-sass-palette': 2.0.0-rc.130(@vuepress/bundler-vite@2.0.0-rc.31(@types/node@26.1.2)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(rollup@4.60.3)(sass@1.77.8)(typescript@7.0.2)(yaml@2.9.0))(sass-loader@17.0.0(sass@1.77.8))(sass@1.77.8)(typescript@7.0.2)(vuepress@2.0.0-rc.31(@vue/compiler-sfc@3.5.42)(@vuepress/bundler-vite@2.0.0-rc.31(@types/node@26.1.2)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(rollup@4.60.3)(sass@1.77.8)(typescript@7.0.2)(yaml@2.9.0))(esbuild@0.25.12)(rolldown@1.2.1)(rollup@4.60.3)(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.2)(esbuild@0.25.12)(sass@1.77.8)(yaml@2.9.0))(vue@3.5.42(typescript@7.0.2)))
       '@vueuse/core': 14.3.0(vue@3.5.42(typescript@7.0.2))
       balloon-css: 1.2.0
-      js-yaml: 4.3.1
+      js-yaml: 4.3.2
       vue: 3.5.42(typescript@7.0.2)
       vuepress: 2.0.0-rc.31(@vue/compiler-sfc@3.5.42)(@vuepress/bundler-vite@2.0.0-rc.31(@types/node@26.1.2)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(rollup@4.60.3)(sass@1.77.8)(typescript@7.0.2)(yaml@2.9.0))(esbuild@0.25.12)(rolldown@1.2.1)(rollup@4.60.3)(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.2)(esbuild@0.25.12)(sass@1.77.8)(yaml@2.9.0))(vue@3.5.42(typescript@7.0.2))
       vuepress-shared: 2.0.0-rc.107(@vuepress/bundler-vite@2.0.0-rc.31(@types/node@26.1.2)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(rollup@4.60.3)(sass@1.77.8)(typescript@7.0.2)(yaml@2.9.0))(typescript@7.0.2)(vuepress@2.0.0-rc.31(@vue/compiler-sfc@3.5.42)(@vuepress/bundler-vite@2.0.0-rc.31(@types/node@26.1.2)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(rollup@4.60.3)(sass@1.77.8)(typescript@7.0.2)(yaml@2.9.0))(esbuild@0.25.12)(rolldown@1.2.1)(rollup@4.60.3)(typescript@7.0.2)(vite@8.2.2(@types/node@26.1.2)(esbuild@0.25.12)(sass@1.77.8)(yaml@2.9.0))(vue@3.5.42(typescript@7.0.2)))
