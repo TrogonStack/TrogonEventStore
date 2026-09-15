@@ -1,6 +1,21 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.1.0](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.2...v0.1.0) (2026-09-15)
+
+
+### Features
+
+* **test-client:** preserve supported operations over gRPC ([#487](https://github.com/TrogonStack/TrogonEventStore/issues/487)) ([85e489d](https://github.com/TrogonStack/TrogonEventStore/commit/85e489da3c3b8ec567b2504bfc5ff8c3787890de))
+
+
+### Bug Fixes
+
+* **security:** preserve authorization behavior over gRPC ([#489](https://github.com/TrogonStack/TrogonEventStore/issues/489)) ([0ef196b](https://github.com/TrogonStack/TrogonEventStore/commit/0ef196bab2990fe027c4dcddaf097fb8b6baedb7))
+* **security:** protect node capacity from password authentication floods ([#483](https://github.com/TrogonStack/TrogonEventStore/issues/483)) ([2df6d31](https://github.com/TrogonStack/TrogonEventStore/commit/2df6d3112b7e7ec287ea7b6f882406e2de04cd38))
+* **subscriptions:** preserve behavior over gRPC ([#488](https://github.com/TrogonStack/TrogonEventStore/issues/488)) ([7b0fbe3](https://github.com/TrogonStack/TrogonEventStore/commit/7b0fbe3e65bbb8d53a13ddfa29c80cc0015f4ff4))
+* **ui:** keep published assets stable across upgrades ([#485](https://github.com/TrogonStack/TrogonEventStore/issues/485)) ([53e5942](https://github.com/TrogonStack/TrogonEventStore/commit/53e5942c3981f5e654961a52178806c5eb644207))
+
 ## [0.0.2](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.1...v0.0.2) (2026-09-02)
 
 
