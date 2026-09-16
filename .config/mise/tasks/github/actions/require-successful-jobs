@@ -1,0 +1,29 @@
+#!/bin/sh
+#MISE description="Fail unless every gated job reached the result the change scope calls for"
+
+set -eu
+
+: "${REQUIRED_JOBS:?REQUIRED_JOBS is required}"
+
+expected=skipped
+if [ "$(printf '%s' "$REQUIRED_JOBS" | jq -r '.changes.outputs.code')" = "true" ]; then
+	expected=success
+fi
+
+deviations="$(printf '%s' "$REQUIRED_JOBS" | jq -r --arg expected "$expected" '
+	to_entries
+	| map(select(
+		(.key == "changes" and .value.result != "success")
+		or (.key != "changes" and .value.result != $expected)
+	))
+	| .[]
+	| "\(.key): \(.value.result)"
+')"
+
+if [ -n "$deviations" ]; then
+	echo "Jobs did not reach '$expected':" >&2
+	echo "$deviations" >&2
+	exit 1
+fi
+
+echo "Every gated job reached '$expected'."

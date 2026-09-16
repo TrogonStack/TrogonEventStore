@@ -82,7 +82,7 @@ jobs:
             nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
       - name: Verify Build
         if: ${{ inputs.mode != 'test-only' }}
-        run: mise run --skip-tools github-actions:container -- verify
+        run: mise run --skip-tools github:actions:container -- verify
       - name: Build Test Container
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         if: ${{ inputs.mode != 'test-only' }}
@@ -100,10 +100,10 @@ jobs:
             nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
       - name: Export Test Container
         if: ${{ inputs.mode == 'build-only' }}
-        run: mise run --skip-tools github-actions:container -- export-test
+        run: mise run --skip-tools github:actions:container -- export-test
       - name: Export Container
         if: ${{ inputs.mode == 'build-only' }}
-        run: mise run --skip-tools github-actions:container -- export-runtime
+        run: mise run --skip-tools github:actions:container -- export-runtime
       - name: Publish Test Container
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ inputs.mode == 'build-only' }}
@@ -127,15 +127,15 @@ jobs:
           name: ${{ inputs.test-image-artifact-name }}
       - name: Load Test Container
         if: ${{ inputs.mode == 'test-only' }}
-        run: mise run --skip-tools github-actions:container -- load-test
+        run: mise run --skip-tools github:actions:container -- load-test
       - name: Run Tests
         if: ${{ inputs.mode != 'build-only' }}
         env:
           TEST_GROUP: ${{ inputs.test-group-name }}
-        run: mise run --skip-tools github-actions:container -- test
+        run: mise run --skip-tools github:actions:container -- test
       - name: Normalize Test Result Permissions
         if: ${{ failure() && steps.mise.outcome == 'success' }}
-        run: mise run --skip-tools github-actions:container -- normalize-results
+        run: mise run --skip-tools github:actions:container -- normalize-results
       - name: Publish Test Results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
