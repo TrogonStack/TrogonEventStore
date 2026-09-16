@@ -17,7 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Changes
+    uses: ./.github/workflows/changes-reusable.yml
+
   build-images:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     name: Build Images
     uses: ./.github/workflows/build-container-reusable.yml
     with:
@@ -30,7 +36,10 @@ jobs:
 
   test:
     name: Build (${{ matrix.test-group-name }})
-    needs: build-images
+    needs:
+      - changes
+      - build-images
+    if: ${{ needs.changes.outputs.code == 'true' }}
     strategy:
       fail-fast: true
       matrix:
@@ -58,8 +67,10 @@ jobs:
   client-compatibility:
     name: Client Compatibility
     needs:
+      - changes
       - build-images
       - test
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -86,7 +97,7 @@ jobs:
           rustup default stable
       - name: Resolve client revisions
         id: clients
-        run: mise run --skip-tools github-actions:client-compatibility -- refs
+        run: mise run --skip-tools github:actions:client-compatibility -- refs
       - name: Checkout C# client
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -106,9 +117,9 @@ jobs:
         with:
           name: eventstore-image-noble-linux-x64
       - name: Load server image
-        run: mise run --skip-tools github-actions:container -- load-runtime
+        run: mise run --skip-tools github:actions:container -- load-runtime
       - name: Run client compatibility gate
-        run: mise run --skip-tools github-actions:client-compatibility -- run
+        run: mise run --skip-tools github:actions:client-compatibility -- run
       - name: Publish compatibility evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -137,13 +148,25 @@ jobs:
     name: Container CI
     if: ${{ always() }}
     needs:
+      - changes
       - build-images
       - test
       - client-compatibility
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install task runner
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
       - name: Require successful jobs
         env:
           REQUIRED_JOBS: ${{ toJSON(needs) }}
-        run: jq -e 'all(.[]; .result == "success")' <<< "$REQUIRED_JOBS"
+        run: mise run --skip-tools github:actions:require-successful-jobs

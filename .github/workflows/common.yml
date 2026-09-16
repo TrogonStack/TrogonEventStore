@@ -22,7 +22,13 @@ permissions:
   packages: read
 
 jobs:
+  changes:
+    name: Changes
+    uses: ./.github/workflows/changes-reusable.yml
+
   semantic-conventions:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Semantic Conventions
     steps:
@@ -40,6 +46,8 @@ jobs:
         run: mise run --skip-tools semconv:check
 
   csharp-quality:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: C# Quality
     steps:
@@ -61,7 +69,7 @@ jobs:
         env:
           NUGET_GITHUB_ACTOR: ${{ github.actor }}
           NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise run --skip-tools github-actions:nuget-authenticate
+        run: mise run --skip-tools github:actions:nuget-authenticate
       - name: Resolve comparison refs
         id: refs
         env:
@@ -72,7 +80,7 @@ jobs:
           MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
           BEFORE_SHA: ${{ github.event.before }}
           CURRENT_SHA: ${{ github.sha }}
-        run: mise run --skip-tools github-actions:resolve-comparison-refs
+        run: mise run --skip-tools github:actions:resolve-comparison-refs
       - name: Restore
         run: |
           dotnet restore src/EventStore.sln
@@ -88,6 +96,8 @@ jobs:
             src/TrogonEventStore.SemanticConventions/TrogonEventStore.SemanticConventions.csproj
 
   vulnerability-scan:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Scan for Vulnerabilities
     steps:
@@ -107,11 +117,13 @@ jobs:
         env:
           NUGET_GITHUB_ACTOR: ${{ github.actor }}
           NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise run --skip-tools github-actions:nuget-authenticate
+        run: mise run --skip-tools github:actions:nuget-authenticate
       - name: Scan for Vulnerabilities
-        run: mise run --skip-tools github-actions:vulnerability-scan
+        run: mise run --skip-tools github:actions:vulnerability-scan
 
   protolock:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Protolock Status
     steps:
@@ -123,6 +135,8 @@ jobs:
           ./protolock.sh status --uptodate
 
   release-metadata:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Release Metadata
     steps:
@@ -140,9 +154,11 @@ jobs:
       - name: Verify release metadata
         run: mise run --skip-tools release-metadata:check
       - name: Verify container publication tags
-        run: mise run --skip-tools github-actions:publish-container-test
+        run: mise run --skip-tools github:actions:publish-container-test
 
   archive-storage-contract:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Archive Storage Contract
     env:
@@ -183,37 +199,39 @@ jobs:
         env:
           NUGET_GITHUB_ACTOR: ${{ github.actor }}
           NUGET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise run --skip-tools github-actions:nuget-authenticate
+        run: mise run --skip-tools github:actions:nuget-authenticate
       - name: Run archive storage contract tests
-        run: mise run --skip-tools github-actions:archive-storage-contract -- contract
+        run: mise run --skip-tools github:actions:archive-storage-contract -- contract
 
       - name: Seed archive restart recovery data
         id: seed_archive_recovery
         env:
           EVENTSTORE_S3_RECOVERY_PHASE: seed
-        run: mise run --skip-tools github-actions:archive-storage-contract -- recovery
+        run: mise run --skip-tools github:actions:archive-storage-contract -- recovery
 
       - name: Stop RustFS without removing its data
         env:
           RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
-        run: mise run --skip-tools github-actions:archive-storage-contract -- stop-storage
+        run: mise run --skip-tools github:actions:archive-storage-contract -- stop-storage
 
       - name: Assert archive storage is unavailable
         env:
           EVENTSTORE_S3_RECOVERY_PHASE: unavailable
-        run: mise run --skip-tools github-actions:archive-storage-contract -- recovery
+        run: mise run --skip-tools github:actions:archive-storage-contract -- recovery
 
       - name: Restart RustFS and verify archive recovery
         if: ${{ always() && steps.seed_archive_recovery.outcome == 'success' }}
         env:
           EVENTSTORE_S3_RECOVERY_PHASE: verify-cleanup
           RUSTFS_CONTAINER_ID: ${{ job.services.rustfs.id }}
-        run: mise run --skip-tools github-actions:archive-storage-contract -- restart-and-verify
+        run: mise run --skip-tools github:actions:archive-storage-contract -- restart-and-verify
 
       - name: Run archive cluster restore gate
-        run: mise run --skip-tools github-actions:archive-storage-contract -- cluster-restore
+        run: mise run --skip-tools github:actions:archive-storage-contract -- cluster-restore
 
   docker-compose:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     name: Docker Compose Smoke Test
     steps:
@@ -235,12 +253,13 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mise run --skip-tools github-actions:docker-compose-smoke
+        run: mise run --skip-tools github:actions:docker-compose-smoke
 
   required:
     name: Common CI
     if: ${{ always() }}
     needs:
+      - changes
       - semantic-conventions
       - csharp-quality
       - vulnerability-scan
@@ -249,9 +268,20 @@ jobs:
       - archive-storage-contract
       - docker-compose
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install task runner
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.8.2
+          install: false
+          cache: false
       - name: Require successful jobs
         env:
           REQUIRED_JOBS: ${{ toJSON(needs) }}
-        run: jq -e 'all(.[]; .result == "success")' <<< "$REQUIRED_JOBS"
+        run: mise run --skip-tools github:actions:require-successful-jobs
