@@ -33,7 +33,7 @@ if merge_base="$(git merge-base "$BASE_REF" "$head_ref" 2>/dev/null)"; then
 	comparison_base="$merge_base"
 fi
 
-if ! changed_files="$(git diff --name-only --diff-filter=ACMRD "$comparison_base" "$head_ref")"; then
+if ! changed_files="$(git diff --name-only --no-renames "$comparison_base" "$head_ref")"; then
 	echo "The change set could not be resolved."
 	emit true
 fi
