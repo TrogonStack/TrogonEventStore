@@ -1,12 +1,12 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI.SystemData;
 using EventStore.Core.Tests;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Services.Processing.Checkpointing;
 using EventStore.Projections.Core.Services.Processing.Emitting;
 using EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.emitted_streams_tracker.when_tracking;
@@ -15,7 +15,6 @@ namespace EventStore.Projections.Core.Tests.Services.emitted_streams_tracker.whe
 public class with_tracking_disabled<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId>
 {
 	private CountdownEvent _eventAppeared = new CountdownEvent(1);
-	private UserCredentials _credentials = new UserCredentials("admin", "changeit");
 
 	protected override TimeSpan Timeout { get; } = TimeSpan.FromSeconds(10);
 
@@ -27,11 +26,15 @@ public class with_tracking_disabled<TLogFormat, TStreamId> : SpecificationWithEm
 
 	protected override async Task When()
 	{
-		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) =>
-		{
-			_eventAppeared.Signal();
-			return Task.CompletedTask;
-		}, userCredentials: _credentials);
+		using var observation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+		using var subscription = SubscribeToStream(
+			_projectionNamesBuilder.GetEmittedStreamsName(),
+			true,
+			observation.Token);
+		Assert.That(await subscription.ResponseStream.MoveNext(observation.Token), Is.True);
+		Assert.That(
+			subscription.ResponseStream.Current.ContentCase,
+			Is.EqualTo(EventStore.Client.Streams.ReadResp.ContentOneofCase.Confirmation));
 
 		_emittedStreamsTracker.TrackEmittedStream(new EmittedEvent[] {
 			new EmittedDataEvent(
@@ -39,16 +42,32 @@ public class with_tracking_disabled<TLogFormat, TStreamId> : SpecificationWithEm
 				"data", null, CheckpointTag.FromPosition(0, 100, 50), null, null)
 		});
 
-		_eventAppeared.Wait(TimeSpan.FromSeconds(5));
-		sub.Unsubscribe();
+		try
+		{
+			while (await subscription.ResponseStream.MoveNext(observation.Token))
+			{
+				if (subscription.ResponseStream.Current.ContentCase ==
+					EventStore.Client.Streams.ReadResp.ContentOneofCase.Event)
+				{
+					_eventAppeared.Signal();
+					break;
+				}
+			}
+		}
+		catch (OperationCanceledException) when (observation.IsCancellationRequested)
+		{
+		}
+		catch (RpcException ex) when (observation.IsCancellationRequested &&
+			ex.StatusCode is StatusCode.Cancelled or StatusCode.DeadlineExceeded)
+		{
+		}
 	}
 
 	[Test]
 	public async Task should_write_a_stream_tracked_event()
 	{
-		var result = await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsName(), 0, 200,
-			false, _credentials);
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 200);
 		Assert.AreEqual(0, result.Events.Length);
-		Assert.AreEqual(1, _eventAppeared.CurrentCount); //no event appeared should get through
+		Assert.AreEqual(1, _eventAppeared.CurrentCount);
 	}
 }

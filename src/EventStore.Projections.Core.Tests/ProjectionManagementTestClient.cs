@@ -42,7 +42,12 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 		_client = new ProjectionGrpc.ProjectionsClient(_channel);
 	}
 
-	public Task CreateContinuous(string name, string query, bool emitEnabled = false, bool trackEmittedStreams = false) =>
+	public Task CreateContinuous(
+		string name,
+		string query,
+		bool emitEnabled = false,
+		bool trackEmittedStreams = false,
+		CancellationToken cancellationToken = default) =>
 		_client.CreateAsync(new CreateReq
 		{
 			Options = new CreateReq.Types.Options
@@ -55,9 +60,9 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 				},
 				Query = query
 			}
-		}, GetCallOptions()).ResponseAsync;
+		}, GetCallOptions(cancellationToken)).ResponseAsync;
 
-	public Task CreateOneTime(string query, string name = null) =>
+	public Task CreateOneTime(string query, string name = null, CancellationToken cancellationToken = default) =>
 		_client.CreateAsync(new CreateReq
 		{
 			Options = new CreateReq.Types.Options
@@ -66,9 +71,9 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 				Name = name ?? string.Empty,
 				Query = query
 			}
-		}, GetCallOptions()).ResponseAsync;
+		}, GetCallOptions(cancellationToken)).ResponseAsync;
 
-	public Task CreateTransient(string name, string query) =>
+	public Task CreateTransient(string name, string query, CancellationToken cancellationToken = default) =>
 		_client.CreateAsync(new CreateReq
 		{
 			Options = new CreateReq.Types.Options
@@ -79,18 +84,21 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 				},
 				Query = query
 			}
-		}, GetCallOptions()).ResponseAsync;
+		}, GetCallOptions(cancellationToken)).ResponseAsync;
 
-	public Task Enable(string name) =>
+	public Task Enable(string name, CancellationToken cancellationToken = default) =>
 		_client.EnableAsync(new EnableReq
 		{
 			Options = new EnableReq.Types.Options
 			{
 				Name = name
 			}
-		}, GetCallOptions()).ResponseAsync;
+		}, GetCallOptions(cancellationToken)).ResponseAsync;
 
-	public Task Disable(string name, bool writeCheckpoint = true) =>
+	public Task Disable(
+		string name,
+		bool writeCheckpoint = true,
+		CancellationToken cancellationToken = default) =>
 		_client.DisableAsync(new DisableReq
 		{
 			Options = new DisableReq.Types.Options
@@ -98,18 +106,18 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 				Name = name,
 				WriteCheckpoint = writeCheckpoint
 			}
-		}, GetCallOptions()).ResponseAsync;
+		}, GetCallOptions(cancellationToken)).ResponseAsync;
 
-	public Task Abort(string name) =>
+	public Task Abort(string name, CancellationToken cancellationToken = default) =>
 		_client.AbortAsync(new AbortReq
 		{
 			Options = new AbortReq.Types.Options
 			{
 				Name = name
 			}
-		}, GetCallOptions()).ResponseAsync;
+		}, GetCallOptions(cancellationToken)).ResponseAsync;
 
-	public Task UpdateQuery(string name, string query) =>
+	public Task UpdateQuery(string name, string query, CancellationToken cancellationToken = default) =>
 		_client.UpdateAsync(new UpdateReq
 		{
 			Options = new UpdateReq.Types.Options
@@ -117,7 +125,7 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 				Name = name,
 				Query = query
 			}
-		}, GetCallOptions()).ResponseAsync;
+		}, GetCallOptions(cancellationToken)).ResponseAsync;
 
 	public async Task<IReadOnlyList<StatisticsResp.Types.Details>> Statistics(
 		StatisticsReq.Types.Options options,
@@ -126,7 +134,7 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 		using var call = _client.Statistics(new StatisticsReq
 		{
 			Options = options
-		}, GetCallOptions(TimeSpan.FromSeconds(20)));
+		}, GetCallOptions(cancellationToken, TimeSpan.FromSeconds(20)));
 
 		var results = new List<StatisticsResp.Types.Details>();
 		while (await call.ResponseStream.MoveNext(cancellationToken))
@@ -161,7 +169,9 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 		_ownedHttpClient?.Dispose();
 	}
 
-	private static CallOptions GetCallOptions(TimeSpan? deadline = null)
+	private static CallOptions GetCallOptions(
+		CancellationToken cancellationToken = default,
+		TimeSpan? deadline = null)
 	{
 		var credentials = CallCredentials.FromInterceptor((_, metadata) =>
 		{
@@ -174,6 +184,7 @@ internal sealed class ProjectionManagementTestClient : IDisposable
 			credentials: credentials,
 			deadline: deadline is { } value
 				? DateTime.UtcNow.Add(value)
-				: null);
+				: null,
+			cancellationToken: cancellationToken);
 	}
 }

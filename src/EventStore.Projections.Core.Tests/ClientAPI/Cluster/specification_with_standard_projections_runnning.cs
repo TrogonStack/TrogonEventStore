@@ -1,32 +1,45 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.SystemData;
+using EventStore.Client;
+using EventStore.Client.Streams;
 using EventStore.Common.Options;
 using EventStore.Core.Data;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Tests;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Util;
 using EventStore.Projections.Core.Services.Processing;
+using Google.Protobuf;
+using Grpc.Core;
+using Grpc.Net.Client;
 using NUnit.Framework;
-using ExpectedVersion = EventStore.ClientAPI.ExpectedVersion;
-using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
+using GrpcMetadata = EventStore.Core.Services.Transport.Grpc.Constants.Metadata;
+using StatisticsReq = EventStore.Client.Projections.StatisticsReq;
+using StreamsClient = EventStore.Client.Streams.Streams.StreamsClient;
 
 namespace EventStore.Projections.Core.Tests.ClientAPI.Cluster;
 
-[Category("ClientAPI")]
+[Category("Grpc")]
 public abstract class specification_with_standard_projections_runnning<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
+	private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(30);
+	private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
+	private static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(2);
+	private static readonly TimeSpan StandardProjectionsStartupTimeout = TimeSpan.FromMinutes(3);
+	private static readonly int PollAttemptCount = (int)(PollTimeout / PollInterval);
 	protected MiniClusterNode<TLogFormat, TStreamId>[] _nodes = new MiniClusterNode<TLogFormat, TStreamId>[3];
 	protected Endpoints[] _nodeEndpoints = new Endpoints[3];
-	protected IEventStoreConnection _conn;
 	private readonly ProjectionsSubsystem[] _projections = new ProjectionsSubsystem[3];
-	protected UserCredentials _admin = DefaultData.AdminCredentials;
+	private HttpClient _streamHttpClient;
+	private GrpcChannel _streamChannel;
+	private StreamsClient _streams;
+	private CancellationToken _operationCancellationToken;
 	private protected ProjectionManagementTestClient ProjectionClient;
 
 	protected class Endpoints
@@ -39,13 +52,11 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		public Endpoints(int internalTcp, int externalTcp, int httpPort)
 		{
 			var testIp = Environment.GetEnvironmentVariable("ES-TESTIP");
-
 			var address = string.IsNullOrEmpty(testIp) ? IPAddress.Loopback : IPAddress.Parse(testIp);
 			InternalTcp = new IPEndPoint(address, internalTcp);
 			ExternalTcp = new IPEndPoint(address, externalTcp);
 			HttpEndPoint = new IPEndPoint(address, httpPort);
-
-			_ports = new[] { internalTcp, httpPort, externalTcp };
+			_ports = [internalTcp, httpPort, externalTcp];
 		}
 
 		public IEnumerable<int> Ports => _ports;
@@ -55,29 +66,23 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
-#if (!DEBUG)
-            Assert.Ignore("These tests require DEBUG conditional");
-#else
-		_nodeEndpoints[0] = new Endpoints(
-			PortsHelper.GetAvailablePort(IPAddress.Loopback),
-			PortsHelper.GetAvailablePort(IPAddress.Loopback),
-			PortsHelper.GetAvailablePort(IPAddress.Loopback));
-		_nodeEndpoints[1] = new Endpoints(
-			PortsHelper.GetAvailablePort(IPAddress.Loopback),
-			PortsHelper.GetAvailablePort(IPAddress.Loopback),
-			PortsHelper.GetAvailablePort(IPAddress.Loopback));
-		_nodeEndpoints[2] = new Endpoints(
-			PortsHelper.GetAvailablePort(IPAddress.Loopback),
-			PortsHelper.GetAvailablePort(IPAddress.Loopback),
-			PortsHelper.GetAvailablePort(IPAddress.Loopback));
 
-		_nodes[0] = CreateNode(0,
-			_nodeEndpoints[0], new[] { _nodeEndpoints[0].HttpEndPoint });
-		_nodes[1] = CreateNode(1,
-			_nodeEndpoints[1], new[] { _nodeEndpoints[1].HttpEndPoint });
-		_nodes[2] = CreateNode(2,
-			_nodeEndpoints[2], new[] { _nodeEndpoints[2].HttpEndPoint });
-		WaitIdle();
+		for (var index = 0; index < _nodeEndpoints.Length; index++)
+		{
+			_nodeEndpoints[index] = new Endpoints(
+				PortsHelper.GetAvailablePort(IPAddress.Loopback),
+				PortsHelper.GetAvailablePort(IPAddress.Loopback),
+				PortsHelper.GetAvailablePort(IPAddress.Loopback));
+		}
+
+		for (var index = 0; index < _nodes.Length; index++)
+		{
+			var gossipSeeds = _nodeEndpoints
+				.Where((_, otherIndex) => otherIndex != index)
+				.Select(x => (EndPoint)x.HttpEndPoint)
+				.ToArray();
+			_nodes[index] = CreateNode(index, _nodeEndpoints[index], gossipSeeds);
+		}
 
 		var projectionsStarted = _projections.Select(p => SystemProjections.Created(p.LeaderInputBus)).ToArray();
 
@@ -87,50 +92,49 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			node.WaitIdle();
 		}
 
-		await Task.WhenAll(_nodes.Select(x => x.Started)).WithTimeout(TimeSpan.FromSeconds(30));
-
-		_conn = EventStoreConnection.Create(_nodes[0].ExternalTcpEndPoint);
-		await _conn.ConnectAsync().WithTimeout();
+		await Task.WhenAll(_nodes.Select(x => x.Started)).WithTimeout(TimeSpan.FromMinutes(5));
+		await Task.WhenAll(_nodes.Select(x => x.AdminUserCreated)).WithTimeout(TimeSpan.FromMinutes(5));
 
 		var leader = _nodes.Single(x => x.NodeState == VNodeState.Leader);
+		_streamHttpClient = leader.CreateHttpClient();
+		_streamChannel = GrpcChannel.ForAddress(
+			_streamHttpClient.BaseAddress,
+			new GrpcChannelOptions
+			{
+				HttpClient = _streamHttpClient,
+				DisposeHttpClient = false
+			});
+		_streams = new StreamsClient(_streamChannel);
 		ProjectionClient = new ProjectionManagementTestClient(leader.HttpEndPoint, leader.CreateHttpClient());
 
 		if (GivenStandardProjectionsRunning())
 		{
-			await Task.WhenAny(projectionsStarted).WithTimeout(TimeSpan.FromSeconds(10));
-			await EnableStandardProjections().WithTimeout(TimeSpan.FromMinutes(2));
+			await Task.WhenAny(projectionsStarted).WithTimeout(OperationTimeout);
+			await RunBoundedOperation(EnableStandardProjections, StandardProjectionsStartupTimeout);
 		}
 
-		WaitIdle();
-
-		try
-		{
-			await Given().WithTimeout();
-		}
-		catch (Exception ex)
-		{
-			throw new Exception("Given Failed", ex);
-		}
-
-		try
-		{
-			await When().WithTimeout();
-		}
-		catch (Exception ex)
-		{
-			throw new Exception("When Failed", ex);
-		}
-#endif
+		await RunBoundedOperation(Given);
+		await RunBoundedOperation(When);
 	}
 
 	private MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds)
 	{
-		_projections[index] = new ProjectionsSubsystem(new ProjectionSubsystemOptions(1, ProjectionType.All, false, TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault), Opts.FaultOutOfOrderProjectionsDefault, 500, 250));
-		var node = new MiniClusterNode<TLogFormat, TStreamId>(
-			PathName, index, endpoints.InternalTcp,
-			endpoints.ExternalTcp, endpoints.HttpEndPoint,
-			subsystems: [_projections[index]], gossipSeeds: gossipSeeds);
-		return node;
+		_projections[index] = new ProjectionsSubsystem(new ProjectionSubsystemOptions(
+			1,
+			ProjectionType.All,
+			false,
+			TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault),
+			Opts.FaultOutOfOrderProjectionsDefault,
+			500,
+			250));
+		return new MiniClusterNode<TLogFormat, TStreamId>(
+			PathName,
+			index,
+			endpoints.InternalTcp,
+			endpoints.ExternalTcp,
+			endpoints.HttpEndPoint,
+			subsystems: [_projections[index]],
+			gossipSeeds: gossipSeeds);
 	}
 
 	[TearDown]
@@ -159,52 +163,47 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		await DisableProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection);
 	}
 
-	protected virtual bool GivenStandardProjectionsRunning()
-	{
-		return true;
-	}
+	protected virtual bool GivenStandardProjectionsRunning() => true;
 
 	protected async Task EnableProjection(string name)
 	{
-		for (int i = 1; i <= 10; i++)
+		for (var attempt = 1; attempt <= 10; attempt++)
 		{
 			try
 			{
-				await ProjectionClient.Enable(name);
+				await ProjectionClient.Enable(name, _operationCancellationToken);
+				break;
 			}
-			catch (Exception)
+			catch when (attempt < 10 && !_operationCancellationToken.IsCancellationRequested)
 			{
-				if (i == 10)
-				{
-					throw;
-				}
-
-				await Task.Delay(5000);
+				await Task.Delay(500, _operationCancellationToken);
 			}
 		}
 
-		await Task.Delay(1000); /* workaround for race condition when multiple projections are being enabled simultaneously */
+		await WaitForProjectionStatus(name, status => status.Contains("Running", StringComparison.OrdinalIgnoreCase));
 	}
 
-	protected Task DisableProjection(string name)
+	protected async Task DisableProjection(string name)
 	{
-		return ProjectionClient.Disable(name);
+		await ProjectionClient.Disable(name, cancellationToken: _operationCancellationToken);
+		await WaitForProjectionStatus(name, status => status.Contains("Stopped", StringComparison.OrdinalIgnoreCase));
 	}
 
-	protected Task AbortProjection(string name)
+	protected async Task AbortProjection(string name)
 	{
-		return ProjectionClient.Abort(name);
+		await ProjectionClient.Abort(name, _operationCancellationToken);
+		await WaitForProjectionStatus(name, status => status.StartsWith("Aborted", StringComparison.OrdinalIgnoreCase));
 	}
 
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
 		ProjectionClient?.Dispose();
-		_conn.Close();
-		await Task.WhenAll(
-			_nodes[0].Shutdown(),
-			_nodes[1].Shutdown(),
-			_nodes[2].Shutdown());
+		_streamChannel?.Dispose();
+		_streamHttpClient?.Dispose();
+
+		await Task.WhenAll(_nodes.Where(x => x != null).Select(x => x.Shutdown()));
+
 		await base.TestFixtureTearDown();
 	}
 
@@ -212,135 +211,216 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected virtual Task Given() => Task.CompletedTask;
 
-	protected Task PostEvent(string stream, string eventType, string data)
+	protected async Task PostEvent(string stream, string eventType, string data)
 	{
-		return _conn.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
+		using var call = _streams.Append(GetCallOptions(_operationCancellationToken));
+		await call.RequestStream.WriteAsync(new AppendReq
+		{
+			Options = new AppendReq.Types.Options
+			{
+				Any = new Empty(),
+				StreamIdentifier = new StreamIdentifier
+				{
+					StreamName = ByteString.CopyFromUtf8(stream)
+				}
+			}
+		});
+		await call.RequestStream.WriteAsync(new AppendReq
+		{
+			ProposedMessage = new AppendReq.Types.ProposedMessage
+			{
+				Id = Uuid.NewUuid().ToDto(),
+				Data = ByteString.CopyFromUtf8(data),
+				CustomMetadata = ByteString.Empty,
+				Metadata =
+				{
+					{ GrpcMetadata.Type, eventType },
+					{ GrpcMetadata.ContentType, GrpcMetadata.ContentTypes.ApplicationJson }
+				}
+			}
+		});
+		await call.RequestStream.CompleteAsync();
+		await call.ResponseAsync;
 	}
 
-	protected Task HardDeleteStream(string stream)
+	protected async Task HardDeleteStream(string stream)
 	{
-		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, true, _admin);
+		await _streams.TombstoneAsync(new TombstoneReq
+		{
+			Options = new TombstoneReq.Types.Options
+			{
+				Any = new Empty(),
+				StreamIdentifier = new StreamIdentifier
+				{
+					StreamName = ByteString.CopyFromUtf8(stream)
+				}
+			}
+		}, GetCallOptions(_operationCancellationToken));
 	}
 
-	protected Task SoftDeleteStream(string stream)
+	protected async Task SoftDeleteStream(string stream)
 	{
-		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, false, _admin);
-	}
-
-	protected static EventData CreateEvent(string type, string data)
-	{
-		return new EventData(Guid.NewGuid(), type, true, Encoding.UTF8.GetBytes(data), Array.Empty<byte>());
+		await _streams.DeleteAsync(new DeleteReq
+		{
+			Options = new DeleteReq.Types.Options
+			{
+				Any = new Empty(),
+				StreamIdentifier = new StreamIdentifier
+				{
+					StreamName = ByteString.CopyFromUtf8(stream)
+				}
+			}
+		}, GetCallOptions(_operationCancellationToken));
 	}
 
 	protected void WaitIdle()
 	{
-#if DEBUG
-		_nodes[0].WaitIdle();
-		_nodes[1].WaitIdle();
-		_nodes[2].WaitIdle();
-#endif
+		foreach (var node in _nodes)
+		{
+			node.WaitIdle();
+		}
+
+		Thread.Sleep(50);
 	}
 
-#pragma warning disable 1998
 	protected async Task AssertStreamTailAsync(string streamId, params string[] events)
 	{
-#pragma warning restore 1998
-#if DEBUG
-		var result = await _conn.ReadStreamEventsBackwardAsync(streamId, -1, events.Length, true, _admin);
-		switch (result.Status)
+		string[] actual = [];
+		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 		{
-			case SliceReadStatus.StreamDeleted:
-				Assert.Fail("Stream '{0}' is deleted", streamId);
-				break;
-			case SliceReadStatus.StreamNotFound:
-				Assert.Fail("Stream '{0}' does not exist", streamId);
-				break;
-			case SliceReadStatus.Success:
-				var resultEventsReversed = result.Events.Reverse().ToArray();
-				if (resultEventsReversed.Length < events.Length)
-				{
-					DumpFailed("Stream does not contain enough events", streamId, events, result.Events);
-				}
-				else
-				{
-					for (var index = 0; index < events.Length; index++)
-					{
-						var parts = events[index].Split(new char[] { ':' }, 2);
-						var eventType = parts[0];
-						var eventData = parts[1];
+			actual = (await ReadStreamBackwards(streamId, (ulong)events.Length))
+				.Reverse()
+				.Select(x => $"{x.Event.EventType()}:{x.Event.DebugDataView()}")
+				.ToArray();
+			if (actual.SequenceEqual(events))
+			{
+				return;
+			}
 
-						if (resultEventsReversed[index].Event.EventType != eventType)
-						{
-							DumpFailed("Invalid event type", streamId, events, resultEventsReversed);
-						}
-						else if (resultEventsReversed[index].Event.DebugDataView() != eventData)
-						{
-							DumpFailed("Invalid event body", streamId, events, resultEventsReversed);
-						}
-					}
-				}
-
-				break;
+			await Task.Delay(PollInterval);
 		}
-#endif
-	}
-
-#pragma warning disable 1998
-	protected async Task DumpStreamAsync(string streamId)
-	{
-#pragma warning restore 1998
-#if DEBUG
-		var result = await _conn.ReadStreamEventsBackwardAsync(streamId, -1, 100, true, _admin);
-		switch (result.Status)
-		{
-			case SliceReadStatus.StreamDeleted:
-				Assert.Fail("Stream '{0}' is deleted", streamId);
-				break;
-			case SliceReadStatus.StreamNotFound:
-				Assert.Fail("Stream '{0}' does not exist", streamId);
-				break;
-			case SliceReadStatus.Success:
-				Dump("Dumping..", streamId, result.Events.Reverse().ToArray());
-				break;
-		}
-#endif
-	}
-
-#if DEBUG
-	private void DumpFailed(string message, string streamId, string[] events, ResolvedEvent[] resultEvents)
-	{
-		var expected = events.Aggregate("", (a, v) => a + ", " + v);
-		var actual = resultEvents.Aggregate(
-			"", (a, v) => a + ", " + v.Event.EventType + ":" + v.Event.DebugDataView());
-
-		var actualMeta = resultEvents.Aggregate(
-			"", (a, v) => a + "\r\n" + v.Event.EventType + ":" + v.Event.DebugMetadataView());
-
 
 		Assert.Fail(
-			"Stream: '{0}'\r\n{1}\r\n\r\nExisting events: \r\n{2}\r\n Expected events: \r\n{3}\r\n\r\nActual metas:{4}",
-			streamId,
-			message, actual, expected, actualMeta);
+			$"Stream '{streamId}' did not reach the expected tail. Expected: [{string.Join(", ", events)}]. Actual: [{string.Join(", ", actual)}].");
 	}
 
-	private void Dump(string message, string streamId, ResolvedEvent[] resultEvents)
+	protected async Task DumpStreamAsync(string streamId)
 	{
-		var actual = resultEvents.Aggregate(
-			"", (a, v) => a + ", " + v.OriginalEvent.EventType + ":" + v.OriginalEvent.DebugDataView());
-
-		var actualMeta = resultEvents.Aggregate(
-			"", (a, v) => a + "\r\n" + v.OriginalEvent.EventType + ":" + v.OriginalEvent.DebugMetadataView());
-
-		Debug.WriteLine(
-			"Stream: '{0}'\r\n{1}\r\n\r\nExisting events: \r\n{2}\r\n \r\nActual metas:{3}", streamId,
-			message, actual, actualMeta);
+		var events = await ReadStreamBackwards(streamId, 100);
+		TestContext.Progress.WriteLine(
+			$"Stream '{streamId}': {string.Join(", ", events.Reverse().Select(x => $"{x.Event.EventType()}:{x.Event.DebugDataView()}"))}");
 	}
-#endif
 
 	protected async Task PostProjection(string query)
 	{
-		await ProjectionClient.CreateContinuous("test-projection", query);
-		WaitIdle();
+		await ProjectionClient.CreateContinuous(
+			"test-projection",
+			query,
+			cancellationToken: _operationCancellationToken);
+		await WaitForProjectionStatus(
+			"test-projection",
+			status => status.Contains("Running", StringComparison.OrdinalIgnoreCase));
+	}
+
+	private async Task<IReadOnlyList<ReadResp.Types.ReadEvent>> ReadStreamBackwards(string streamId, ulong count)
+	{
+		using var call = _streams.Read(new ReadReq
+		{
+			Options = new ReadReq.Types.Options
+			{
+				Stream = new ReadReq.Types.Options.Types.StreamOptions
+				{
+					StreamIdentifier = new StreamIdentifier
+					{
+						StreamName = ByteString.CopyFromUtf8(streamId)
+					},
+					End = new Empty()
+				},
+				ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Backwards,
+				ResolveLinks = true,
+				Count = count,
+				NoFilter = new Empty(),
+				UuidOption = new ReadReq.Types.Options.Types.UUIDOption
+				{
+					Structured = new Empty()
+				},
+				ControlOption = new ReadReq.Types.Options.Types.ControlOption
+				{
+					Compatibility = 21
+				}
+			}
+		}, GetCallOptions(_operationCancellationToken));
+
+		var events = new List<ReadResp.Types.ReadEvent>();
+		while (await call.ResponseStream.MoveNext(_operationCancellationToken))
+		{
+			if (call.ResponseStream.Current.ContentCase == ReadResp.ContentOneofCase.Event)
+			{
+				events.Add(call.ResponseStream.Current.Event);
+			}
+		}
+
+		return events;
+	}
+
+	private async Task WaitForProjectionStatus(string name, Func<string, bool> predicate)
+	{
+		using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_operationCancellationToken);
+		cancellation.CancelAfter(PollTimeout);
+		var cancellationToken = cancellation.Token;
+		string lastStatus = null;
+		try
+		{
+			for (var attempt = 0; attempt < PollAttemptCount; attempt++)
+			{
+				var statistics = await ProjectionClient.Statistics(new StatisticsReq.Types.Options
+				{
+					Name = name
+				}, cancellationToken);
+				lastStatus = statistics.SingleOrDefault()?.Status;
+				if (lastStatus != null && predicate(lastStatus))
+				{
+					return;
+				}
+
+				await Task.Delay(PollInterval, cancellationToken);
+			}
+		}
+		catch (OperationCanceledException) when (!_operationCancellationToken.IsCancellationRequested)
+		{
+			Assert.Fail($"Projection '{name}' did not reach the expected status. Last status: '{lastStatus}'.");
+		}
+
+		Assert.Fail($"Projection '{name}' did not reach the expected status. Last status: '{lastStatus}'.");
+	}
+
+	private async Task RunBoundedOperation(Func<Task> operation, TimeSpan? timeout = null)
+	{
+		using var cancellation = new CancellationTokenSource(timeout ?? OperationTimeout);
+		_operationCancellationToken = cancellation.Token;
+		try
+		{
+			await operation().WaitAsync(cancellation.Token);
+		}
+		finally
+		{
+			_operationCancellationToken = default;
+		}
+	}
+
+	private static CallOptions GetCallOptions(CancellationToken cancellationToken = default)
+	{
+		var credentials = CallCredentials.FromInterceptor((_, metadata) =>
+		{
+			metadata.Add("authorization",
+				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
+			return Task.CompletedTask;
+		});
+
+		return new CallOptions(
+			credentials: credentials,
+			deadline: DateTime.UtcNow.Add(PollTimeout),
+			cancellationToken: cancellationToken);
 	}
 }
 
@@ -351,7 +431,7 @@ public class vnode_cluster_specification<TLogFormat, TStreamId> : specification_
 	[Test, Explicit]
 	public async Task vnode_cluster_starts()
 	{
-		await PostProjection(@"fromStream('$user-admin').outputState()");
+		await PostProjection(@"fromStream('$user-admin').when({$any:function(){return {}}}).outputState()");
 		await AssertStreamTailAsync("$projections-test-projection-result", "Result:{}");
 	}
 }

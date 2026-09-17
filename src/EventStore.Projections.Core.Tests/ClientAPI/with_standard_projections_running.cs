@@ -1,10 +1,6 @@
-using System;
 using System.Text;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.Core.Bus;
 using EventStore.Core.Tests;
-using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Services.Processing.Checkpointing;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -19,57 +15,59 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
 			[Test, Category("Network")]
 			public async Task streams_stream_exists()
 			{
-				Assert.AreEqual(
-					SliceReadStatus.Success,
-					(await _conn.ReadStreamEventsForwardAsync("$streams", 0, 10, false, _admin)).Status);
+				var result = await WaitForStreamEvents("$streams", 1, false);
+				Assert.That(result.Exists, Is.True);
 			}
 
 			[Test, Category("Network")]
 			public async Task deleted_stream_events_are_indexed()
 			{
-				await Task.Delay(500); //give the projection time to catchup...
-				var slice = await _conn.ReadStreamEventsForwardAsync("$ce-cat", 0, 10, true, _admin);
-				Assert.AreEqual(SliceReadStatus.Success, slice.Status);
+				var result = await WaitForStreamEvents("$ce-cat", 3, true);
+				Assert.That(result.Events, Has.Count.EqualTo(3));
 
-				Assert.AreEqual(3, slice.Events.Length);
-				var deletedLinkMetadata = slice.Events[2].Link.Metadata;
-				Assert.IsNotNull(deletedLinkMetadata);
+				var deletedLink = result.Events[2].Link;
+				Assert.That(deletedLink, Is.Not.Null);
+				Assert.That(deletedLink.CustomMetadata, Is.Not.Null);
 
-				var checkpointTag = Encoding.UTF8.GetString(deletedLinkMetadata).ParseCheckpointExtraJson();
-				Assert.IsTrue(checkpointTag.TryGetValue("$deleted", out _));
-				Assert.IsTrue(checkpointTag.TryGetValue("$o", out var originalStream));
-				Assert.AreEqual("cat-1", ((JValue)originalStream).Value);
+				var checkpointTag = Encoding.UTF8.GetString(deletedLink.CustomMetadata.ToByteArray())
+					.ParseCheckpointExtraJson();
+				Assert.That(checkpointTag.TryGetValue("$deleted", out _), Is.True);
+				Assert.That(checkpointTag.TryGetValue("$o", out var originalStream), Is.True);
+				Assert.That(((JValue)originalStream).Value, Is.EqualTo("cat-1"));
 			}
 
 			[Test, Category("Network")]
 			public async Task deleted_stream_events_are_indexed_as_deleted()
 			{
-				var slice = await _conn.ReadStreamEventsForwardAsync("$et-$deleted", 0, 10, true, _admin);
-				Assert.AreEqual(SliceReadStatus.Success, slice.Status);
-
-				Assert.AreEqual(1, slice.Events.Length);
+				var result = await WaitForStreamEvents("$et-$deleted", 1, true);
+				Assert.That(result.Events, Has.Count.EqualTo(1));
 			}
 
 			protected override async Task When()
 			{
 				await base.When();
-				var r1 = await _conn.AppendToStreamAsync(
-						"cat-1", ExpectedVersion.NoStream, _admin,
-						new EventData(Guid.NewGuid(), "type1", true, Encoding.UTF8.GetBytes("{}"), null))
-					;
+				var firstAppend = await AppendToNewStream("cat-1", "type1", "{}");
+				Assert.That(firstAppend.ResultCase, Is.EqualTo(EventStore.Client.Streams.AppendResp.ResultOneofCase.Success));
 
-				var r2 = await _conn.AppendToStreamAsync(
-					"cat-1", r1.NextExpectedVersion, _admin,
-					new EventData(Guid.NewGuid(), "type1", true, Encoding.UTF8.GetBytes("{}"), null));
+				var secondAppend = await AppendToStream(
+					"cat-1",
+					firstAppend.Success.CurrentRevision,
+					"type1",
+					"{}");
+				Assert.That(secondAppend.ResultCase, Is.EqualTo(EventStore.Client.Streams.AppendResp.ResultOneofCase.Success));
 
-				await _conn.DeleteStreamAsync("cat-1", r2.NextExpectedVersion, GivenDeleteHardDeleteStreamMode(),
-						_admin)
-					;
-				WaitIdle();
+				if (GivenDeleteHardDeleteStreamMode())
+				{
+					await HardDeleteStream("cat-1", secondAppend.Success.CurrentRevision);
+				}
+				else
+				{
+					await SoftDeleteStream("cat-1", secondAppend.Success.CurrentRevision);
+				}
+
 				if (!GivenStandardProjectionsRunning())
 				{
 					await EnableStandardProjections();
-					WaitIdle();
 				}
 			}
 
@@ -79,47 +77,29 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		public class when_hard_deleting_stream<TLogFormat, TStreamId> : when_deleting_stream_base<TLogFormat, TStreamId>
 		{
-			protected override bool GivenDeleteHardDeleteStreamMode()
-			{
-				return true;
-			}
+			protected override bool GivenDeleteHardDeleteStreamMode() => true;
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		public class when_soft_deleting_stream<TLogFormat, TStreamId> : when_deleting_stream_base<TLogFormat, TStreamId>
 		{
-			protected override bool GivenDeleteHardDeleteStreamMode()
-			{
-				return false;
-			}
+			protected override bool GivenDeleteHardDeleteStreamMode() => false;
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		public class when_hard_deleting_stream_and_starting_standard_projections<TLogFormat, TStreamId> : when_deleting_stream_base<TLogFormat, TStreamId>
 		{
-			protected override bool GivenDeleteHardDeleteStreamMode()
-			{
-				return true;
-			}
+			protected override bool GivenDeleteHardDeleteStreamMode() => true;
 
-			protected override bool GivenStandardProjectionsRunning()
-			{
-				return false;
-			}
+			protected override bool GivenStandardProjectionsRunning() => false;
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		public class when_soft_deleting_stream_and_starting_standard_projections<TLogFormat, TStreamId> : when_deleting_stream_base<TLogFormat, TStreamId>
 		{
-			protected override bool GivenDeleteHardDeleteStreamMode()
-			{
-				return false;
-			}
+			protected override bool GivenDeleteHardDeleteStreamMode() => false;
 
-			protected override bool GivenStandardProjectionsRunning()
-			{
-				return false;
-			}
+			protected override bool GivenStandardProjectionsRunning() => false;
 		}
 	}
 }

@@ -1,15 +1,46 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Client.Streams;
 using EventStore.Core.Helpers;
 using EventStore.Core.Messages;
-using EventStore.Core.Tests.ClientAPI;
+using EventStore.Core.Services.Transport.Grpc;
+using EventStore.Core.Tests;
+using EventStore.Core.Tests.Helpers;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Services.Processing.Emitting;
+using Google.Protobuf;
+using Grpc.Core;
+using Grpc.Net.Client;
+using NUnit.Framework;
+using GrpcMetadata = EventStore.Core.Services.Transport.Grpc.Constants.Metadata;
+using ReadEvent = EventStore.Client.Streams.ReadResp.Types.ReadEvent;
+using StreamsClient = EventStore.Client.Streams.Streams.StreamsClient;
 
 namespace EventStore.Projections.Core.Tests.Services;
 
-public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
+	protected sealed class StreamReadResult
+	{
+		public StreamReadResult(bool exists, ReadEvent[] events)
+		{
+			Exists = exists;
+			Events = events;
+		}
+
+		public bool Exists { get; }
+		public ReadEvent[] Events { get; }
+	}
+
+	private GrpcChannel _channel;
+	protected MiniNode<TLogFormat, TStreamId> _node;
+	protected StreamsClient _client;
 	protected IEmittedStreamsTracker _emittedStreamsTracker;
 	protected IEmittedStreamsDeleter _emittedStreamsDeleter;
 	protected ProjectionNamesBuilder _projectionNamesBuilder;
@@ -17,8 +48,33 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 	protected IODispatcher _ioDispatcher;
 	protected bool _trackEmittedStreams = true;
 	protected string _projectionName = "test_projection";
+	protected virtual TimeSpan Timeout { get; } = TimeSpan.FromMinutes(1);
 
-	protected override Task Given()
+	protected abstract Task When();
+
+	[OneTimeSetUp]
+	public override async Task TestFixtureSetUp()
+	{
+		await base.TestFixtureSetUp();
+		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
+		await _node.Start();
+		await _node.AdminUserCreated.WithTimeout(Timeout);
+		_channel = GrpcChannel.ForAddress(new UriBuilder { Scheme = Uri.UriSchemeHttps }.Uri,
+			new GrpcChannelOptions { HttpClient = _node.HttpClient, DisposeHttpClient = false });
+		_client = new StreamsClient(_channel);
+		await Given().WithTimeout(Timeout);
+		await When().WithTimeout(Timeout);
+	}
+
+	[OneTimeTearDown]
+	public override async Task TestFixtureTearDown()
+	{
+		_channel?.Dispose();
+		await _node.Shutdown();
+		await base.TestFixtureTearDown();
+	}
+
+	protected virtual Task Given()
 	{
 		_ioDispatcher = new IODispatcher(_node.Node.MainQueue, _node.Node.MainQueue, true);
 		_node.Node.MainBus.Subscribe<ClientMessage.ReadStreamEventsBackwardCompleted>(_ioDispatcher.BackwardReader);
@@ -38,4 +94,128 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 			_projectionNamesBuilder.GetEmittedStreamsCheckpointName());
 		return Task.CompletedTask;
 	}
+
+	protected async Task AppendEvent(string stream, string eventType, byte[] data)
+	{
+		using var call = _client.Append(AdminCallOptions());
+		await call.RequestStream.WriteAsync(new AppendReq
+		{
+			Options = new()
+			{
+				Any = new(),
+				StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) }
+			}
+		});
+		await call.RequestStream.WriteAsync(new AppendReq
+		{
+			ProposedMessage = new()
+			{
+				Id = Uuid.NewUuid().ToDto(),
+				Data = ByteString.CopyFrom(data),
+				CustomMetadata = ByteString.Empty,
+				Metadata = {
+					{ GrpcMetadata.Type, eventType },
+					{ GrpcMetadata.ContentType, GrpcMetadata.ContentTypes.ApplicationJson }
+				}
+			}
+		});
+		await call.RequestStream.CompleteAsync();
+		await call.ResponseAsync;
+	}
+
+	protected async Task<StreamReadResult> ReadEvents(string stream, int count)
+	{
+		using var timeout = new CancellationTokenSource(Timeout);
+		return await ReadEvents(stream, count, timeout.Token);
+	}
+
+	protected AsyncServerStreamingCall<ReadResp> SubscribeToStream(
+		string stream,
+		bool resolveLinks,
+		CancellationToken cancellationToken) =>
+		_client.Read(new ReadReq
+		{
+			Options = new()
+			{
+				Stream = new()
+				{
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) },
+					End = new()
+				},
+				ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
+				ResolveLinks = resolveLinks,
+				Subscription = new(),
+				NoFilter = new(),
+				UuidOption = new() { Structured = new() }
+			}
+		}, AdminCallOptions(cancellationToken));
+
+	private async Task<StreamReadResult> ReadEvents(string stream, int count, CancellationToken cancellationToken)
+	{
+		using var call = _client.Read(new ReadReq
+		{
+			Options = new()
+			{
+				Stream = new()
+				{
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) },
+					Start = new()
+				},
+				ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
+				Count = (ulong)count,
+				NoFilter = new(),
+				UuidOption = new() { Structured = new() }
+			}
+		}, AdminCallOptions(cancellationToken));
+		var exists = true;
+		var events = new List<ReadEvent>();
+		while (await call.ResponseStream.MoveNext(cancellationToken))
+		{
+			switch (call.ResponseStream.Current.ContentCase)
+			{
+				case ReadResp.ContentOneofCase.Event:
+					events.Add(call.ResponseStream.Current.Event);
+					break;
+				case ReadResp.ContentOneofCase.StreamNotFound:
+					exists = false;
+					break;
+			}
+		}
+
+		return new StreamReadResult(exists, events.ToArray());
+	}
+
+	protected async Task<ReadEvent[]> WaitForEvents(string stream, int count)
+	{
+		using var timeout = new CancellationTokenSource(Timeout);
+		var events = Array.Empty<ReadEvent>();
+		try
+		{
+			while (true)
+			{
+				events = (await ReadEvents(stream, count, timeout.Token)).Events;
+				if (events.Length >= count)
+					return events;
+				await Task.Delay(50, timeout.Token);
+			}
+		}
+		catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+		{
+			return events;
+		}
+		catch (RpcException ex) when (timeout.IsCancellationRequested &&
+				ex.StatusCode is StatusCode.Cancelled or StatusCode.DeadlineExceeded)
+		{
+			return events;
+		}
+	}
+
+	private static CallOptions AdminCallOptions(CancellationToken cancellationToken = default) => new(
+		credentials: CallCredentials.FromInterceptor((_, metadata) =>
+		{
+			metadata.Add("authorization",
+				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
+			return Task.CompletedTask;
+		}),
+		cancellationToken: cancellationToken);
 }
