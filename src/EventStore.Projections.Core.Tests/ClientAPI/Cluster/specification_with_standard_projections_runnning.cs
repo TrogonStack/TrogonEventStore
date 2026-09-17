@@ -91,6 +91,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		}
 
 		await Task.WhenAll(_nodes.Select(x => x.Started)).WithTimeout(TimeSpan.FromMinutes(5));
+		await Task.WhenAll(_nodes.Select(x => x.AdminUserCreated)).WithTimeout(TimeSpan.FromMinutes(5));
 
 		var leader = _nodes.Single(x => x.NodeState == VNodeState.Leader);
 		_streamHttpClient = leader.CreateHttpClient();
