@@ -156,8 +156,8 @@ public partial class EnumeratorTests
 			}, GetCallOptions());
 
 			var response = await call.ResponseStream.ReadAllAsync()
-				.FirstAsync(response => response.Event is not null);
-			return checked((long)response.Event.Event.StreamRevision);
+				.FirstOrDefaultAsync(response => response.Event is not null);
+			return response is null ? -1 : checked((long)response.Event.Event.StreamRevision);
 		}
 
 		private static CallOptions GetCallOptions() => new(
@@ -170,6 +170,18 @@ public partial class EnumeratorTests
 			Channel?.Dispose();
 			await Node.Shutdown();
 			await base.TestFixtureTearDown();
+		}
+	}
+
+	[TestFixture]
+	public class ReadLastStreamRevisionTests : TestFixtureWithMiniNodeConnection
+	{
+		[Test]
+		public async Task reading_last_revision_of_a_missing_stream_returns_minus_one()
+		{
+			var revision = await ReadLastStreamRevision($"missing-{Guid.NewGuid()}");
+
+			Assert.That(revision, Is.EqualTo(-1));
 		}
 	}
 }

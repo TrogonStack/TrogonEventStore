@@ -34,6 +34,7 @@ public class when_running_scavenge_from_storage_scavenger<TLogFormat, TStreamId>
 
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
+		await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(30));
 
 		var scavengeMessage =
 			new ClientMessage.ScavengeDatabase(new NoopEnvelope(), Guid.NewGuid(), SystemAccounts.System, 0, 1, null, null, false);
