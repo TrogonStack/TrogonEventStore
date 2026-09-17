@@ -31,6 +31,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(30);
 	private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
 	private static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(2);
+	private static readonly TimeSpan StandardProjectionsStartupTimeout = TimeSpan.FromMinutes(3);
 	private static readonly int PollAttemptCount = (int)(PollTimeout / PollInterval);
 	protected MiniClusterNode<TLogFormat, TStreamId>[] _nodes = new MiniClusterNode<TLogFormat, TStreamId>[3];
 	protected Endpoints[] _nodeEndpoints = new Endpoints[3];
@@ -109,7 +110,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		if (GivenStandardProjectionsRunning())
 		{
 			await Task.WhenAny(projectionsStarted).WithTimeout(OperationTimeout);
-			await RunBoundedOperation(EnableStandardProjections);
+			await RunBoundedOperation(EnableStandardProjections, StandardProjectionsStartupTimeout);
 		}
 
 		await RunBoundedOperation(Given);
@@ -171,14 +172,15 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			try
 			{
 				await ProjectionClient.Enable(name, _operationCancellationToken);
-				await WaitForProjectionStatus(name, status => status.Contains("Running", StringComparison.OrdinalIgnoreCase));
-				return;
+				break;
 			}
 			catch when (attempt < 10 && !_operationCancellationToken.IsCancellationRequested)
 			{
 				await Task.Delay(500, _operationCancellationToken);
 			}
 		}
+
+		await WaitForProjectionStatus(name, status => status.Contains("Running", StringComparison.OrdinalIgnoreCase));
 	}
 
 	protected async Task DisableProjection(string name)
@@ -392,9 +394,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		Assert.Fail($"Projection '{name}' did not reach the expected status. Last status: '{lastStatus}'.");
 	}
 
-	private async Task RunBoundedOperation(Func<Task> operation)
+	private async Task RunBoundedOperation(Func<Task> operation, TimeSpan? timeout = null)
 	{
-		using var cancellation = new CancellationTokenSource(OperationTimeout);
+		using var cancellation = new CancellationTokenSource(timeout ?? OperationTimeout);
 		_operationCancellationToken = cancellation.Token;
 		try
 		{

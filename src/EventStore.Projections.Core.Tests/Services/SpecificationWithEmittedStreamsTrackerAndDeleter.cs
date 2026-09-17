@@ -129,6 +129,27 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 		return await ReadEvents(stream, count, timeout.Token);
 	}
 
+	protected AsyncServerStreamingCall<ReadResp> SubscribeToStream(
+		string stream,
+		bool resolveLinks,
+		CancellationToken cancellationToken) =>
+		_client.Read(new ReadReq
+		{
+			Options = new()
+			{
+				Stream = new()
+				{
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) },
+					End = new()
+				},
+				ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
+				ResolveLinks = resolveLinks,
+				Subscription = new(),
+				NoFilter = new(),
+				UuidOption = new() { Structured = new() }
+			}
+		}, AdminCallOptions(cancellationToken));
+
 	private async Task<StreamReadResult> ReadEvents(string stream, int count, CancellationToken cancellationToken)
 	{
 		using var call = _client.Read(new ReadReq

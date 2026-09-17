@@ -218,7 +218,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		string[] actual = [];
 		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 		{
-			var result = await ReadStream(streamId, (ulong)events.Length, false, true);
+			var result = await ReadStream(streamId, (ulong)events.Length, true, true);
 			actual = result.Events
 				.Reverse()
 				.Select(FormatEvent)
