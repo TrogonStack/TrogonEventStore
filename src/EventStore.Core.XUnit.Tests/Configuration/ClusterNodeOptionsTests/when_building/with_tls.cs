@@ -19,10 +19,13 @@ namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests.when
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class with_tls_enabled_and_using_a_security_certificate_from_file<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
 {
+	private readonly X509Certificate2 _certificate = TestCertificates.GetServerCertificate();
+
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
 	{
 		return options with
 		{
+			ServerCertificate = null,
 			CertificateFile = new()
 			{
 				CertificateFile = GetCertificatePath(),
@@ -35,16 +38,14 @@ public class with_tls_enabled_and_using_a_security_certificate_from_file<TLogFor
 	[Test]
 	public void should_set_certificate()
 	{
-		Assert.AreNotEqual("n/a", _options.Certificate == null ? "n/a" : _options.Certificate.ToString());
+		Assert.That(_node.CertificateSelector().Thumbprint, Is.EqualTo(_certificate.Thumbprint));
 	}
 
 	private string GetCertificatePath()
 	{
 		var filePath = Path.Combine(PathName, $"cert-{Guid.NewGuid()}.p12");
-		var cert = TestCertificates.GetUntrustedCertificate();
-
 		using var fileStream = File.Create(filePath);
-		fileStream.Write(cert.ExportToPkcs12());
+		fileStream.Write(_certificate.ExportToPkcs12("password"));
 
 		return filePath;
 	}

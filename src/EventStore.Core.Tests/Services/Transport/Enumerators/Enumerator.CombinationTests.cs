@@ -39,7 +39,7 @@ public partial class EnumeratorTests
 			await base.TestFixtureSetUp();
 			Node = new MiniNode<LogFormat.V2, string>(PathName);
 			await Node.Start();
-			await Node.AdminUserCreated;
+			await Node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(30));
 			Channel = GrpcChannel.ForAddress(new Uri($"https://{Node.HttpEndPoint}"),
 				new GrpcChannelOptions
 				{
