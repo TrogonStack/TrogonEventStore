@@ -45,6 +45,7 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
+		await _node.AdminUserCreated.WithTimeout(Timeout);
 		_channel = GrpcChannel.ForAddress(new UriBuilder { Scheme = Uri.UriSchemeHttps }.Uri,
 			new GrpcChannelOptions { HttpClient = _node.HttpClient, DisposeHttpClient = false });
 		_client = new StreamsClient(_channel);

@@ -37,6 +37,7 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 
 		_node = CreateNode();
 		await _node.Start(StartupTimeout);
+		await _node.AdminUserCreated.WithTimeout(StartupTimeout);
 
 		await _systemProjectionsCreated.WithTimeout(_timeout);
 

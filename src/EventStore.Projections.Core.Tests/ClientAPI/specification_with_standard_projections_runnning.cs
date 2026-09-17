@@ -67,6 +67,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 
 		await _node.Start(StartupTimeout);
+		await _node.AdminUserCreated.WithTimeout(StartupTimeout);
 		await _projectionsCreated.WithTimeout(OperationTimeout);
 
 		_streamChannel = GrpcChannel.ForAddress(
