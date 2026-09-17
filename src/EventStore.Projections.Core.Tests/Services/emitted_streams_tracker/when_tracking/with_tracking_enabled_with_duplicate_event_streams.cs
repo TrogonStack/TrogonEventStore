@@ -37,9 +37,9 @@ public class with_tracking_enabled_with_duplicate_event_streams<TLogFormat, TStr
 	[Test]
 	public async Task should_at_best_attempt_to_track_a_unique_list_of_streams()
 	{
-		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 200);
-		Assert.AreEqual(1, events.Length);
-		Assert.AreEqual("test_stream", Helper.UTF8NoBom.GetString(events[0].Event.Data.ToByteArray()));
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 200);
+		Assert.AreEqual(1, result.Events.Length);
+		Assert.AreEqual("test_stream", Helper.UTF8NoBom.GetString(result.Events[0].Event.Data.ToByteArray()));
 		Assert.AreEqual(1, _eventAppeared.CurrentCount); //only 1 event appeared should get through
 	}
 }

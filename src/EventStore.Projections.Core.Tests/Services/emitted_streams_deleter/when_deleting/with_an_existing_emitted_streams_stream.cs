@@ -52,22 +52,22 @@ public class with_an_existing_emitted_streams_stream<TLogFormat, TStreamId> : Sp
 	[Test]
 	public async Task should_have_deleted_the_tracked_emitted_stream()
 	{
-		var events = await ReadEvents(_testStreamName, 1);
-		Assert.AreEqual(0, events.Length);
+		var result = await ReadEvents(_testStreamName, 1);
+		Assert.That(result.Exists, Is.False);
 	}
 
 
 	[Test]
 	public async Task should_have_deleted_the_checkpoint_stream()
 	{
-		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsCheckpointName(), 1);
-		Assert.AreEqual(0, events.Length);
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsCheckpointName(), 1);
+		Assert.That(result.Exists, Is.False);
 	}
 
 	[Test]
 	public async Task should_have_deleted_the_emitted_streams_stream()
 	{
-		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 1);
-		Assert.AreEqual(0, events.Length);
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 1);
+		Assert.That(result.Exists, Is.False);
 	}
 }

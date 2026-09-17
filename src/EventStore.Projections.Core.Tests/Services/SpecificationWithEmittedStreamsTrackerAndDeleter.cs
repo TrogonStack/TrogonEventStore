@@ -25,6 +25,18 @@ namespace EventStore.Projections.Core.Tests.Services;
 
 public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
+	protected sealed class StreamReadResult
+	{
+		public StreamReadResult(bool exists, ReadEvent[] events)
+		{
+			Exists = exists;
+			Events = events;
+		}
+
+		public bool Exists { get; }
+		public ReadEvent[] Events { get; }
+	}
+
 	private GrpcChannel _channel;
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected StreamsClient _client;
@@ -110,7 +122,7 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 		await call.ResponseAsync;
 	}
 
-	protected async Task<ReadEvent[]> ReadEvents(string stream, int count)
+	protected async Task<StreamReadResult> ReadEvents(string stream, int count)
 	{
 		using var call = _client.Read(new ReadReq
 		{
@@ -127,11 +139,22 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 				UuidOption = new() { Structured = new() }
 			}
 		}, AdminCallOptions());
+		var exists = true;
 		var events = new List<ReadEvent>();
 		while (await call.ResponseStream.MoveNext(default))
-			if (call.ResponseStream.Current.Event is { } resolvedEvent)
-				events.Add(resolvedEvent);
-		return events.ToArray();
+		{
+			switch (call.ResponseStream.Current.ContentCase)
+			{
+				case ReadResp.ContentOneofCase.Event:
+					events.Add(call.ResponseStream.Current.Event);
+					break;
+				case ReadResp.ContentOneofCase.StreamNotFound:
+					exists = false;
+					break;
+			}
+		}
+
+		return new StreamReadResult(exists, events.ToArray());
 	}
 
 	protected async Task<ReadEvent[]> WaitForEvents(string stream, int count)
@@ -140,7 +163,7 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 		ReadEvent[] events;
 		do
 		{
-			events = await ReadEvents(stream, count);
+			events = (await ReadEvents(stream, count)).Events;
 			if (events.Length >= count)
 				return events;
 			await Task.Delay(50);

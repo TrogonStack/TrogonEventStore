@@ -61,8 +61,8 @@ public class with_multiple_tracked_streams<TLogFormat, TStreamId> : Specificatio
 	{
 		for (int i = 0; i < _numberOfTrackedEvents; i++)
 		{
-			var events = await ReadEvents(String.Format(_testStreamFormat, i), 1);
-			Assert.AreEqual(0, events.Length);
+			var result = await ReadEvents(String.Format(_testStreamFormat, i), 1);
+			Assert.That(result.Exists, Is.False);
 		}
 	}
 
@@ -70,14 +70,14 @@ public class with_multiple_tracked_streams<TLogFormat, TStreamId> : Specificatio
 	[Test]
 	public async Task should_have_deleted_the_checkpoint_stream()
 	{
-		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsCheckpointName(), 1);
-		Assert.AreEqual(0, events.Length);
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsCheckpointName(), 1);
+		Assert.That(result.Exists, Is.False);
 	}
 
 	[Test]
 	public async Task should_have_deleted_the_emitted_streams_stream()
 	{
-		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 1);
-		Assert.AreEqual(0, events.Length);
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 1);
+		Assert.That(result.Exists, Is.False);
 	}
 }

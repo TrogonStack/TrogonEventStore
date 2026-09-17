@@ -37,8 +37,8 @@ public class with_tracking_disabled<TLogFormat, TStreamId> : SpecificationWithEm
 	[Test]
 	public async Task should_write_a_stream_tracked_event()
 	{
-		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 200);
-		Assert.AreEqual(0, events.Length);
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 200);
+		Assert.AreEqual(0, result.Events.Length);
 		Assert.AreEqual(1, _eventAppeared.CurrentCount); //no event appeared should get through
 	}
 }

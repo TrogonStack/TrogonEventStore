@@ -37,7 +37,10 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		public IReadOnlyList<ReadResp.Types.ReadEvent> Events { get; }
 	}
 
-	private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(20);
+	private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(20);
+	private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
+	private static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(2);
+	private static readonly int PollAttemptCount = (int)(PollTimeout / PollInterval);
 	private GrpcChannel _streamChannel;
 	private StreamsClient _streams;
 	private Task _projectionsCreated;
@@ -68,7 +71,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		await _node.Start(StartupTimeout);
 		await _node.AdminUserCreated.WithTimeout(StartupTimeout);
-		await _projectionsCreated.WithTimeout(OperationTimeout);
+		await _projectionsCreated.WithTimeout(PollTimeout);
 
 		_streamChannel = GrpcChannel.ForAddress(
 			_node.HttpClient.BaseAddress ?? new UriBuilder { Scheme = Uri.UriSchemeHttps }.Uri,
@@ -149,7 +152,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected async Task AbortProjection(string name)
 	{
 		await ProjectionClient.Abort(name);
-		await WaitForProjectionStatus(name, status => status.Contains("Stopped", StringComparison.OrdinalIgnoreCase));
+		await WaitForProjectionStatus(name, status => status.StartsWith("Aborted", StringComparison.OrdinalIgnoreCase));
 	}
 
 	protected async Task CreateContinuousProjection(string name, string query)
@@ -212,7 +215,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected async Task AssertStreamTail(string streamId, params string[] events)
 	{
 		string[] actual = [];
-		for (var attempt = 0; attempt < 80; attempt++)
+		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 		{
 			var result = await ReadStream(streamId, (ulong)events.Length, false, true);
 			actual = result.Events
@@ -225,7 +228,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 				return;
 			}
 
-			await Task.Delay(250);
+			await Task.Delay(PollInterval);
 		}
 
 		Assert.Fail(
@@ -241,7 +244,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		bool resolveLinks)
 	{
 		StreamReadResult result = null;
-		for (var attempt = 0; attempt < 80; attempt++)
+		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 		{
 			result = await ReadStreamForward(streamId, 100, resolveLinks);
 			if (result.Exists && result.Events.Count >= minimumEventCount)
@@ -249,7 +252,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 				return result;
 			}
 
-			await Task.Delay(250);
+			await Task.Delay(PollInterval);
 		}
 
 		Assert.Fail(
@@ -383,7 +386,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	private async Task WaitForProjectionStatus(string name, Func<string, bool> predicate)
 	{
 		string lastStatus = null;
-		for (var attempt = 0; attempt < 80; attempt++)
+		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 		{
 			var statistics = await ProjectionClient.Statistics(new StatisticsReq.Types.Options
 			{
@@ -395,7 +398,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 				return;
 			}
 
-			await Task.Delay(250);
+			await Task.Delay(PollInterval);
 		}
 
 		Assert.Fail($"Projection '{name}' did not reach the expected status. Last status: '{lastStatus}'.");
@@ -418,6 +421,6 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		return new CallOptions(
 			credentials: credentials,
-			deadline: DateTime.UtcNow.Add(OperationTimeout));
+			deadline: DateTime.UtcNow.Add(PollTimeout));
 	}
 }

@@ -32,9 +32,9 @@ public class with_tracking_enabled<TLogFormat, TStreamId> : SpecificationWithEmi
 	[Test]
 	public async Task should_write_a_stream_tracked_event()
 	{
-		var events = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 200);
-		Assert.AreEqual(1, events.Length);
-		Assert.AreEqual("test_stream", Helper.UTF8NoBom.GetString(events[0].Event.Data.ToByteArray()));
+		var result = await ReadEvents(_projectionNamesBuilder.GetEmittedStreamsName(), 200);
+		Assert.AreEqual(1, result.Events.Length);
+		Assert.AreEqual("test_stream", Helper.UTF8NoBom.GetString(result.Events[0].Event.Data.ToByteArray()));
 		Assert.AreEqual(0, _eventAppeared.CurrentCount);
 	}
 }

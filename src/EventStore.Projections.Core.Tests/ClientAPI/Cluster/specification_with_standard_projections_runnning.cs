@@ -28,7 +28,10 @@ namespace EventStore.Projections.Core.Tests.ClientAPI.Cluster;
 [Category("Grpc")]
 public abstract class specification_with_standard_projections_runnning<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
-	private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(30);
+	private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(30);
+	private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
+	private static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(2);
+	private static readonly int PollAttemptCount = (int)(PollTimeout / PollInterval);
 	protected MiniClusterNode<TLogFormat, TStreamId>[] _nodes = new MiniClusterNode<TLogFormat, TStreamId>[3];
 	protected Endpoints[] _nodeEndpoints = new Endpoints[3];
 	private readonly ProjectionsSubsystem[] _projections = new ProjectionsSubsystem[3];
@@ -185,7 +188,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected async Task AbortProjection(string name)
 	{
 		await ProjectionClient.Abort(name);
-		await WaitForProjectionStatus(name, status => status.Contains("Stopped", StringComparison.OrdinalIgnoreCase));
+		await WaitForProjectionStatus(name, status => status.StartsWith("Aborted", StringComparison.OrdinalIgnoreCase));
 	}
 
 	[OneTimeTearDown]
@@ -195,10 +198,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		_streamChannel?.Dispose();
 		_streamHttpClient?.Dispose();
 
-		if (_nodes.All(x => x != null))
-		{
-			await Task.WhenAll(_nodes.Select(x => x.Shutdown()));
-		}
+		await Task.WhenAll(_nodes.Where(x => x != null).Select(x => x.Shutdown()));
 
 		await base.TestFixtureTearDown();
 	}
@@ -282,7 +282,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected async Task AssertStreamTailAsync(string streamId, params string[] events)
 	{
 		string[] actual = [];
-		for (var attempt = 0; attempt < 120; attempt++)
+		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 		{
 			actual = (await ReadStreamBackwards(streamId, (ulong)events.Length))
 				.Reverse()
@@ -293,7 +293,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 				return;
 			}
 
-			await Task.Delay(250);
+			await Task.Delay(PollInterval);
 		}
 
 		Assert.Fail(
@@ -359,7 +359,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	private async Task WaitForProjectionStatus(string name, Func<string, bool> predicate)
 	{
 		string lastStatus = null;
-		for (var attempt = 0; attempt < 120; attempt++)
+		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 		{
 			var statistics = await ProjectionClient.Statistics(new StatisticsReq.Types.Options
 			{
@@ -371,7 +371,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 				return;
 			}
 
-			await Task.Delay(250);
+			await Task.Delay(PollInterval);
 		}
 
 		Assert.Fail($"Projection '{name}' did not reach the expected status. Last status: '{lastStatus}'.");
@@ -388,7 +388,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		return new CallOptions(
 			credentials: credentials,
-			deadline: DateTime.UtcNow.Add(OperationTimeout));
+			deadline: DateTime.UtcNow.Add(PollTimeout));
 	}
 }
 
