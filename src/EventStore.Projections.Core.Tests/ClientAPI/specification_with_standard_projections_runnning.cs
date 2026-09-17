@@ -46,6 +46,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	private Task _projectionsCreated;
 	private ProjectionsSubsystem _projections;
 	private MiniNode<TLogFormat, TStreamId> _node;
+	private CancellationToken _operationCancellationToken;
 
 	private protected ProjectionManagementTestClient ProjectionClient;
 	protected virtual TimeSpan StartupTimeout => TimeSpan.FromMinutes(5);
@@ -85,12 +86,12 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		if (GivenStandardProjectionsRunning())
 		{
-			await EnableStandardProjections();
+			await RunBoundedOperation(EnableStandardProjections);
 		}
 
 		try
 		{
-			await Given().WithTimeout(OperationTimeout);
+			await RunBoundedOperation(Given);
 		}
 		catch (Exception ex)
 		{
@@ -99,7 +100,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		try
 		{
-			await When().WithTimeout(OperationTimeout);
+			await RunBoundedOperation(When);
 		}
 		catch (Exception ex)
 		{
@@ -139,25 +140,25 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected async Task EnableProjection(string name)
 	{
-		await ProjectionClient.Enable(name);
+		await ProjectionClient.Enable(name, _operationCancellationToken);
 		await WaitForProjectionStatus(name, status => status.Contains("Running", StringComparison.OrdinalIgnoreCase));
 	}
 
 	protected async Task DisableProjection(string name)
 	{
-		await ProjectionClient.Disable(name);
+		await ProjectionClient.Disable(name, cancellationToken: _operationCancellationToken);
 		await WaitForProjectionStatus(name, status => status.Contains("Stopped", StringComparison.OrdinalIgnoreCase));
 	}
 
 	protected async Task AbortProjection(string name)
 	{
-		await ProjectionClient.Abort(name);
+		await ProjectionClient.Abort(name, _operationCancellationToken);
 		await WaitForProjectionStatus(name, status => status.StartsWith("Aborted", StringComparison.OrdinalIgnoreCase));
 	}
 
 	protected async Task CreateContinuousProjection(string name, string query)
 	{
-		await ProjectionClient.CreateContinuous(name, query);
+		await ProjectionClient.CreateContinuous(name, query, cancellationToken: _operationCancellationToken);
 		await WaitForProjectionStatus(name, status => status.Contains("Running", StringComparison.OrdinalIgnoreCase));
 	}
 
@@ -283,7 +284,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			StreamName = ByteString.CopyFromUtf8(stream)
 		};
 
-		using var call = _streams.Append(GetCallOptions());
+		using var call = _streams.Append(GetCallOptions(_operationCancellationToken));
 		await call.RequestStream.WriteAsync(new AppendReq { Options = options });
 		await call.RequestStream.WriteAsync(new AppendReq
 		{
@@ -309,7 +310,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		{
 			StreamName = ByteString.CopyFromUtf8(stream)
 		};
-		await _streams.DeleteAsync(new DeleteReq { Options = options }, GetCallOptions());
+		await _streams.DeleteAsync(
+			new DeleteReq { Options = options },
+			GetCallOptions(_operationCancellationToken));
 	}
 
 	private async Task Tombstone(string stream, TombstoneReq.Types.Options options)
@@ -318,7 +321,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		{
 			StreamName = ByteString.CopyFromUtf8(stream)
 		};
-		await _streams.TombstoneAsync(new TombstoneReq { Options = options }, GetCallOptions());
+		await _streams.TombstoneAsync(
+			new TombstoneReq { Options = options },
+			GetCallOptions(_operationCancellationToken));
 	}
 
 	private async Task<StreamReadResult> ReadStream(
@@ -363,11 +368,11 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 					Compatibility = 21
 				}
 			}
-		}, GetCallOptions());
+		}, GetCallOptions(_operationCancellationToken));
 
 		var exists = true;
 		var events = new List<ReadResp.Types.ReadEvent>();
-		while (await call.ResponseStream.MoveNext(CancellationToken.None))
+		while (await call.ResponseStream.MoveNext(_operationCancellationToken))
 		{
 			switch (call.ResponseStream.Current.ContentCase)
 			{
@@ -385,23 +390,47 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	private async Task WaitForProjectionStatus(string name, Func<string, bool> predicate)
 	{
+		using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_operationCancellationToken);
+		cancellation.CancelAfter(PollTimeout);
+		var cancellationToken = cancellation.Token;
 		string lastStatus = null;
-		for (var attempt = 0; attempt < PollAttemptCount; attempt++)
+		try
 		{
-			var statistics = await ProjectionClient.Statistics(new StatisticsReq.Types.Options
+			for (var attempt = 0; attempt < PollAttemptCount; attempt++)
 			{
-				Name = name
-			});
-			lastStatus = statistics.SingleOrDefault()?.Status;
-			if (lastStatus != null && predicate(lastStatus))
-			{
-				return;
-			}
+				var statistics = await ProjectionClient.Statistics(new StatisticsReq.Types.Options
+				{
+					Name = name
+				}, cancellationToken);
+				lastStatus = statistics.SingleOrDefault()?.Status;
+				if (lastStatus != null && predicate(lastStatus))
+				{
+					return;
+				}
 
-			await Task.Delay(PollInterval);
+				await Task.Delay(PollInterval, cancellationToken);
+			}
+		}
+		catch (OperationCanceledException) when (!_operationCancellationToken.IsCancellationRequested)
+		{
+			Assert.Fail($"Projection '{name}' did not reach the expected status. Last status: '{lastStatus}'.");
 		}
 
 		Assert.Fail($"Projection '{name}' did not reach the expected status. Last status: '{lastStatus}'.");
+	}
+
+	private async Task RunBoundedOperation(Func<Task> operation)
+	{
+		using var cancellation = new CancellationTokenSource(OperationTimeout);
+		_operationCancellationToken = cancellation.Token;
+		try
+		{
+			await operation().WaitAsync(cancellation.Token);
+		}
+		finally
+		{
+			_operationCancellationToken = default;
+		}
 	}
 
 	private static string FormatEvent(ReadResp.Types.ReadEvent readEvent)
@@ -410,7 +439,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		return $"{recordedEvent.EventType()}:{recordedEvent.DebugDataView()}";
 	}
 
-	private static CallOptions GetCallOptions()
+	private static CallOptions GetCallOptions(CancellationToken cancellationToken = default)
 	{
 		var credentials = CallCredentials.FromInterceptor((_, metadata) =>
 		{
@@ -421,6 +450,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		return new CallOptions(
 			credentials: credentials,
-			deadline: DateTime.UtcNow.Add(PollTimeout));
+			deadline: DateTime.UtcNow.Add(PollTimeout),
+			cancellationToken: cancellationToken);
 	}
 }

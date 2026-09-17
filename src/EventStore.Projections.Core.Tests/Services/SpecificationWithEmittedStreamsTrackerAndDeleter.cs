@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client.Streams;
 using EventStore.Core.Helpers;
@@ -124,6 +125,12 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 
 	protected async Task<StreamReadResult> ReadEvents(string stream, int count)
 	{
+		using var timeout = new CancellationTokenSource(Timeout);
+		return await ReadEvents(stream, count, timeout.Token);
+	}
+
+	private async Task<StreamReadResult> ReadEvents(string stream, int count, CancellationToken cancellationToken)
+	{
 		using var call = _client.Read(new ReadReq
 		{
 			Options = new()
@@ -138,10 +145,10 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 				NoFilter = new(),
 				UuidOption = new() { Structured = new() }
 			}
-		}, AdminCallOptions());
+		}, AdminCallOptions(cancellationToken));
 		var exists = true;
 		var events = new List<ReadEvent>();
-		while (await call.ResponseStream.MoveNext(default))
+		while (await call.ResponseStream.MoveNext(cancellationToken))
 		{
 			switch (call.ResponseStream.Current.ContentCase)
 			{
@@ -159,24 +166,35 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 
 	protected async Task<ReadEvent[]> WaitForEvents(string stream, int count)
 	{
-		var deadline = DateTime.UtcNow + Timeout;
-		ReadEvent[] events;
-		do
+		using var timeout = new CancellationTokenSource(Timeout);
+		var events = Array.Empty<ReadEvent>();
+		try
 		{
-			events = (await ReadEvents(stream, count)).Events;
-			if (events.Length >= count)
-				return events;
-			await Task.Delay(50);
-		} while (DateTime.UtcNow < deadline);
-
-		return events;
+			while (true)
+			{
+				events = (await ReadEvents(stream, count, timeout.Token)).Events;
+				if (events.Length >= count)
+					return events;
+				await Task.Delay(50, timeout.Token);
+			}
+		}
+		catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+		{
+			return events;
+		}
+		catch (RpcException ex) when (timeout.IsCancellationRequested &&
+				ex.StatusCode is StatusCode.Cancelled or StatusCode.DeadlineExceeded)
+		{
+			return events;
+		}
 	}
 
-	private static CallOptions AdminCallOptions() => new(
+	private static CallOptions AdminCallOptions(CancellationToken cancellationToken = default) => new(
 		credentials: CallCredentials.FromInterceptor((_, metadata) =>
 		{
 			metadata.Add("authorization",
 				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
 			return Task.CompletedTask;
-		}));
+		}),
+		cancellationToken: cancellationToken);
 }
