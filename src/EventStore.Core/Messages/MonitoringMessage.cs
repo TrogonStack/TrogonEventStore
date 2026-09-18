@@ -206,44 +206,6 @@ namespace EventStore.Core.Messages
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetFreshTcpConnectionStats : Message
-		{
-			public readonly IEnvelope Envelope;
-
-			public GetFreshTcpConnectionStats(IEnvelope envelope)
-			{
-				Ensure.NotNull(envelope, "envelope");
-
-				Envelope = envelope;
-			}
-		}
-
-		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetFreshTcpConnectionStatsCompleted : Message
-		{
-			public readonly List<TcpConnectionStats> ConnectionStats;
-
-			public GetFreshTcpConnectionStatsCompleted(List<TcpConnectionStats> connectionStats)
-			{
-				ConnectionStats = connectionStats;
-			}
-		}
-
-		public class TcpConnectionStats
-		{
-			public string RemoteEndPoint { get; set; }
-			public string LocalEndPoint { get; set; }
-			public string ClientConnectionName { get; set; }
-			public Guid ConnectionId { get; set; }
-			public long TotalBytesSent { get; set; }
-			public long TotalBytesReceived { get; set; }
-			public int PendingSendBytes { get; set; }
-			public int PendingReceivedBytes { get; set; }
-			public bool IsExternalConnection { get; set; }
-			public bool IsSslConnection { get; set; }
-		}
-
-		[DerivedMessage(CoreMessage.Monitoring)]
 		public partial class InternalStatsRequest : Message
 		{
 			public readonly IEnvelope Envelope;

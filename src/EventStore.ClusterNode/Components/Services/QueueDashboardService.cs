@@ -18,23 +18,22 @@ public sealed class QueueDashboardService
 {
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 	private static readonly Operation StatisticsOperation = new(Operations.Node.Statistics.Read);
-	private static readonly Operation TcpStatisticsOperation = new(Operations.Node.Statistics.Tcp);
 
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly IHttpContextAccessor _httpContextAccessor;
 	private readonly IPublisher _monitoringQueue;
-	private readonly object _tcpGate = new();
-	private Dictionary<Guid, TcpConnectionRow> _previousTcpConnections = new();
-	private DateTime? _lastTcpRefresh;
+	private readonly NodeConnectionTracker _nodeConnectionTracker;
 
 	public QueueDashboardService(
 		IAuthorizationProvider authorizationProvider,
 		IHttpContextAccessor httpContextAccessor,
-		StandardComponents standardComponents)
+		StandardComponents standardComponents,
+		NodeConnectionTracker nodeConnectionTracker)
 	{
 		_authorizationProvider = authorizationProvider;
 		_httpContextAccessor = httpContextAccessor;
 		_monitoringQueue = standardComponents.MonitoringQueue;
+		_nodeConnectionTracker = nodeConnectionTracker;
 	}
 
 	public async Task<QueueDashboardPage> Read(CancellationToken cancellationToken = default)
@@ -49,9 +48,13 @@ public sealed class QueueDashboardService
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
 
-			var queues = await ReadQueueStats(timeout.Token);
-			var tcp = await ReadTcpStatsSafe(timeout.Token, cancellationToken);
-			return QueueDashboardPage.Success(queues, tcp.Rows, tcp.Message);
+			var queuesTask = ReadQueueStats(timeout.Token);
+			var replicationConnectionsTask = ReadReplicationStats(timeout.Token);
+			await Task.WhenAll(queuesTask, replicationConnectionsTask);
+			return QueueDashboardPage.Success(
+				await queuesTask,
+				await replicationConnectionsTask,
+				_nodeConnectionTracker.Snapshot());
 		}
 		catch (TimeoutException)
 		{
@@ -102,67 +105,17 @@ public sealed class QueueDashboardService
 		return queues;
 	}
 
-	private async Task<TcpConnectionResult> ReadTcpStats(CancellationToken cancellationToken)
-	{
-		if (!await HasAccess(TcpStatisticsOperation, cancellationToken))
-		{
-			return new TcpConnectionResult(Array.Empty<TcpConnectionRow>(), "TCP statistics access was denied.");
-		}
-
-		var envelope = new TaskCompletionEnvelope<MonitoringMessage.GetFreshTcpConnectionStatsCompleted>();
-		_monitoringQueue.Publish(new MonitoringMessage.GetFreshTcpConnectionStats(envelope));
-		var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		return BuildTcpRows(completed.ConnectionStats ?? []);
-	}
-
-	private async Task<TcpConnectionResult> ReadTcpStatsSafe(
-		CancellationToken timeoutToken,
+	private async Task<IReadOnlyList<ReplicationConnectionRow>> ReadReplicationStats(
 		CancellationToken cancellationToken)
 	{
-		try
-		{
-			return await ReadTcpStats(timeoutToken);
-		}
-		catch (TimeoutException)
-		{
-			return new TcpConnectionResult(Array.Empty<TcpConnectionRow>(), "Timed out reading TCP statistics.");
-		}
-		catch (OperationCanceledException)
-		{
-			if (cancellationToken.IsCancellationRequested)
-			{
-				throw;
-			}
+		var envelope = new TaskCompletionEnvelope<ReplicationMessage.GetReplicationStatsCompleted>();
+		_monitoringQueue.Publish(new ReplicationMessage.GetReplicationStats(envelope));
+		var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 
-			return new TcpConnectionResult(Array.Empty<TcpConnectionRow>(), "Timed out reading TCP statistics.");
-		}
-		catch (Exception ex)
-		{
-			return new TcpConnectionResult(
-				Array.Empty<TcpConnectionRow>(),
-				$"Unable to read TCP statistics: {UiMessages.Friendly(ex)}");
-		}
-	}
-
-	private TcpConnectionResult BuildTcpRows(IReadOnlyList<MonitoringMessage.TcpConnectionStats> connections)
-	{
-		lock (_tcpGate)
-		{
-			var now = DateTime.UtcNow;
-			var elapsedSeconds = _lastTcpRefresh.HasValue
-				? Math.Max(1, (now - _lastTcpRefresh.Value).TotalSeconds)
-				: 1;
-
-			var rows = connections
-				.Select(x => TcpConnectionRow.From(x, _previousTcpConnections.GetValueOrDefault(x.ConnectionId), elapsedSeconds))
-				.OrderBy(x => x.ClientConnectionName, StringComparer.OrdinalIgnoreCase)
-				.ThenBy(x => x.ConnectionId)
-				.ToArray();
-
-			_previousTcpConnections = rows.ToDictionary(x => x.ConnectionId);
-			_lastTcpRefresh = now;
-			return new TcpConnectionResult(rows, "");
-		}
+		return completed.ReplicationStats
+			.Select(ReplicationConnectionRow.From)
+			.OrderBy(x => x.Endpoint, StringComparer.OrdinalIgnoreCase)
+			.ToArray();
 	}
 
 }
@@ -196,8 +149,8 @@ file static class QueueDashboardStats
 public sealed record QueueDashboardPage(
 	IReadOnlyList<QueueDashboardBlock> Blocks,
 	IReadOnlyList<QueueDashboardRow> Queues,
-	IReadOnlyList<TcpConnectionRow> TcpConnections,
-	string TcpMessage,
+	IReadOnlyList<ReplicationConnectionRow> ReplicationConnections,
+	IReadOnlyList<NodeConnectionSnapshot> NodeConnections,
 	string Message)
 {
 	private static readonly JsonSerializerOptions PayloadJsonOptions = new(JsonSerializerDefaults.Web);
@@ -214,23 +167,28 @@ public sealed record QueueDashboardPage(
 	public string ClientPayloadJson => JsonSerializer.Serialize(
 		new QueueDashboardPayload(
 			Queues.Select(QueuePayload.From).ToArray(),
-			TcpConnections.Select(TcpConnectionPayload.From).ToArray(),
-			Message,
-			TcpMessage),
+			ReplicationConnections,
+			NodeConnections,
+			Message),
 		PayloadJsonOptions);
 
 	public static QueueDashboardPage Success(
 		IReadOnlyList<QueueDashboardRow> queues,
-		IReadOnlyList<TcpConnectionRow> tcpConnections,
-		string tcpMessage) =>
-		new(BuildBlocks(queues), queues, tcpConnections, tcpMessage, "");
+		IReadOnlyList<ReplicationConnectionRow> replicationConnections = null,
+		IReadOnlyList<NodeConnectionSnapshot> nodeConnections = null) =>
+		new(
+			BuildBlocks(queues),
+			queues,
+			replicationConnections ?? Array.Empty<ReplicationConnectionRow>(),
+			nodeConnections ?? Array.Empty<NodeConnectionSnapshot>(),
+			"");
 
 	public static QueueDashboardPage Unavailable(string message) =>
 		new(
 			Array.Empty<QueueDashboardBlock>(),
 			Array.Empty<QueueDashboardRow>(),
-			Array.Empty<TcpConnectionRow>(),
-			message,
+			Array.Empty<ReplicationConnectionRow>(),
+			Array.Empty<NodeConnectionSnapshot>(),
 			message);
 
 	private static IReadOnlyList<QueueDashboardBlock> BuildBlocks(IReadOnlyList<QueueDashboardRow> queues)
@@ -266,15 +224,33 @@ public sealed record QueueDashboardBlock(
 	public bool HasChildren => Children.Count > 0;
 }
 
-public sealed record TcpConnectionResult(
-	IReadOnlyList<TcpConnectionRow> Rows,
-	string Message);
-
 public sealed record QueueDashboardPayload(
 	IReadOnlyList<QueuePayload> Queues,
-	IReadOnlyList<TcpConnectionPayload> TcpConnections,
-	string Message,
-	string TcpMessage);
+	IReadOnlyList<ReplicationConnectionRow> ReplicationConnections,
+	IReadOnlyList<NodeConnectionSnapshot> NodeConnections,
+	string Message);
+
+public sealed record ReplicationConnectionRow(
+	string SubscriptionId,
+	string ConnectionId,
+	string Endpoint,
+	long TotalBytesSent,
+	long TotalBytesReceived,
+	int PendingSendBytes,
+	int PendingReceivedBytes,
+	int SendQueueSize)
+{
+	public static ReplicationConnectionRow From(ReplicationMessage.ReplicationStats stats) =>
+		new(
+			stats.SubscriptionId.ToString("D"),
+			stats.ConnectionId.ToString("D"),
+			stats.SubscriptionEndpoint ?? "",
+			stats.TotalBytesSent,
+			stats.TotalBytesReceived,
+			stats.PendingSendBytes,
+			stats.PendingReceivedBytes,
+			stats.SendQueueSize);
+}
 
 public sealed record QueuePayload(
 	string Kind,
@@ -302,95 +278,6 @@ public sealed record QueuePayload(
 			row.TotalItemsProcessed,
 			row.InProgressMessage,
 			row.LastProcessedMessage);
-}
-
-public sealed record TcpConnectionPayload(
-	Guid ConnectionId,
-	string ClientConnectionName,
-	string RemoteEndPoint,
-	string LocalEndPoint,
-	long TotalBytesSent,
-	long TotalBytesReceived,
-	int PendingSendBytes,
-	int PendingReceivedBytes,
-	double SentRate,
-	double ReceivedRate,
-	bool IsExternalConnection,
-	bool IsSslConnection)
-{
-	public static TcpConnectionPayload From(TcpConnectionRow row) =>
-		new(
-			row.ConnectionId,
-			row.ClientConnectionName,
-			row.RemoteEndPoint,
-			row.LocalEndPoint,
-			row.TotalBytesSent,
-			row.TotalBytesReceived,
-			row.PendingSendBytes,
-			row.PendingReceivedBytes,
-			row.SentRate,
-			row.ReceivedRate,
-			row.IsExternalConnection,
-			row.IsSslConnection);
-}
-
-public sealed record TcpConnectionRow(
-	Guid ConnectionId,
-	string ClientConnectionName,
-	string RemoteEndPoint,
-	string LocalEndPoint,
-	long TotalBytesSent,
-	long TotalBytesReceived,
-	int PendingSendBytes,
-	int PendingReceivedBytes,
-	double SentRate,
-	double ReceivedRate,
-	bool IsExternalConnection,
-	bool IsSslConnection)
-{
-	public string IdLabel => ConnectionId == Guid.Empty ? "<none>" : ConnectionId.ToString("D");
-	public string ClientLabel => DisplayMessage(ClientConnectionName);
-	public string TypeLabel => $"{(IsExternalConnection ? "External" : "Internal")} {(IsSslConnection ? "TLS" : "TCP")}";
-	public string RemoteEndPointLabel => DisplayMessage(RemoteEndPoint);
-	public string SentRateLabel => FormatByteRate(SentRate);
-	public string ReceivedRateLabel => FormatByteRate(ReceivedRate);
-	public string TotalBytesSentLabel => TotalBytesSent.ToString("N0", CultureInfo.InvariantCulture);
-	public string TotalBytesReceivedLabel => TotalBytesReceived.ToString("N0", CultureInfo.InvariantCulture);
-	public string PendingSendBytesLabel => PendingSendBytes.ToString("N0", CultureInfo.InvariantCulture);
-	public string PendingReceivedBytesLabel => PendingReceivedBytes.ToString("N0", CultureInfo.InvariantCulture);
-
-	public static TcpConnectionRow From(
-		MonitoringMessage.TcpConnectionStats stats,
-		TcpConnectionRow previous,
-		double elapsedSeconds)
-	{
-		var sentRate = previous is null
-			? 0
-			: Math.Max(0, (stats.TotalBytesSent - previous.TotalBytesSent) / elapsedSeconds);
-		var receivedRate = previous is null
-			? 0
-			: Math.Max(0, (stats.TotalBytesReceived - previous.TotalBytesReceived) / elapsedSeconds);
-
-		return new TcpConnectionRow(
-			stats.ConnectionId,
-			stats.ClientConnectionName ?? "",
-			stats.RemoteEndPoint ?? "",
-			stats.LocalEndPoint ?? "",
-			stats.TotalBytesSent,
-			stats.TotalBytesReceived,
-			stats.PendingSendBytes,
-			stats.PendingReceivedBytes,
-			sentRate,
-			receivedRate,
-			stats.IsExternalConnection,
-			stats.IsSslConnection);
-	}
-
-	private static string DisplayMessage(string value) =>
-		string.IsNullOrWhiteSpace(value) ? "<none>" : value;
-
-	private static string FormatByteRate(double value) =>
-		$"{Math.Round(value).ToString("N0", CultureInfo.InvariantCulture)} B/s";
 }
 
 public enum QueueDashboardRowKind
