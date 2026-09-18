@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using EventStore.ClientAPI.Common.Utils;
+using EventStore.Common.Utils;
 using EventStore.Core.Messages;
 using EventStore.Core.Services;
 using EventStore.Core.Services.UserManagement;

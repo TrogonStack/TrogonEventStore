@@ -13,7 +13,7 @@ using EventStore.Core.Certificates;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Messages;
 using EventStore.Core.Tests;
-using EventStore.Core.Tests.Services.Transport.Tcp;
+using EventStore.Core.Tests.Helpers;
 using NUnit.Framework;
 
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests;
@@ -43,8 +43,8 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 			.ReduceMemoryUsageForTests()
 			.InCluster(3)
 			.RunOnDisk(PathName)
-			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
-				ssl_connections.GetServerCertificate());
+			.Secure(new X509Certificate2Collection(TestCertificates.GetRootCertificate()),
+				TestCertificates.GetServerCertificate());
 
 		var node = new ClusterVNode<TStreamId>(options, logFormatFactory,
 			new AuthenticationProviderFactory(c =>

@@ -4,8 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client;
 using EventStore.Client.Streams;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.SystemData;
 using EventStore.Core.Services.Transport.Grpc;
 using Google.Protobuf;
 using Grpc.Core;
@@ -94,38 +92,4 @@ public abstract class authenticated_requests_made_from_a_follower<TLogFormat, TS
 		public void work() => Assert.AreEqual(StatusCode.OK, _status.StatusCode);
 	}
 
-	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class via_tcp_should : authenticated_requests_made_from_a_follower<TLogFormat, TStreamId>
-	{
-		private Exception _caughtException;
-
-		protected override async Task Given()
-		{
-			var node = GetFollowers()[0];
-			await Task.WhenAll(node.AdminUserCreated, node.Started);
-
-			using var connection = EventStoreConnection.Create(ConnectionSettings.Create()
-					.DisableServerCertificateValidation()
-					.PreferFollowerNode(),
-				node.ExternalTcpEndPoint);
-			await connection.ConnectAsync();
-
-			try
-			{
-				await connection.AppendToStreamAsync(ProtectedStream, ExpectedVersion.NoStream,
-					new UserCredentials("admin", "changeit"),
-					new EventData(Guid.NewGuid(), "-", false, Array.Empty<byte>(), Array.Empty<byte>()));
-			}
-			catch (Exception ex)
-			{
-				_caughtException = ex;
-			}
-
-			await base.Given();
-		}
-
-		[Test]
-		[Retry(5)]
-		public void work() => Assert.Null(_caughtException);
-	}
 }

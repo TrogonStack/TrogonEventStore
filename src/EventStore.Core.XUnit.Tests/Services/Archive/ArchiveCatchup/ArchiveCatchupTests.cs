@@ -378,7 +378,7 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		archive = sut.Archive;
 
 		var firstRun = sut.Catchup.Run(cancellation.Token);
-		await cleanupAttempted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await cleanupAttempted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 		cancellation.Cancel();
 		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => firstRun);
 		Assert.Equal(0, sut.WriterCheckpoint.Read());

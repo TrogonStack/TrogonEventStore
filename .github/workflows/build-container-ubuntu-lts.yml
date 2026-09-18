@@ -47,6 +47,7 @@ jobs:
           - test-group-name: core-grpc-security
           - test-group-name: core-http
           - test-group-name: core-services
+          - test-group-name: core-enumerators
           - test-group-name: core-cluster-services
           - test-group-name: core-storage
           - test-group-name: core-hash-collisions
