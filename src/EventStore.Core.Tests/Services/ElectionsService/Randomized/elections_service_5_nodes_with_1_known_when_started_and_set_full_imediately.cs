@@ -37,7 +37,7 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_full_im
 	{
 		return new[] {
 			MemberInfo.ForVNode(instance.InstanceId, DateTime.UtcNow, VNodeState.Unknown, true,
-				instance.EndPoint, null, instance.EndPoint, null, instance.EndPoint, null, 0, 0,
+				instance.EndPoint, null, 0,
 				-1, 0, 0, -1, -1, Guid.Empty, 0, false)
 		};
 	}
@@ -53,7 +53,7 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_full_im
 			Console.WriteLine("Update item: {0} : {1}", iteration, item.EndPoint.GetPort());
 			return instances.Select((x, i) =>
 				MemberInfo.ForVNode(x.InstanceId, DateTime.UtcNow, VNodeState.Unknown, true,
-					x.EndPoint, null, x.EndPoint, null, x.EndPoint, null, 0, 0,
+					x.EndPoint, null, 0,
 					-1, 0, 0, -1, -1, Guid.Empty, 0, false)).ToArray();
 		}
 

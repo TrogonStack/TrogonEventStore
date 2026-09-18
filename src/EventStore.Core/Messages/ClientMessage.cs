@@ -203,6 +203,11 @@ public static partial class ClientMessage
 
 			public class LeaderInfo
 			{
+				public LeaderInfo(EndPoint http)
+				{
+					Http = http;
+				}
+
 				public LeaderInfo(EndPoint externalTcp, bool isSecure, EndPoint http)
 				{
 					ExternalTcp = externalTcp;
@@ -214,6 +219,19 @@ public static partial class ClientMessage
 				public EndPoint ExternalTcp { get; }
 				public EndPoint Http { get; }
 			}
+		}
+	}
+
+	[DerivedMessage(CoreMessage.Client)]
+	public partial class NotAuthenticated : Message
+	{
+		public readonly Guid CorrelationId;
+		public readonly string Reason;
+
+		public NotAuthenticated(Guid correlationId, string reason)
+		{
+			CorrelationId = correlationId;
+			Reason = reason;
 		}
 	}
 

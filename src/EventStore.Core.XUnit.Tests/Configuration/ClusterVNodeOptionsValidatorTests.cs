@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using EventStore.Common.Exceptions;
 using EventStore.Core.Authentication;
 using EventStore.Core.Services;
@@ -9,6 +10,43 @@ namespace EventStore.Core.XUnit.Tests.Configuration;
 // Some other tests are in ClusterNodeOptionsTests/when_building
 public class ClusterVNodeOptionsValidatorTests
 {
+	[Theory]
+	[InlineData("127.0.0.1", "127.0.0.1")]
+	[InlineData("0.0.0.0", "127.0.0.1")]
+	[InlineData("127.0.0.1", "0.0.0.0")]
+	public void node_and_replication_listeners_cannot_overlap(string nodeIp, string replicationIp)
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Interface = new()
+			{
+				NodeIp = IPAddress.Parse(nodeIp),
+				NodePort = 2113,
+				ReplicationIp = IPAddress.Parse(replicationIp),
+				ReplicationPort = 2113,
+			}
+		};
+
+		Assert.Throws<ArgumentException>(() => ClusterVNodeOptionsValidator.Validate(options));
+	}
+
+	[Fact]
+	public void node_and_replication_listeners_can_use_the_same_port_on_distinct_addresses()
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Interface = new()
+			{
+				NodeIp = IPAddress.Parse("127.0.0.1"),
+				NodePort = 2113,
+				ReplicationIp = IPAddress.Parse("127.0.0.2"),
+				ReplicationPort = 2113,
+			}
+		};
+
+		ClusterVNodeOptionsValidator.Validate(options);
+	}
+
 	[Theory]
 	[InlineData(false, false, true)]
 	[InlineData(false, true, true)]
