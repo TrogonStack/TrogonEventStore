@@ -22,7 +22,6 @@ namespace EventStore.Core.Messaging
 		Storage,
 		Subscription,
 		System,
-		Tcp,
 		Telemetry,
 		Timer,
 		UserManagement
