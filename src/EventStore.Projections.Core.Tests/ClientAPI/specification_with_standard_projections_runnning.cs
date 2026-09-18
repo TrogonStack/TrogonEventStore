@@ -72,7 +72,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		await _node.Start(StartupTimeout);
 		await _node.AdminUserCreated.WithTimeout(StartupTimeout);
-		await _projectionsCreated.WithTimeout(PollTimeout);
+		await _projectionsCreated.WithTimeout(StartupTimeout);
 
 		_streamChannel = GrpcChannel.ForAddress(
 			_node.HttpClient.BaseAddress ?? new UriBuilder { Scheme = Uri.UriSchemeHttps }.Uri,
