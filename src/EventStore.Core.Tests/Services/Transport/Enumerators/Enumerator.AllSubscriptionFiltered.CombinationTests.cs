@@ -63,6 +63,7 @@ public partial class EnumeratorTests
 
 		private const int NumEventsToFallBehind = 3 * 32;
 		private const int CheckpointInterval = 16;
+		private const int TestTimeoutMilliseconds = 60_000;
 
 		public static object[] TestCases = {
 			// STREAM PREFIX FILTER
@@ -652,10 +653,10 @@ public partial class EnumeratorTests
 			_nextEventIndex = CalculateNextEventIndexFromCheckpoint();
 		}
 
-		[Test]
+		[Test, Timeout(TestTimeoutMilliseconds)]
 		public async Task enumeration_is_correct()
 		{
-			var sub = Subscribe();
+			await using var sub = Subscribe();
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 

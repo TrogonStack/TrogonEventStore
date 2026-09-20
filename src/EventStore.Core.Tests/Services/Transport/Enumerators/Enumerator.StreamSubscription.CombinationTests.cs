@@ -56,6 +56,7 @@ public partial class EnumeratorTests
 		}
 
 		private const int NumEventsToFallBehind = 3 * 32;
+		private const int TestTimeoutMilliseconds = 60_000;
 
 		// Delay to wait for max age expiration in tests. Set to 2500ms (2.5 seconds) to account for
 		// timing variations, especially on Windows where expiration checks may not be perfectly synchronized.
@@ -924,7 +925,7 @@ public partial class EnumeratorTests
 			await SetUpForEphemeralStream();
 		}
 
-		[Test]
+		[Test, Timeout(TestTimeoutMilliseconds)]
 		public async Task enumeration_is_correct()
 		{
 			await using var sub = Subscribe();
