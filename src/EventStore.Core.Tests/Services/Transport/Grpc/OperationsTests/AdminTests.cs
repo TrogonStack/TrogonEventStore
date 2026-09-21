@@ -269,6 +269,63 @@ public class AdminTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_starting_scavenge_as_admin<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private ScavengeResp _response;
+
+		protected override Task Given() => Task.CompletedTask;
+
+		protected override async Task When()
+		{
+			_response = await Channel.CreateCallInvoker().AsyncUnaryCall(
+				StartScavengeMethod,
+				null,
+				GetCallOptions(AdminCredentials),
+				new StartScavengeReq());
+		}
+
+		[Test]
+		public void returns_started_with_a_scavenge_id()
+		{
+			Assert.AreEqual(ScavengeResp.Types.ScavengeResult.Started, _response.ScavengeResult);
+			Assert.IsNotEmpty(_response.ScavengeId);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_starting_scavenge_while_one_is_running<TLogFormat, TStreamId>
+		: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private ScavengeResp _startedResponse;
+		private ScavengeResp _inProgressResponse;
+
+		protected override Task Given() => Task.CompletedTask;
+
+		protected override async Task When()
+		{
+			_startedResponse = await Channel.CreateCallInvoker().AsyncUnaryCall(
+				StartScavengeMethod,
+				null,
+				GetCallOptions(AdminCredentials),
+				new StartScavengeReq());
+
+			_inProgressResponse = await Channel.CreateCallInvoker().AsyncUnaryCall(
+				StartScavengeMethod,
+				null,
+				GetCallOptions(AdminCredentials),
+				new StartScavengeReq());
+		}
+
+		[Test]
+		public void returns_in_progress_with_the_running_scavenge_id()
+		{
+			Assert.AreEqual(ScavengeResp.Types.ScavengeResult.Started, _startedResponse.ScavengeResult);
+			Assert.AreEqual(ScavengeResp.Types.ScavengeResult.InProgress, _inProgressResponse.ScavengeResult);
+			Assert.AreEqual(_startedResponse.ScavengeId, _inProgressResponse.ScavengeId);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class when_starting_scavenge_without_permissions<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
 	{
 		private Exception _exception;
