@@ -55,15 +55,22 @@ The multi-address DNS name cluster discovery only works for clusters that use ce
 
 ### Internal communication
 
-When setting up a cluster, the nodes must be able to reach each other over both the HTTP channel, and the internal TCP channel. You should ensure that these ports are open on firewalls on the machines and between the machines.
+Cluster nodes use gRPC over each node's dedicated cluster HTTP(S) endpoint for
+gossip, elections, follower-to-leader request forwarding, and database
+replication. Clients use the node HTTP(S) endpoint. Ensure every node can reach
+the advertised cluster endpoint on every other node.
 
-Learn more about [internal TCP configuration](networking.md#replication-protocol) and [HTTP configuration](networking.md#http-configuration) to set up the cluster properly.
+Learn more about the [node](networking.md#http-configuration) and
+[cluster](networking.md#internal-cluster-traffic) endpoints before
+configuring cluster firewall or network policy rules.
 
 ## Cluster with DNS
 
 When you tell TrogonEventStore to use DNS for its gossip, the server will resolve the DNS name to a list of IP addresses and connect to each of those addresses to find other nodes. This method is very flexible because you can change the list of nodes on your DNS server without changing the cluster configuration. The DNS method is also useful in automated deployment scenarios when you control both the cluster deployment and the DNS server from your infrastructure-as-code scripts.
 
-To use DNS discovery, you need to set the `ClusterDns` option to the DNS name that allows making an HTTP call to it. When the server starts, it will attempt to make a gRPC call using the `https://<cluster-dns>:<gossip-port>` URL (`http` if the cluster is insecure).
+To use DNS discovery, set the `ClusterDns` option to a DNS name that resolves to
+the cluster nodes. When the server starts, it attempts a gRPC call over
+`https://<cluster-dns>:<gossip-port>` (`http` if the cluster is insecure).
 
 When using a certificate signed by a publicly trusted CA, you'd normally use the wildcard certificate. Ensure that the cluster DNS name fits the wildcard, otherwise the request will fail on SSL check.
 
@@ -89,7 +96,9 @@ You also need to have the `DiscoverViaDns` option to be set to `true` but it is 
 
 It will be used only if the cluster has more than one node. You must set the `ClusterDns` setting to a proper DNS name.
 
-When using DNS for cluster gossip, you might need to set the `GossipPort` setting to the HTTP port if the external HTTP port setting is not set to `2113` default port. Refer to [gossip port](#gossip-port) option documentation to learn more.
+DNS gossip uses the advertised cluster port by default. Set `ClusterGossipPort`
+only when the DNS-discovered nodes are reachable on a different cluster port.
+Refer to the [gossip port](#gossip-port) setting for details.
 
 ## Cluster with gossip seeds
 
@@ -107,7 +116,8 @@ The setting accepts a comma-separated list of IP addresses or host names with th
 
 TrogonEventStore uses a quorum-based replication model. When working normally, a cluster has one node known as a leader, and the remaining nodes are followers. The leader node is responsible for coordinating writes while it is the leader. Cluster nodes use a consensus algorithm to determine which node should be the leader and which should be followers. TrogonEventStore bases the decision as to which node should be the leader on a number of factors.
 
-For a cluster node to have this information available to them, the nodes gossip with other nodes in the cluster. Gossip runs over HTTP interfaces of cluster nodes.
+For a cluster node to have this information available to them, the nodes gossip
+with other nodes over the cluster HTTP(S) endpoint.
 
 The gossip protocol configuration can be changed using the settings listed below. Pay attention to the settings related to time, like intervals and timeouts, when running in a cloud environment.
 
@@ -115,17 +125,13 @@ The gossip protocol configuration can be changed using the settings listed below
 
 The gossip port is used for constructing the URL for making a gossip request to other nodes that are discovered via DNS. It is not used when using gossip seeds, because in that case the list contains IP addresses and the port.
 
-::: warning
-Normally, the cluster gossip port is the same as the HTTP port, so you don't need to change this setting.
-:::
-
 | Format               | Syntax                           |
 |:---------------------|:---------------------------------|
 | Command line         | `--cluster-gossip-port`          |
 | YAML                 | `ClusterGossipPort`              |
 | Environment variable | `EVENTSTORE_CLUSTER_GOSSIP_PORT` |
 
-**Default**: HTTP port
+**Default**: `0`, which uses the advertised cluster port.
 
 ### Gossip interval
 
@@ -229,7 +235,7 @@ candidate.
 
 ### Follower
 
-A cluster assigns the follower role based on an election process. A cluster uses one or more nodes with the follower role to form the quorum, or the majority of nodes necessary to confirm that the write is persisted.
+A cluster assigns the follower role based on an election process. A cluster uses one or more nodes with the follower role to form the quorum, or the majority of nodes necessary to confirm that the write is persisted. When a follower accepts a request that must run on the leader, it forwards the request to the leader over gRPC on the leader's cluster HTTP(S) endpoint.
 
 ### Read-only replica
 

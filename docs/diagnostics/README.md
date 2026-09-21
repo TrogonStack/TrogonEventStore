@@ -6,6 +6,7 @@ TrogonEventStore provides several ways to diagnose and troubleshoot issues.
 - [Metrics](metrics.md): collect standard metrics using Prometheus or OpenTelemetry.
 - [Monitoring and alerting](monitoring.md): turn health, metrics, and logs into operational signals.
 - [Stats](#statistics): runtime statistics exposed through the monitoring gRPC service.
+- [Connection statistics](#connection-statistics): active HTTP and gRPC connections on both listeners.
 
 You can also use external tools to measure the performance of TrogonEventStore and monitor the cluster health. Learn more on the [Integrations](./integrations.md) page.
 
@@ -18,6 +19,21 @@ cluster-wide state.
 
 `Monitoring.Stats` collects fresh node-local statistics and memoizes the result for up to one second. It does
 not read persisted statistics events.
+
+## Connection statistics
+
+Use the `Monitoring.ConnectionStats` RPC to inspect active connections on the
+node and cluster HTTP(S) listeners. Each result identifies the local and
+remote endpoints, connection ID, observed client name, protocol, application,
+TLS state, connection time, total bytes, and pending bytes.
+
+Use `Monitoring.ReplicationStats` when the diagnostic question is specifically
+about live database replication sessions. Its results include the subscription
+and connection IDs, peer endpoint, byte totals, pending bytes, and send queue
+depth.
+
+Both RPCs report node-local snapshots. Query each cluster member when diagnosing
+a cluster-wide connection or replication problem.
 
 When statistics persistence is enabled, each node writes events to a reserved `$stats-<host:port>` stream. For
 example, a single local node writes to `$stats-127.0.0.1:2113`.
@@ -49,17 +65,6 @@ type `$statsCollected`.
   "proc-gc-largeHeapSize": 0,
   "proc-gc-timeInGc": 0.0,
   "proc-gc-totalBytesInHeaps": 0,
-  "proc-tcp-connections": 0,
-  "proc-tcp-receivingSpeed": 0.0,
-  "proc-tcp-sendingSpeed": 0.0,
-  "proc-tcp-inSend": 0,
-  "proc-tcp-measureTime": "00:00:19.0534210",
-  "proc-tcp-pendingReceived": 0,
-  "proc-tcp-pendingSend": 0,
-  "proc-tcp-receivedBytesSinceLastRun": 0,
-  "proc-tcp-receivedBytesTotal": 0,
-  "proc-tcp-sentBytesSinceLastRun": 0,
-  "proc-tcp-sentBytesTotal": 0,
   "es-checksum": 1613144,
   "es-checksumNonFlushed": 1613144,
   "sys-drive-/System/Volumes/Data-availableBytes": 545628151808,
@@ -104,7 +109,7 @@ type `$statsCollected`.
   "es-queue-MonitoringQueue-lengthLifetimePeak": 0,
   "es-queue-MonitoringQueue-totalItemsProcessed": 14,
   "es-queue-MonitoringQueue-inProgressMessage": "<none>",
-  "es-queue-MonitoringQueue-lastProcessedMessage": "GetFreshTcpConnectionStats",
+  "es-queue-MonitoringQueue-lastProcessedMessage": "GetFreshStats",
   "es-queue-PersistentSubscriptions-queueName": "PersistentSubscriptions",
   "es-queue-PersistentSubscriptions-groupName": "",
   "es-queue-PersistentSubscriptions-avgItemsPerSecond": 1,
