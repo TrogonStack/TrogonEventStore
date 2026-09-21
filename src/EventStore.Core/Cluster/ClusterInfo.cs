@@ -83,7 +83,11 @@ namespace EventStore.Core.Cluster
 					x.AdvertiseHostToClientAs, (int)x.AdvertiseHttpPortToClientAs, (int)x.AdvertiseTcpPortToClientAs,
 					x.LastCommitPosition, x.WriterCheckpoint, x.ChaserCheckpoint,
 					x.EpochPosition, x.EpochNumber, Uuid.FromDto(x.EpochId).ToGuid(), x.NodePriority,
-					x.IsReadOnlyReplica, x.EsVersion == String.Empty ? null : x.EsVersion
+					x.IsReadOnlyReplica, x.EsVersion == String.Empty ? null : x.EsVersion,
+					x.ReplicationEndPoint is null
+						? null
+						: new DnsEndPoint(x.ReplicationEndPoint.Address, (int)x.ReplicationEndPoint.Port)
+							.WithClusterDns(clusterDns)
 				)).ToArray();
 			return new ClusterInfo(receivedMembers);
 		}
@@ -99,6 +103,9 @@ namespace EventStore.Core.Cluster
 				HttpEndPoint = new EventStore.Cluster.EndPoint(
 					x.HttpEndPoint.GetHost(),
 					(uint)x.HttpEndPoint.GetPort()),
+				ReplicationEndPoint = new EventStore.Cluster.EndPoint(
+					x.ReplicationEndPoint.GetHost(),
+					(uint)x.ReplicationEndPoint.GetPort()),
 				InternalTcp = x.InternalSecureTcpEndPoint != null ?
 					new EventStore.Cluster.EndPoint(
 						x.InternalSecureTcpEndPoint.GetHost(),

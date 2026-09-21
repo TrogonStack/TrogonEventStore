@@ -13,13 +13,15 @@ namespace EventStore.Core.Data
 		public readonly IPEndPoint ExternalTcp;
 		public readonly IPEndPoint ExternalSecureTcp;
 		public readonly EndPoint HttpEndPoint;
+		public readonly EndPoint ReplicationEndPoint;
 		public readonly bool IsReadOnlyReplica;
 
 		public VNodeInfo(Guid instanceId, int debugIndex,
 			IPEndPoint internalTcp, IPEndPoint internalSecureTcp,
 			IPEndPoint externalTcp, IPEndPoint externalSecureTcp,
 			EndPoint httpEndPoint,
-			bool isReadOnlyReplica)
+			bool isReadOnlyReplica,
+			EndPoint replicationEndPoint = null)
 		{
 			Ensure.NotEmptyGuid(instanceId, "instanceId");
 			Ensure.Equal(false, internalTcp == null && internalSecureTcp == null, "Both internal TCP endpoints are null");
@@ -32,30 +34,33 @@ namespace EventStore.Core.Data
 			ExternalTcp = externalTcp;
 			ExternalSecureTcp = externalSecureTcp;
 			HttpEndPoint = httpEndPoint;
+			ReplicationEndPoint = replicationEndPoint ?? httpEndPoint;
 			IsReadOnlyReplica = isReadOnlyReplica;
 		}
 
 		public bool Is(EndPoint endPoint)
 		{
 			return endPoint != null
-				   && HttpEndPoint.Equals(endPoint)
+				   && (HttpEndPoint.Equals(endPoint)
+					   || ReplicationEndPoint.Equals(endPoint)
 					   || (InternalTcp != null && InternalTcp.Equals(endPoint))
 					   || (InternalSecureTcp != null && InternalSecureTcp.Equals(endPoint))
 					   || (ExternalTcp != null && ExternalTcp.Equals(endPoint))
-					   || (ExternalSecureTcp != null && ExternalSecureTcp.Equals(endPoint));
+					   || (ExternalSecureTcp != null && ExternalSecureTcp.Equals(endPoint)));
 		}
 
 		public override string ToString()
 		{
 			return string.Format("InstanceId: {0:B}, InternalTcp: {1}, InternalSecureTcp: {2}, " +
-								 "ExternalTcp: {3}, ExternalSecureTcp: {4}, HttpEndPoint: {5}," +
-								 "IsReadOnlyReplica: {6}",
+								 "ExternalTcp: {3}, ExternalSecureTcp: {4}, HttpEndPoint: {5}, " +
+								 "ReplicationEndPoint: {6}, IsReadOnlyReplica: {7}",
 				InstanceId,
 				InternalTcp,
 				InternalSecureTcp,
 				ExternalTcp,
 				ExternalSecureTcp,
 				HttpEndPoint,
+				ReplicationEndPoint,
 				IsReadOnlyReplica);
 		}
 	}
