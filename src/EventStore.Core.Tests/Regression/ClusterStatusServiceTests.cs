@@ -19,7 +19,7 @@ public class ClusterStatusServiceTests
 		};
 
 		var result = (ClientClusterInfo.ClientMemberInfo)typeof(ClusterStatusService)
-			.GetMethod("FindMemberByInternalEndpoint", BindingFlags.NonPublic | BindingFlags.Static)!
+			.GetMethod("FindMemberByEndpoint", BindingFlags.NonPublic | BindingFlags.Static)!
 			.Invoke(null, [new List<ClientClusterInfo.ClientMemberInfo> { member }, "replica.internal:1112"])!;
 
 		Assert.That(result, Is.SameAs(member));
