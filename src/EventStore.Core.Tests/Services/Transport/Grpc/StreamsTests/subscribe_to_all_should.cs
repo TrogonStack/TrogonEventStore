@@ -66,6 +66,7 @@ public class subscribe_to_all_should<TLogFormat, TStreamId> : GrpcSpecification<
 		var deleted = await ReadNextEventResponse(subscription);
 		Assert.That(deleted.Event.StreamIdentifier.StreamName.ToStringUtf8(), Is.EqualTo(streamName));
 		Assert.That(deleted.Event.Metadata[GrpcMetadata.Type], Is.EqualTo(SystemEventTypes.StreamDeleted));
+		Assert.That(deleted.Event.StreamRevision, Is.EqualTo((ulong)long.MaxValue));
 	}
 
 	private static ReadReq SubscribeRequest() => new()

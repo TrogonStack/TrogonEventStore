@@ -17,6 +17,7 @@ public class read_all_events_forward_with_hard_deleted_stream_should<TLogFormat,
 {
 	private const string StreamName = nameof(read_all_events_forward_with_hard_deleted_stream_should<TLogFormat, TStreamId>);
 	private readonly List<ReadResp.Types.ReadEvent> _allEvents = new();
+	private readonly List<ReadResp.Types.ReadEvent> _allEventsBackward = new();
 	private RpcException _streamReadException;
 
 	protected override async Task Given()
@@ -56,8 +57,15 @@ public class read_all_events_forward_with_hard_deleted_stream_should<TLogFormat,
 			_streamReadException = ex;
 		}
 
-		using var allCall = StreamsClient.Read(ReadAllRequest(), GetCallOptions(AdminCredentials));
+		using var allCall = StreamsClient.Read(ReadAllRequest(
+			ReadReq.Types.Options.Types.ReadDirection.Forwards), GetCallOptions(AdminCredentials));
 		_allEvents.AddRange((await allCall.ResponseStream.ReadAllAsync().ToArrayAsync())
+			.Where(x => x.ContentCase == ReadResp.ContentOneofCase.Event)
+			.Select(x => x.Event));
+
+		using var allBackwardCall = StreamsClient.Read(ReadAllRequest(
+			ReadReq.Types.Options.Types.ReadDirection.Backwards), GetCallOptions(AdminCredentials));
+		_allEventsBackward.AddRange((await allBackwardCall.ResponseStream.ReadAllAsync().ToArrayAsync())
 			.Where(x => x.ContentCase == ReadResp.ContentOneofCase.Event)
 			.Select(x => x.Event));
 	}
@@ -82,6 +90,20 @@ public class read_all_events_forward_with_hard_deleted_stream_should<TLogFormat,
 		Assert.That(streamEvents.Take(20).All(x => x.Event.Metadata[GrpcConstants.Metadata.Type] == "-"), Is.True);
 		Assert.That(streamEvents[^1].Event.Metadata[GrpcConstants.Metadata.Type],
 			Is.EqualTo(SystemEventTypes.StreamDeleted));
+		Assert.That(streamEvents[^1].Event.StreamRevision, Is.EqualTo((ulong)long.MaxValue));
+	}
+
+	[Test]
+	public void returns_tombstone_from_backward_read_without_downgrading_its_revision()
+	{
+		var streamEvents = _allEventsBackward
+			.Where(x => x.Event.StreamIdentifier.StreamName.ToStringUtf8() == StreamName)
+			.ToArray();
+
+		Assert.That(streamEvents, Has.Length.EqualTo(21));
+		Assert.That(streamEvents[0].Event.Metadata[GrpcConstants.Metadata.Type],
+			Is.EqualTo(SystemEventTypes.StreamDeleted));
+		Assert.That(streamEvents[0].Event.StreamRevision, Is.EqualTo((ulong)long.MaxValue));
 	}
 
 	private static ReadReq ReadStreamRequest() => new()
@@ -100,15 +122,17 @@ public class read_all_events_forward_with_hard_deleted_stream_should<TLogFormat,
 		}
 	};
 
-	private static ReadReq ReadAllRequest() => new()
+	private static ReadReq ReadAllRequest(ReadReq.Types.Options.Types.ReadDirection direction) => new()
 	{
 		Options = new()
 		{
 			UuidOption = new() { Structured = new() },
 			NoFilter = new(),
-			ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
+			ReadDirection = direction,
 			Count = 100,
-			All = new() { Start = new() }
+			All = direction == ReadReq.Types.Options.Types.ReadDirection.Forwards
+				? new() { Start = new() }
+				: new() { End = new() }
 		}
 	};
 }
