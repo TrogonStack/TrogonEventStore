@@ -44,19 +44,17 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected class Endpoints
 	{
-		public readonly IPEndPoint InternalTcp;
-		public readonly IPEndPoint ExternalTcp;
-		public readonly IPEndPoint HttpEndPoint;
+		public readonly IPEndPoint NodeEndPoint;
+		public readonly IPEndPoint ReplicationEndPoint;
 		private readonly int[] _ports;
 
-		public Endpoints(int internalTcp, int externalTcp, int httpPort)
+		public Endpoints(int nodePort, int replicationPort)
 		{
 			var testIp = Environment.GetEnvironmentVariable("ES-TESTIP");
 			var address = string.IsNullOrEmpty(testIp) ? IPAddress.Loopback : IPAddress.Parse(testIp);
-			InternalTcp = new IPEndPoint(address, internalTcp);
-			ExternalTcp = new IPEndPoint(address, externalTcp);
-			HttpEndPoint = new IPEndPoint(address, httpPort);
-			_ports = [internalTcp, httpPort, externalTcp];
+			NodeEndPoint = new IPEndPoint(address, nodePort);
+			ReplicationEndPoint = new IPEndPoint(address, replicationPort);
+			_ports = [nodePort, replicationPort];
 		}
 
 		public IEnumerable<int> Ports => _ports;
@@ -71,7 +69,6 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		{
 			_nodeEndpoints[index] = new Endpoints(
 				PortsHelper.GetAvailablePort(IPAddress.Loopback),
-				PortsHelper.GetAvailablePort(IPAddress.Loopback),
 				PortsHelper.GetAvailablePort(IPAddress.Loopback));
 		}
 
@@ -79,7 +76,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		{
 			var gossipSeeds = _nodeEndpoints
 				.Where((_, otherIndex) => otherIndex != index)
-				.Select(x => (EndPoint)x.HttpEndPoint)
+				.Select(x => (EndPoint)x.NodeEndPoint)
 				.ToArray();
 			_nodes[index] = CreateNode(index, _nodeEndpoints[index], gossipSeeds);
 		}
@@ -130,9 +127,8 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		return new MiniClusterNode<TLogFormat, TStreamId>(
 			PathName,
 			index,
-			endpoints.InternalTcp,
-			endpoints.ExternalTcp,
-			endpoints.HttpEndPoint,
+			endpoints.NodeEndPoint,
+			endpoints.ReplicationEndPoint,
 			subsystems: [_projections[index]],
 			gossipSeeds: gossipSeeds);
 	}

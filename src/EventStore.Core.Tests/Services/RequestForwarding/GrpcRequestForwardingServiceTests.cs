@@ -571,7 +571,7 @@ public class GrpcRequestForwardingSupervisorTests
 		fixture.Supervisor.Handle(new SystemMessage.BecomePreReplica(
 			Guid.NewGuid(), Guid.NewGuid(), fixture.Leader));
 
-		Assert.That(fixture.Factory.EndPoints.Single(), Is.EqualTo(fixture.Leader.ReplicationEndPoint));
+		Assert.That(fixture.Factory.EndPoints.Single(), Is.EqualTo(fixture.Leader.HttpEndPoint));
 	}
 
 	[Test]
@@ -791,10 +791,6 @@ public class GrpcRequestForwardingSupervisorTests
 		DateTime.UtcNow,
 		VNodeState.Leader,
 		true,
-		new DnsEndPoint("leader-replication.internal", 1112),
-		new DnsEndPoint("leader-replication.internal", 1113),
-		null,
-		null,
 		new DnsEndPoint("leader.internal", httpPort),
 		null,
 		0,
@@ -803,11 +799,9 @@ public class GrpcRequestForwardingSupervisorTests
 		0,
 		0,
 		0,
-		0,
 		Guid.NewGuid(),
 		0,
-		false,
-		replicationEndPoint: new DnsEndPoint("leader-forwarding.internal", 3112));
+		false);
 
 	private static async Task WaitUntil(Func<bool> condition)
 	{

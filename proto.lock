@@ -1910,26 +1910,6 @@
                 "type": "EndPoint"
               },
               {
-                "id": 6,
-                "name": "internal_tcp",
-                "type": "EndPoint"
-              },
-              {
-                "id": 7,
-                "name": "external_tcp",
-                "type": "EndPoint"
-              },
-              {
-                "id": 8,
-                "name": "internal_tcp_uses_tls",
-                "type": "bool"
-              },
-              {
-                "id": 9,
-                "name": "external_tcp_uses_tls",
-                "type": "bool"
-              },
-              {
                 "id": 10,
                 "name": "last_commit_position",
                 "type": "int64"
@@ -1980,11 +1960,6 @@
                 "type": "uint32"
               },
               {
-                "id": 20,
-                "name": "advertise_tcp_port_to_client_as",
-                "type": "uint32"
-              },
-              {
                 "id": 21,
                 "name": "es_version",
                 "type": "string"
@@ -1994,6 +1969,20 @@
                 "name": "replication_end_point",
                 "type": "EndPoint"
               }
+            ],
+            "reserved_ids": [
+              6,
+              7,
+              8,
+              9,
+              20
+            ],
+            "reserved_names": [
+              "internal_tcp",
+              "external_tcp",
+              "internal_tcp_uses_tls",
+              "external_tcp_uses_tls",
+              "advertise_tcp_port_to_client_as"
             ]
           }
         ],
@@ -2790,20 +2779,18 @@
             "name": "LeaderInfo",
             "fields": [
               {
-                "id": 1,
-                "name": "external_tcp",
-                "type": "EndPoint"
-              },
-              {
-                "id": 2,
-                "name": "is_secure",
-                "type": "bool"
-              },
-              {
                 "id": 3,
                 "name": "http",
                 "type": "EndPoint"
               }
+            ],
+            "reserved_ids": [
+              1,
+              2
+            ],
+            "reserved_names": [
+              "external_tcp",
+              "is_secure"
             ]
           },
           {

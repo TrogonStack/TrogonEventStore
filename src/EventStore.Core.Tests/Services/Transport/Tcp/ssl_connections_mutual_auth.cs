@@ -8,7 +8,6 @@ using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using EventStore.Common.Utils;
-using EventStore.Core.Services.Transport.Tcp;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Transport.Tcp;
 using NUnit.Framework;
@@ -116,7 +115,7 @@ public class ssl_connections_mutual_auth
 			(cert, chain, err, _) => validateServerCertificate ? ClusterVNode<string>.ValidateServerCertificate(cert, chain, err, () => null, () => rootCertificates, null) : (true, null),
 			() => new X509CertificateCollection { clientCertificate },
 			new TcpClientConnector(),
-			TcpConnectionManager.ConnectionTimeout,
+			TimeSpan.FromSeconds(1),
 			conn =>
 			{
 				Log.Information("Sending bytes...");

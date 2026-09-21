@@ -355,7 +355,7 @@ public sealed class ForwardingService : Proto.RequestForwarding.RequestForwardin
 		public static ForwardedAuthentication NotAuthenticated(string reason) => new(
 			null,
 			null,
-			requestId => new TcpMessage.NotAuthenticated(requestId, reason));
+			requestId => new ClientMessage.NotAuthenticated(requestId, reason));
 
 		public static ForwardedAuthentication NotReady(string reason) => new(
 			null,

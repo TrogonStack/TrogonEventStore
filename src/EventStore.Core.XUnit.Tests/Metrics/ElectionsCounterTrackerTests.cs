@@ -25,8 +25,7 @@ public class ElectionsCounterTrackerTests : IDisposable
 		var endPoint = new DnsEndPoint("127.0.0.1", 1113);
 		var memberInfo = Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
 			VNodeState.Unknown, true,
-			endPoint, endPoint, endPoint, endPoint, endPoint,
-			null, 0, 0, 0, false);
+			endPoint, null, 0, 0, false);
 		_electionsDoneMessage = new ElectionMessage.ElectionsDone(1, 1, memberInfo);
 	}
 

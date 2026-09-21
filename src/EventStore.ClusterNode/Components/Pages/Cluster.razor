@@ -43,8 +43,7 @@
 							<th class="px-5 py-4">Status</th>
 							<th class="px-5 py-4">Timestamp (UTC)</th>
 							<th class="px-5 py-4">Checkpoints</th>
-							<th class="px-5 py-4">TCP</th>
-							<th class="px-5 py-4">HTTP</th>
+							<th class="px-5 py-4">HTTP / gRPC</th>
 							<th class="px-5 py-4 text-right">Actions</th>
 						</tr>
 					</thead>
@@ -52,7 +51,7 @@
 						@if (!ClusterMembers.Any())
 						{
 							<tr>
-								<td class="px-5 py-4 text-es-muted" colspan="7">@ClusterEmptyMessage</td>
+								<td class="px-5 py-4 text-es-muted" colspan="6">@ClusterEmptyMessage</td>
 							</tr>
 						}
 						else
@@ -76,10 +75,6 @@
 											<p>@CheckpointLabel(member)</p>
 											<p class="mt-1">@EpochLabel(member)</p>
 										}
-									</td>
-									<td class="px-5 py-4 font-mono text-xs text-es-muted">
-										<p>Internal: @InternalTcpEndpoint(member)</p>
-										<p class="mt-1">External: @ExternalTcpEndpoint(member)</p>
 									</td>
 									<td class="px-5 py-4 font-mono text-xs text-es-muted">@HttpEndpoint(member)</td>
 									<td class="px-5 py-4 text-right">
@@ -307,7 +302,7 @@
 <section class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 	<SurfaceCard Eyebrow="Explore" Title="Navigator" Description="Jump into streams, subscriptions, projections, user management, and browser tools from one place." Href="/ui/navigator" LinkText="Open" />
 	<SurfaceCard Eyebrow="Run" Title="Operations" Description="Reach privileged actions for scavenging, shutdown, reload, and node-level workflows." Href="/ui/operations" LinkText="Open" />
-	<SurfaceCard Eyebrow="Watch" Title="Observability" Description="Inspect queues, replication, TCP, metrics, and health through a curated operator map." Href="/ui/observability" LinkText="Open" />
+	<SurfaceCard Eyebrow="Watch" Title="Observability" Description="Inspect queues, replication, metrics, and health through a curated operator map." Href="/ui/observability" LinkText="Open" />
 	<SurfaceCard Eyebrow="Review" Title="Configuration" Description="Find runtime information, loaded options, and subsystem metadata." Href="/ui/configuration" LinkText="Open" />
 </section>
 </div>
@@ -370,9 +365,7 @@
 				.Append("Snapshot taken at ")
 				.Append(TimestampLabel(ClusterReadAt ?? DateTime.UtcNow))
 				.AppendLine()
-				.Append(PadRight("Internal Tcp", 31)).Append(' ')
-				.Append(PadRight("External Tcp", 31)).Append(' ')
-				.Append(PadRight("Http", 23)).Append(' ')
+				.Append(PadRight("HTTP / gRPC", 23)).Append(' ')
 				.Append(PadRight("Status", 11)).Append(' ')
 				.Append(PadRight("State", 18)).Append(' ')
 				.Append(PadRight("Timestamp (UTC)", 19)).Append(" Checkpoints");
@@ -380,8 +373,6 @@
 			foreach (var member in ClusterMembers)
 			{
 				builder.AppendLine()
-					.Append(PadRight(InternalTcpEndpoint(member), 31)).Append(' ')
-					.Append(PadRight(ExternalTcpEndpoint(member), 31)).Append(' ')
 					.Append(PadRight(HttpEndpoint(member), 23)).Append(' ')
 					.Append(PadRight(MemberStatus(member), 11)).Append(' ')
 					.Append(PadRight(member.State.ToString(), 18)).Append(' ')
@@ -499,16 +490,6 @@
 
 	private static string MemberStatus(ClientClusterInfo.ClientMemberInfo member) =>
 		member.IsAlive ? "Alive" : "Unreachable";
-
-	private static string InternalTcpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
-		Endpoint(
-			member.InternalTcpIp,
-			member.InternalSecureTcpPort != 0 ? member.InternalSecureTcpPort : member.InternalTcpPort);
-
-	private static string ExternalTcpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
-		Endpoint(
-			member.ExternalTcpIp,
-			member.ExternalSecureTcpPort != 0 ? member.ExternalSecureTcpPort : member.ExternalTcpPort);
 
 	private static string HttpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
 		Endpoint(member.HttpEndPointIp, member.HttpEndPointPort);

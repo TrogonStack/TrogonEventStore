@@ -4,7 +4,6 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="EventStore.Client" />
 		<PackageReference Include="FluentAssertions" />
 		<PackageReference Include="GitHubActionsTestLogger" />
 		<PackageReference Include="Grpc.Core" />

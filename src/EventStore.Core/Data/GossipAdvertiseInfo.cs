@@ -5,50 +5,25 @@ namespace EventStore.Core.Data
 {
 	public class GossipAdvertiseInfo
 	{
-		public DnsEndPoint InternalTcp { get; }
-		public DnsEndPoint InternalSecureTcp { get; }
-		public DnsEndPoint ExternalTcp { get; }
-		public DnsEndPoint ExternalSecureTcp { get; }
-		public DnsEndPoint HttpEndPoint { get; }
 		public DnsEndPoint ReplicationEndPoint { get; }
-		public string AdvertiseInternalHostAs { get; }
-		public string AdvertiseExternalHostAs { get; }
-		public int AdvertiseHttpPortAs { get; }
+		public DnsEndPoint HttpEndPoint { get; }
 		public string AdvertiseHostToClientAs { get; }
 		public int AdvertiseHttpPortToClientAs { get; }
-		public int AdvertiseTcpPortToClientAs { get; }
 
-		public GossipAdvertiseInfo(DnsEndPoint internalTcp, DnsEndPoint internalSecureTcp,
-			DnsEndPoint externalTcp, DnsEndPoint externalSecureTcp,
-			DnsEndPoint httpEndPoint,
-			string advertiseInternalHostAs, string advertiseExternalHostAs, int advertiseHttpPortAs,
-			string advertiseHostToClientAs, int advertiseHttpPortToClientAs, int advertiseTcpPortToClientAs,
+		public GossipAdvertiseInfo(DnsEndPoint httpEndPoint,
+			string advertiseHostToClientAs, int advertiseHttpPortToClientAs,
 			DnsEndPoint replicationEndPoint = null)
 		{
-			Ensure.Equal(false, internalTcp == null && internalSecureTcp == null, "Both internal TCP endpoints are null");
-
-			InternalTcp = internalTcp;
-			InternalSecureTcp = internalSecureTcp;
-			ExternalTcp = externalTcp;
-			ExternalSecureTcp = externalSecureTcp;
-			HttpEndPoint = httpEndPoint;
+			Ensure.NotNull(httpEndPoint, nameof(httpEndPoint));
 			ReplicationEndPoint = replicationEndPoint ?? httpEndPoint;
-			AdvertiseInternalHostAs = advertiseInternalHostAs;
-			AdvertiseExternalHostAs = advertiseExternalHostAs;
-			AdvertiseHttpPortAs = advertiseHttpPortAs;
+			HttpEndPoint = httpEndPoint;
 			AdvertiseHostToClientAs = advertiseHostToClientAs;
 			AdvertiseHttpPortToClientAs = advertiseHttpPortToClientAs;
-			AdvertiseTcpPortToClientAs = advertiseTcpPortToClientAs;
 		}
 
 		public override string ToString()
 		{
-			return string.Format(
-				$"IntTcp: {InternalTcp}, IntSecureTcp: {InternalSecureTcp}\n" +
-				$"ExtTcp: {ExternalTcp}, ExtSecureTcp: {ExternalSecureTcp}\n" +
-				$"Http: {HttpEndPoint}, Replication: {ReplicationEndPoint}, HttpAdvertiseAs: {AdvertiseExternalHostAs}:{AdvertiseHttpPortAs},\n" +
-				$"HttpAdvertiseToClientAs: {AdvertiseHostToClientAs}:{AdvertiseHttpPortToClientAs},\n" +
-				$"TcpAdvertiseToClientAs: {AdvertiseHostToClientAs}:{AdvertiseTcpPortToClientAs}");
+			return $"Replication: {ReplicationEndPoint}, Http: {HttpEndPoint}, HttpAdvertiseToClientAs: {AdvertiseHostToClientAs}:{AdvertiseHttpPortToClientAs}";
 		}
 	}
 }

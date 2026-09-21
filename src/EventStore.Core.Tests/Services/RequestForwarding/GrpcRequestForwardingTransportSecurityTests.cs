@@ -53,7 +53,7 @@ public class GrpcRequestForwardingTransportSecurityTests
 
 		supervisor.Handle(new ClientMessage.ForwardMessage(request));
 
-		var response = publisher.Messages.OfType<TcpMessage.NotAuthenticated>().Single();
+		var response = publisher.Messages.OfType<ClientMessage.NotAuthenticated>().Single();
 		Assert.That(response.CorrelationId, Is.EqualTo(request.InternalCorrId));
 	}
 
@@ -119,10 +119,6 @@ public class GrpcRequestForwardingTransportSecurityTests
 		DateTime.UtcNow,
 		VNodeState.Leader,
 		true,
-		new DnsEndPoint("leader-replication.internal", 1112),
-		new DnsEndPoint("leader-replication.internal", 1113),
-		null,
-		null,
 		new DnsEndPoint("leader.internal", 2113),
 		null,
 		0,
@@ -131,11 +127,9 @@ public class GrpcRequestForwardingTransportSecurityTests
 		0,
 		0,
 		0,
-		0,
 		Guid.NewGuid(),
 		0,
-		false,
-		replicationEndPoint: new DnsEndPoint("leader-forwarding.internal", 3112));
+		false);
 
 	private sealed class RejectingServiceFactory : IGrpcRequestForwardingServiceFactory
 	{

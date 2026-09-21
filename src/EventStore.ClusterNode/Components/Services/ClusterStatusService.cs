@@ -171,7 +171,7 @@ public sealed class ClusterStatusService(
 			: Guid.Empty;
 		var totalBytesSent = row.TotalBytesSent;
 		var previousRow = _previousReplicas.GetValueOrDefault(connectionId);
-		var replicaNode = FindMemberByInternalEndpoint(members, row.SubscriptionEndpoint);
+		var replicaNode = FindMemberByEndpoint(members, row.SubscriptionEndpoint);
 		var isCatchingUp = replicaNode?.State == VNodeState.CatchingUp;
 		var catchupStartTime = now;
 		var catchupStartBytesSent = totalBytesSent;
@@ -206,14 +206,14 @@ public sealed class ClusterStatusService(
 	private ClaimsPrincipal CurrentUser =>
 		httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
-	private static ClientClusterInfo.ClientMemberInfo FindMemberByInternalEndpoint(
+	private static ClientClusterInfo.ClientMemberInfo FindMemberByEndpoint(
 		IReadOnlyList<ClientClusterInfo.ClientMemberInfo> members,
 		string endpoint)
 	{
 		var cleaned = endpoint.Replace("Unspecified/", "", StringComparison.OrdinalIgnoreCase);
 		return members.FirstOrDefault(x =>
 			string.Equals(ReplicationEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase) ||
-			string.Equals(InternalTcpEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase));
+			string.Equals(HttpEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase));
 	}
 
 	private static Uri BuildLeaderAddress(
@@ -221,14 +221,8 @@ public sealed class ClusterStatusService(
 		ClientClusterInfo.ClientMemberInfo leader) =>
 		new UriBuilder(request.Scheme, leader.HttpEndPointIp, leader.HttpEndPointPort).Uri;
 
-	private static string InternalTcpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
-		Endpoint(
-			member.InternalTcpIp,
-			member.InternalSecureTcpPort != 0 ? member.InternalSecureTcpPort : member.InternalTcpPort);
-
 	private static string ReplicationEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
 		Endpoint(member.ReplicationEndPointIp, member.ReplicationEndPointPort);
-
 	private static string HttpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
 		Endpoint(member.HttpEndPointIp, member.HttpEndPointPort);
 

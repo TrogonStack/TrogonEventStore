@@ -48,32 +48,6 @@ public class ClusterVNodeOptionsValidatorTests
 	}
 
 	[Theory]
-	[InlineData(0)]
-	[InlineData(-1)]
-	public void replication_heartbeat_interval_must_be_positive(int interval)
-	{
-		var options = new ClusterVNodeOptions
-		{
-			Interface = new() { ReplicationHeartbeatInterval = interval }
-		};
-
-		Assert.Throws<ArgumentOutOfRangeException>(() => ClusterVNodeOptionsValidator.Validate(options));
-	}
-
-	[Theory]
-	[InlineData(0)]
-	[InlineData(-1)]
-	public void replication_heartbeat_timeout_must_be_positive(int timeout)
-	{
-		var options = new ClusterVNodeOptions
-		{
-			Interface = new() { ReplicationHeartbeatTimeout = timeout }
-		};
-
-		Assert.Throws<ArgumentOutOfRangeException>(() => ClusterVNodeOptionsValidator.Validate(options));
-	}
-
-	[Theory]
 	[InlineData(false, false, true)]
 	[InlineData(false, true, true)]
 	[InlineData(true, false, false)]
