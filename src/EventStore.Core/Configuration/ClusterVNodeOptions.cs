@@ -620,7 +620,7 @@ public partial record ClusterVNodeOptions
 	[Description("Interface Options")]
 	public record InterfaceOptions
 	{
-		[Description("The IP Address used by internal replication between nodes in the cluster.")]
+		[Description("The IP address used by the gRPC replication listener.")]
 		public IPAddress ReplicationIp { get; init; } = IPAddress.Loopback;
 
 		[Description("The IP Address for the node.")]
@@ -629,7 +629,7 @@ public partial record ClusterVNodeOptions
 		[Description("The Port to run the HTTP server on.")]
 		public int NodePort { get; init; } = 2113;
 
-		[Description("The TCP port used by internal replication between nodes in the cluster.")]
+		[Description("The port used by the gRPC replication listener.")]
 		public int ReplicationPort { get; init; } = 1112;
 
 		[Description("Advertise the Node's host name to other nodes and external clients as.")]
@@ -661,11 +661,11 @@ public partial record ClusterVNodeOptions
 				? ReplicationPortAdvertiseAs
 				: ReplicationTcpPortAdvertiseAs;
 
-		[Description("Heartbeat timeout for Replication TCP sockets."),
+		[Description("Keepalive ping timeout for gRPC replication connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
 		 Unit("ms")]
 		public int ReplicationHeartbeatTimeout { get; init; } = 700;
 
-		[Description("Heartbeat interval for Replication TCP sockets."),
+		[Description("Keepalive ping interval for gRPC replication connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
 		 Unit("ms")]
 		public int ReplicationHeartbeatInterval { get; init; } = 700;
 

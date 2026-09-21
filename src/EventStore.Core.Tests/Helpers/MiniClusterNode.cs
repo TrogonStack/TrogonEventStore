@@ -25,6 +25,7 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins.Subsystems;
 using EventStore.TcpUnitTestPlugin;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -45,6 +46,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	public IPEndPoint InternalTcpEndPoint { get; }
 	public IPEndPoint ExternalTcpEndPoint { get; }
 	public IPEndPoint HttpEndPoint { get; }
+	public IPEndPoint ReplicationEndPoint { get; }
 
 	public readonly int DebugIndex;
 
@@ -68,7 +70,8 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
 		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null,
 		ArchiveOptions archiveOptions = null, bool archiver = false,
-		int clusterSize = 3, bool unsafeAllowSurplusNodes = false)
+		int clusterSize = 3, bool unsafeAllowSurplusNodes = false,
+		string replicationHostAdvertiseAs = null)
 	{
 
 		RunningTime.Start();
@@ -78,6 +81,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		InternalTcpEndPoint = internalTcp;
 		ExternalTcpEndPoint = externalTcp;
 		HttpEndPoint = httpEndPoint;
+		ReplicationEndPoint = internalTcp;
 
 		_dbPath = Path.Combine(
 			pathname,
@@ -124,7 +128,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				ReplicationHeartbeatTimeout = 2_000,
 				ReplicationHeartbeatInterval = 2_000,
 				EnableTrustedAuth = enableTrustedAuth,
-				ReplicationHostAdvertiseAs = intHostAdvertiseAs
+				ReplicationHostAdvertiseAs = replicationHostAdvertiseAs ?? intHostAdvertiseAs
 			},
 			Database = new()
 			{
@@ -215,7 +219,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				webHost
 					.UseKestrel(o =>
 					{
-						o.Listen(HttpEndPoint, options =>
+						void ConfigureHttps(ListenOptions options)
 						{
 							options.UseHttps(new HttpsConnectionAdapterOptions
 							{
@@ -233,6 +237,13 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 									return isValid;
 								}
 							});
+						}
+
+						o.Listen(HttpEndPoint, ConfigureHttps);
+						o.Listen(ReplicationEndPoint, options =>
+						{
+							options.Protocols = HttpProtocols.Http2;
+							ConfigureHttps(options);
 						});
 					})
 					.UseStartup(Node.Startup);

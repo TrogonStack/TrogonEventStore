@@ -1537,13 +1537,17 @@ public class ClusterVNode<TStreamId> :
 			_grpcReplicaServiceSupervisor = new GrpcReplicaServiceSupervisor(
 				_mainQueue,
 				new GrpcReplicaServiceFactory(
-					new ReplicationGrpcClientFactory(uriScheme, _nodeHttpClientFactory),
+					new ReplicationGrpcClientFactory(
+						uriScheme,
+						_nodeHttpClientFactory,
+						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
+						TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout)),
 					new ReplicaSubscriptionDataSource(Db, epochManager),
 					NodeInfo.InstanceId,
 					options.Cluster.ReadOnlyReplica
 						? ReplicaPromotability.NonPromotable
 						: ReplicaPromotability.Promotable),
-				GossipAdvertiseInfo.HttpEndPoint,
+				GossipAdvertiseInfo.ReplicationEndPoint,
 				AddTask);
 			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(_grpcReplicaServiceSupervisor);
 			_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(_grpcReplicaServiceSupervisor);
@@ -2272,5 +2276,6 @@ public class ClusterVNode<TStreamId> :
 	}
 
 	public override string ToString() =>
-		$"[{NodeInfo.InstanceId:B}, {NodeInfo.InternalTcp}, {NodeInfo.ExternalTcp}, {NodeInfo.HttpEndPoint}]";
+		$"[{NodeInfo.InstanceId:B}, {NodeInfo.InternalTcp}, {NodeInfo.ExternalTcp}, " +
+		$"{NodeInfo.ReplicationEndPoint}, {NodeInfo.HttpEndPoint}]";
 }

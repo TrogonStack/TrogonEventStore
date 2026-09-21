@@ -25,7 +25,7 @@ namespace EventStore.Core.Tests.Integration;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
-	private const string FakeHostAdvertiseAs = "192.168.123.123";
+	private const string FakeReplicationHostAdvertiseAs = "192.168.123.123";
 	private const string Username = "admin";
 	private const string Password = "changeit";
 
@@ -163,15 +163,15 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 	}
 
 	private MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
-		int nodePriority, string intHostAdvertiseAs) => new(
+		int nodePriority, string replicationHostAdvertiseAs) => new(
 		PathName, index, endpoints.InternalTcp,
 		endpoints.ExternalTcp, endpoints.HttpEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds,
-		nodePriority: nodePriority, intHostAdvertiseAs: intHostAdvertiseAs);
+		nodePriority: nodePriority, replicationHostAdvertiseAs: replicationHostAdvertiseAs);
 
-	private Task StartNode(int i, int priority, string intHostAdvertiseAs = null)
+	private Task StartNode(int i, int priority, string replicationHostAdvertiseAs = null)
 	{
-		_nodes[i] = CreateNode(i, _nodeEndpoints[i], _nodeGossipSeeds[i], priority, intHostAdvertiseAs);
+		_nodes[i] = CreateNode(i, _nodeEndpoints[i], _nodeGossipSeeds[i], priority, replicationHostAdvertiseAs);
 		_nodes[i].Start();
 		return Task.CompletedTask;
 	}
@@ -296,9 +296,9 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 		await ShutdownAllNodes(keepDb: true);
 
 		// make node 1 become the leader by setting its priority to 1
-		// node 0 can't become a follower since it can't replicate over internal TCP due to the fake --int-host-advertise-as
-		await StartNode(0, priority: 0, intHostAdvertiseAs: FakeHostAdvertiseAs);
-		await StartNode(1, priority: 1, intHostAdvertiseAs: FakeHostAdvertiseAs);
+		// node 0 can't become a follower because the fake replication address prevents gRPC replication
+		await StartNode(0, priority: 0, replicationHostAdvertiseAs: FakeReplicationHostAdvertiseAs);
+		await StartNode(1, priority: 1, replicationHostAdvertiseAs: FakeReplicationHostAdvertiseAs);
 
 		try
 		{
@@ -336,7 +336,7 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 		// shut down both nodes
 		await ShutdownAllNodes(maxIdx: 2, keepDb: true);
 
-		// start both nodes again without the fake --int-host-advertise-as so that they can form a cluster
+		// start both nodes again without the fake replication address so that they can form a cluster
 		await StartNode(0, priority: 0);
 		await StartNode(1, priority: 1);
 		try

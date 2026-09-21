@@ -25,6 +25,7 @@ using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -272,6 +273,8 @@ internal static class Program
 						{
 							x.SuppressStatusMessages = true;
 						});
+					var replicationEndpointPolicy = new ReplicationEndpointPolicy(
+						new System.Net.IPEndPoint(options.Interface.ReplicationIp, options.Interface.ReplicationPort));
 
 					builder.WebHost.ConfigureKestrel(server =>
 					{
@@ -283,6 +286,9 @@ internal static class Program
 						server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
 							ConfigureHttpOptions(listenOptions, hostedService,
 								useHttps: !hostedService.Node.DisableHttps));
+						server.Listen(options.Interface.ReplicationIp, options.Interface.ReplicationPort, listenOptions =>
+							ConfigureHttpOptions(listenOptions, hostedService,
+								useHttps: !hostedService.Node.DisableHttps, http2Only: true));
 
 						if (hostedService.Node.EnableUnixSocket)
 						{
@@ -325,6 +331,16 @@ internal static class Program
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
+					app.Use(async (context, next) =>
+					{
+						if (!replicationEndpointPolicy.Allows(context))
+						{
+							context.Response.StatusCode = StatusCodes.Status404NotFound;
+							return;
+						}
+
+						await next(context);
+					});
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					hostedService.Node.Startup.Configure(app);
 					if (oauthEnabled)
@@ -376,14 +392,22 @@ internal static class Program
 		}
 	}
 
-	private static void ConfigureHttpOptions(ListenOptions listenOptions, ClusterVNodeHostedService hostedService,
-		bool useHttps)
+	private static void ConfigureHttpOptions(
+		ListenOptions listenOptions,
+		ClusterVNodeHostedService hostedService,
+		bool useHttps,
+		bool http2Only = false)
 	{
+		if (http2Only)
+		{
+			listenOptions.Protocols = HttpProtocols.Http2;
+		}
+
 		if (useHttps)
 		{
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
 		}
-		else
+		else if (!http2Only)
 		{
 			listenOptions.Use(next =>
 				new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);
