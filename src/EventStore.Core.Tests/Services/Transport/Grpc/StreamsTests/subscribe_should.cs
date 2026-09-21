@@ -62,5 +62,6 @@ public class subscribe_should<TLogFormat, TStreamId> : GrpcSpecification<TLogFor
 		Assert.That(deleted, Is.Not.Null);
 		Assert.That(deleted.Event.Event.StreamIdentifier.StreamName.ToStringUtf8(), Is.EqualTo(streamName));
 		Assert.That(deleted.Event.Event.Metadata[GrpcMetadata.Type], Is.EqualTo(SystemEventTypes.StreamDeleted));
+		Assert.That(deleted.Event.Event.StreamRevision, Is.EqualTo((ulong)long.MaxValue));
 	}
 }
