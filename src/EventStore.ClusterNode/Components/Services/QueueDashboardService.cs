@@ -51,10 +51,12 @@ public sealed class QueueDashboardService
 			var queuesTask = ReadQueueStats(timeout.Token);
 			var replicationConnectionsTask = ReadReplicationStatsOrEmpty(timeout.Token, cancellationToken);
 			await Task.WhenAll(queuesTask, replicationConnectionsTask);
+			var replication = await replicationConnectionsTask;
 			return QueueDashboardPage.Success(
 				await queuesTask,
-				await replicationConnectionsTask,
-				_nodeConnectionTracker.Snapshot());
+				replication.Rows,
+				_nodeConnectionTracker.Snapshot(),
+				replication.Message);
 		}
 		catch (TimeoutException)
 		{
@@ -118,23 +120,35 @@ public sealed class QueueDashboardService
 			.ToArray();
 	}
 
-	private async Task<IReadOnlyList<ReplicationConnectionRow>> ReadReplicationStatsOrEmpty(
+	private async Task<ReplicationStatsRead> ReadReplicationStatsOrEmpty(
 		CancellationToken timeoutToken,
 		CancellationToken cancellationToken)
 	{
 		try
 		{
-			return await ReadReplicationStats(timeoutToken);
+			return new ReplicationStatsRead(await ReadReplicationStats(timeoutToken), "");
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 			throw;
 		}
-		catch
+		catch (OperationCanceledException)
 		{
-			return Array.Empty<ReplicationConnectionRow>();
+			return new ReplicationStatsRead(
+				Array.Empty<ReplicationConnectionRow>(),
+				"Timed out reading replication statistics.");
+		}
+		catch (Exception ex)
+		{
+			return new ReplicationStatsRead(
+				Array.Empty<ReplicationConnectionRow>(),
+				$"Unable to read replication statistics: {UiMessages.Friendly(ex)}");
 		}
 	}
+
+	private sealed record ReplicationStatsRead(
+		IReadOnlyList<ReplicationConnectionRow> Rows,
+		string Message);
 
 }
 
@@ -169,7 +183,8 @@ public sealed record QueueDashboardPage(
 	IReadOnlyList<QueueDashboardRow> Queues,
 	IReadOnlyList<ReplicationConnectionRow> ReplicationConnections,
 	IReadOnlyList<NodeConnectionSnapshot> NodeConnections,
-	string Message)
+	string Message,
+	string ReplicationMessage)
 {
 	private static readonly JsonSerializerOptions PayloadJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -187,19 +202,22 @@ public sealed record QueueDashboardPage(
 			Queues.Select(QueuePayload.From).ToArray(),
 			ReplicationConnections,
 			NodeConnections,
-			Message),
+			Message,
+			ReplicationMessage),
 		PayloadJsonOptions);
 
 	public static QueueDashboardPage Success(
 		IReadOnlyList<QueueDashboardRow> queues,
 		IReadOnlyList<ReplicationConnectionRow> replicationConnections = null,
-		IReadOnlyList<NodeConnectionSnapshot> nodeConnections = null) =>
+		IReadOnlyList<NodeConnectionSnapshot> nodeConnections = null,
+		string replicationMessage = "") =>
 		new(
 			BuildBlocks(queues),
 			queues,
 			replicationConnections ?? Array.Empty<ReplicationConnectionRow>(),
 			nodeConnections ?? Array.Empty<NodeConnectionSnapshot>(),
-			"");
+			"",
+			replicationMessage);
 
 	public static QueueDashboardPage Unavailable(string message) =>
 		new(
@@ -207,7 +225,8 @@ public sealed record QueueDashboardPage(
 			Array.Empty<QueueDashboardRow>(),
 			Array.Empty<ReplicationConnectionRow>(),
 			Array.Empty<NodeConnectionSnapshot>(),
-			message);
+			message,
+			"");
 
 	private static IReadOnlyList<QueueDashboardBlock> BuildBlocks(IReadOnlyList<QueueDashboardRow> queues)
 	{
@@ -246,7 +265,8 @@ public sealed record QueueDashboardPayload(
 	IReadOnlyList<QueuePayload> Queues,
 	IReadOnlyList<ReplicationConnectionRow> ReplicationConnections,
 	IReadOnlyList<NodeConnectionSnapshot> NodeConnections,
-	string Message);
+	string Message,
+	string ReplicationMessage);
 
 public sealed record ReplicationConnectionRow(
 	string SubscriptionId,

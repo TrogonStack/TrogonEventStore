@@ -102,7 +102,11 @@
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-es-ink/10" data-replication-table-body>
-					@if (Page is not null && Page.ReplicationConnections.Count > 0)
+					@if (Page is not null && !string.IsNullOrWhiteSpace(Page.ReplicationMessage))
+					{
+						<tr><td class="px-5 py-4 text-es-muted" colspan="6">@Page.ReplicationMessage</td></tr>
+					}
+					else if (Page is not null && Page.ReplicationConnections.Count > 0)
 					{
 						@foreach (var connection in Page.ReplicationConnections)
 						{

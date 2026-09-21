@@ -47,6 +47,7 @@ public class GrpcOnlySurfaceParityTests
 		{
 			Assert.That(page.IsAvailable, Is.True);
 			Assert.That(page.Queues, Has.One.Matches<QueueDashboardRow>(x => x.Name == "mainQueue"));
+			Assert.That(page.ReplicationMessage, Does.StartWith("Unable to read replication statistics:"));
 		});
 	}
 
