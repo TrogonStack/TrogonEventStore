@@ -647,8 +647,19 @@ public partial record ClusterVNodeOptions
 		[Description("Advertise Http Port As.")]
 		public int NodePortAdvertiseAs { get; init; } = 0;
 
-		[Description("Advertise Replication Tcp Port As.")]
+		[Description("Advertise the gRPC replication port as.")]
+		public int ReplicationPortAdvertiseAs { get; init; } = 0;
+
+		[Description("Deprecated alias for ReplicationPortAdvertiseAs. Advertise the gRPC replication port as.")]
+		[Deprecated(
+			"The ReplicationTcpPortAdvertiseAs setting has been deprecated because replication uses gRPC. " +
+			"Use ReplicationPortAdvertiseAs instead.")]
 		public int ReplicationTcpPortAdvertiseAs { get; init; } = 0;
+
+		public int GetReplicationPortAdvertiseAs() =>
+			ReplicationPortAdvertiseAs > 0
+				? ReplicationPortAdvertiseAs
+				: ReplicationTcpPortAdvertiseAs;
 
 		[Description("Heartbeat timeout for Replication TCP sockets."),
 		 Unit("ms")]
