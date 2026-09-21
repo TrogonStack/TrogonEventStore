@@ -100,6 +100,16 @@ public class MemberInfoTests
 	}
 
 	[Test]
+	public void client_member_preserves_the_replication_endpoint()
+	{
+		var clientMember = new EventStore.Core.Cluster.ClientClusterInfo.ClientMemberInfo(
+			CreateMember(Replication));
+
+		Assert.That(clientMember.ReplicationEndPointIp, Is.EqualTo(Replication.Host));
+		Assert.That(clientMember.ReplicationEndPointPort, Is.EqualTo(Replication.Port));
+	}
+
+	[Test]
 	public void missing_replication_endpoint_falls_back_to_http_endpoint()
 	{
 		var member = CreateMember();
