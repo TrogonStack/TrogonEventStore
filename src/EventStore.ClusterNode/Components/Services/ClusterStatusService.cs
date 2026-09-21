@@ -211,7 +211,9 @@ public sealed class ClusterStatusService(
 		string endpoint)
 	{
 		var cleaned = endpoint.Replace("Unspecified/", "", StringComparison.OrdinalIgnoreCase);
-		return members.FirstOrDefault(x => string.Equals(InternalTcpEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase));
+		return members.FirstOrDefault(x =>
+			string.Equals(ReplicationEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(InternalTcpEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase));
 	}
 
 	private static Uri BuildLeaderAddress(
@@ -223,6 +225,9 @@ public sealed class ClusterStatusService(
 		Endpoint(
 			member.InternalTcpIp,
 			member.InternalSecureTcpPort != 0 ? member.InternalSecureTcpPort : member.InternalTcpPort);
+
+	private static string ReplicationEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
+		Endpoint(member.ReplicationEndPointIp, member.ReplicationEndPointPort);
 
 	private static string HttpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
 		Endpoint(member.HttpEndPointIp, member.HttpEndPointPort);
