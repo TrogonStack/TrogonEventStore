@@ -49,7 +49,7 @@ public sealed class QueueDashboardService
 			timeout.CancelAfter(ReadTimeout);
 
 			var queuesTask = ReadQueueStats(timeout.Token);
-			var replicationConnectionsTask = ReadReplicationStats(timeout.Token);
+			var replicationConnectionsTask = ReadReplicationStatsOrEmpty(timeout.Token, cancellationToken);
 			await Task.WhenAll(queuesTask, replicationConnectionsTask);
 			return QueueDashboardPage.Success(
 				await queuesTask,
@@ -116,6 +116,24 @@ public sealed class QueueDashboardService
 			.Select(ReplicationConnectionRow.From)
 			.OrderBy(x => x.Endpoint, StringComparer.OrdinalIgnoreCase)
 			.ToArray();
+	}
+
+	private async Task<IReadOnlyList<ReplicationConnectionRow>> ReadReplicationStatsOrEmpty(
+		CancellationToken timeoutToken,
+		CancellationToken cancellationToken)
+	{
+		try
+		{
+			return await ReadReplicationStats(timeoutToken);
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			throw;
+		}
+		catch
+		{
+			return Array.Empty<ReplicationConnectionRow>();
+		}
 	}
 
 }
