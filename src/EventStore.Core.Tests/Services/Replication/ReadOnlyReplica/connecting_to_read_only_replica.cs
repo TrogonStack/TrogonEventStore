@@ -49,13 +49,16 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 		return new CallOptions(credentials: credentials, deadline: DateTime.UtcNow.AddSeconds(30));
 	}
 
-	private Streams.StreamsClient CreateClient(out GrpcChannel channel, out HttpClient httpClient)
+	private static Streams.StreamsClient CreateClient(
+		MiniClusterNode<TLogFormat, TStreamId> node,
+		out GrpcChannel channel,
+		out HttpClient httpClient)
 	{
 		httpClient = new HttpClient(new SocketsHttpHandler
 		{
 			SslOptions = { RemoteCertificateValidationCallback = delegate { return true; } }
 		});
-		channel = GrpcChannel.ForAddress(new Uri($"https://{_nodes[2].HttpEndPoint}"),
+		channel = GrpcChannel.ForAddress(new Uri($"https://{node.HttpEndPoint}"),
 			new GrpcChannelOptions { HttpClient = httpClient });
 		return new Streams.StreamsClient(channel);
 	}
@@ -63,7 +66,7 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 	[Test]
 	public async Task append_to_stream_is_rejected()
 	{
-		var client = CreateClient(out var channel, out var httpClient);
+		var client = CreateClient(_nodes[2], out var channel, out var httpClient);
 		using (channel)
 		using (httpClient)
 		using (var call = client.Append(GetCallOptions()))
@@ -100,7 +103,17 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 	[Test]
 	public async Task delete_stream_is_rejected()
 	{
-		var client = CreateClient(out var channel, out var httpClient);
+		const string stream = nameof(delete_stream_is_rejected);
+		var leader = GetLeader();
+		await AppendToStream(leader, stream);
+		var leaderWriterPosition = leader.Db.Config.WriterCheckpoint.Read();
+		AssertEx.IsOrBecomesTrue(
+			() => _nodes[2].Db.Config.WriterCheckpoint.Read() >= leaderWriterPosition,
+			timeout: TimeSpan.FromSeconds(30),
+			onFail: MiniNodeLogging.WriteLogs,
+			msg: "The stream was not replicated to the read-only replica.");
+
+		var client = CreateClient(_nodes[2], out var channel, out var httpClient);
 		using (channel)
 		using (httpClient)
 		using (var call = client.DeleteAsync(new DeleteReq
@@ -108,12 +121,50 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 			Options = new()
 			{
 				Any = new Empty(),
-				StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(nameof(delete_stream_is_rejected)) }
+				StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) }
 			}
 		}, GetCallOptions()))
 		{
 			var exception = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync);
 			Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.NotFound));
+		}
+	}
+
+	private static async Task AppendToStream(
+		MiniClusterNode<TLogFormat, TStreamId> node,
+		string stream)
+	{
+		var client = CreateClient(node, out var channel, out var httpClient);
+		using (channel)
+		using (httpClient)
+		using (var call = client.Append(GetCallOptions()))
+		{
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				Options = new()
+				{
+					NoStream = new Empty(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) }
+				}
+			});
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				ProposedMessage = new()
+				{
+					Id = Uuid.NewUuid().ToDto(),
+					Data = ByteString.Empty,
+					CustomMetadata = ByteString.Empty,
+					Metadata =
+					{
+						[GrpcMetadata.Type] = "test",
+						[GrpcMetadata.ContentType] = GrpcMetadata.ContentTypes.ApplicationJson
+					}
+				}
+			});
+			await call.RequestStream.CompleteAsync();
+
+			var response = await call.ResponseAsync;
+			Assert.That(response.ResultCase, Is.EqualTo(AppendResp.ResultOneofCase.Success));
 		}
 	}
 }
