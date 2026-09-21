@@ -4,6 +4,7 @@ using EventStore.Client.Monitoring;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc
@@ -11,6 +12,7 @@ namespace EventStore.Core.Services.Transport.Grpc
 	internal partial class Monitoring : EventStore.Client.Monitoring.Monitoring.MonitoringBase
 	{
 		private readonly IPublisher _publisher;
+		private readonly IConnectionStatsProvider _connectionStatsProvider;
 
 		public override Task Stats(StatsReq request, IServerStreamWriter<StatsResp> responseStream, ServerCallContext context)
 		{
@@ -84,41 +86,32 @@ namespace EventStore.Core.Services.Transport.Grpc
 			}
 		}
 
-		public override Task<TcpStatsResp> TcpStats(TcpStatsReq request, ServerCallContext context)
+		public override Task<ConnectionStatsResp> ConnectionStats(
+			ConnectionStatsReq request,
+			ServerCallContext context)
 		{
-			var responseSource = new TaskCompletionSource<TcpStatsResp>(TaskCreationOptions.RunContinuationsAsynchronously);
-			var envelope = new CallbackEnvelope(message =>
+			context.CancellationToken.ThrowIfCancellationRequested();
+			var response = new ConnectionStatsResp();
+			foreach (var connection in _connectionStatsProvider.Snapshot())
 			{
-				if (message is not MonitoringMessage.GetFreshTcpConnectionStatsCompleted completed)
+				response.Connections.Add(new EventStore.Client.Monitoring.ConnectionStats
 				{
-					responseSource.TrySetException(
-						UnknownMessage<MonitoringMessage.GetFreshTcpConnectionStatsCompleted>(message));
-					return;
-				}
+					RemoteEndpoint = connection.RemoteEndPoint ?? string.Empty,
+					LocalEndpoint = connection.LocalEndPoint ?? string.Empty,
+					ClientConnectionName = connection.ClientName ?? string.Empty,
+					ConnectionId = connection.ConnectionId ?? string.Empty,
+					TotalBytesSent = connection.TotalBytesSent,
+					TotalBytesReceived = connection.TotalBytesReceived,
+					PendingSendBytes = connection.PendingSendBytes,
+					PendingReceivedBytes = connection.PendingReceivedBytes,
+					IsTls = connection.IsTls,
+					Protocol = connection.Protocol ?? string.Empty,
+					Application = connection.Application ?? string.Empty,
+					ConnectedAt = Timestamp.FromDateTimeOffset(connection.ConnectedAt)
+				});
+			}
 
-				var response = new TcpStatsResp();
-				foreach (var connection in completed.ConnectionStats)
-				{
-					response.Connections.Add(new TcpConnectionStats
-					{
-						RemoteEndpoint = connection.RemoteEndPoint ?? string.Empty,
-						LocalEndpoint = connection.LocalEndPoint ?? string.Empty,
-						ClientConnectionName = connection.ClientConnectionName ?? string.Empty,
-						ConnectionId = connection.ConnectionId.ToString("D"),
-						TotalBytesSent = connection.TotalBytesSent,
-						TotalBytesReceived = connection.TotalBytesReceived,
-						PendingSendBytes = connection.PendingSendBytes,
-						PendingReceivedBytes = connection.PendingReceivedBytes,
-						IsExternalConnection = connection.IsExternalConnection,
-						IsSslConnection = connection.IsSslConnection
-					});
-				}
-
-				responseSource.TrySetResult(response);
-			});
-
-			_publisher.Publish(new MonitoringMessage.GetFreshTcpConnectionStats(envelope));
-			return responseSource.Task.WaitAsync(context.CancellationToken);
+			return Task.FromResult(response);
 		}
 
 		public override Task<ReplicationStatsResp> ReplicationStats(ReplicationStatsReq request, ServerCallContext context)
@@ -157,9 +150,14 @@ namespace EventStore.Core.Services.Transport.Grpc
 			return responseSource.Task.WaitAsync(context.CancellationToken);
 		}
 
-		public Monitoring(IPublisher publisher)
+		public Monitoring(IPublisher publisher) : this(publisher, null)
+		{
+		}
+
+		public Monitoring(IPublisher publisher, IConnectionStatsProvider connectionStatsProvider)
 		{
 			_publisher = publisher;
+			_connectionStatsProvider = connectionStatsProvider ?? EmptyConnectionStatsProvider.Instance;
 		}
 
 		private static Exception UnknownMessage<T>(Message message) where T : Message =>
