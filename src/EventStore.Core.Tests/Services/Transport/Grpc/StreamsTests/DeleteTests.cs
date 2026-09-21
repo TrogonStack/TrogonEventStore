@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using EventStore.Client.Streams;
-using EventStore.ClientAPI;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Transport.Common;
 using EventStore.Core.Services.Transport.Grpc;
@@ -207,7 +206,7 @@ public class DeleteTests
 						{ Metadata.Type, SystemEventTypes.StreamMetadata },
 						{ Metadata.ContentType, Metadata.ContentTypes.ApplicationJson }
 					},
-					Data = ByteString.CopyFromUtf8(StreamMetadata.Build().Build().AsJsonString())
+					Data = ByteString.CopyFromUtf8("{}")
 				}
 			});
 

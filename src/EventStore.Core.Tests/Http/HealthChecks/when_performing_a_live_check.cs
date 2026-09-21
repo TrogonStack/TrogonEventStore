@@ -1,8 +1,6 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using Grpc.Health.V1;
 using Grpc.Net.Client;
@@ -128,11 +126,5 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 	{
 		await _node.Start();
 		_nodeStarted = true;
-		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
-
-		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
-			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
-			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
-			ReadinessTimeout);
 	}
 }

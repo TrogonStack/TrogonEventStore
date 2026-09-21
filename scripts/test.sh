@@ -17,6 +17,10 @@ core_services_projects=(
     EventStore.Core.Tests
 )
 
+core_enumerators_projects=(
+    EventStore.Core.Tests
+)
+
 core_cluster_services_projects=(
     EventStore.Core.Tests
 )
@@ -71,6 +75,9 @@ load_requested_projects() {
         core-services)
             requested_projects=("${core_services_projects[@]}")
             ;;
+        core-enumerators)
+            requested_projects=("${core_enumerators_projects[@]}")
+            ;;
         core-cluster-services)
             requested_projects=("${core_cluster_services_projects[@]}")
             ;;
@@ -110,6 +117,7 @@ validate_shard_coverage() {
             "${core_grpc_security_projects[@]}" \
             "${core_rest_projects[@]}" \
             "${core_services_projects[@]}" \
+            "${core_enumerators_projects[@]}" \
             "${core_cluster_services_projects[@]}" \
             "${core_storage_projects[@]}" \
             "${core_hash_collisions_projects[@]}" \
@@ -202,7 +210,10 @@ project_filter() {
             printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Http|FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Http)"
             ;;
         core-services:EventStore.Core.Tests)
-            printf '%s\n' "((FullyQualifiedName~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Services.Storage&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Http&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Grpc.Security&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Grpc.ServerFeaturesTests&FullyQualifiedName!~EventStore.Core.Tests.Services.ElectionsService)|FullyQualifiedName~EventStore.Core.Tests.Bus|FullyQualifiedName~EventStore.Core.Tests.Helpers|FullyQualifiedName~EventStore.Core.Tests.ClientOperations|FullyQualifiedName~EventStore.Core.Tests.Authentication|FullyQualifiedName~EventStore.Core.Tests.Authorization|FullyQualifiedName~EventStore.Core.Tests.Certificates|FullyQualifiedName~EventStore.Core.Tests.AwakeService|FullyQualifiedName~EventStore.Core.Tests.Settings|FullyQualifiedName~EventStore.Core.Tests.TcpApiTestPlugin)"
+            printf '%s\n' "((FullyQualifiedName~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Services.Storage&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Http&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Grpc.Security&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Grpc.ServerFeaturesTests&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Enumerators&FullyQualifiedName!~EventStore.Core.Tests.Services.ElectionsService)|FullyQualifiedName~EventStore.Core.Tests.Bus|FullyQualifiedName~EventStore.Core.Tests.Helpers|FullyQualifiedName~EventStore.Core.Tests.ClientOperations|FullyQualifiedName~EventStore.Core.Tests.Authentication|FullyQualifiedName~EventStore.Core.Tests.Authorization|FullyQualifiedName~EventStore.Core.Tests.Certificates|FullyQualifiedName~EventStore.Core.Tests.AwakeService|FullyQualifiedName~EventStore.Core.Tests.Settings|FullyQualifiedName~EventStore.Core.Tests.TcpApiTestPlugin)"
+            ;;
+        core-enumerators:EventStore.Core.Tests)
+            printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Enumerators"
             ;;
         core-cluster-services:EventStore.Core.Tests)
             printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Integration|FullyQualifiedName~EventStore.Core.Tests.Cluster|FullyQualifiedName~EventStore.Core.Tests.Replication|FullyQualifiedName~EventStore.Core.Tests.Synchronization|FullyQualifiedName~EventStore.Core.Tests.Services.ElectionsService|FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Grpc.ServerFeaturesTests)"
@@ -233,6 +244,9 @@ project_timeout() {
             printf '%s\n' "15m"
             ;;
         core-services:EventStore.Core.Tests)
+            printf '%s\n' "15m"
+            ;;
+        core-enumerators:EventStore.Core.Tests)
             printf '%s\n' "15m"
             ;;
         core-cluster-services:EventStore.Core.Tests)

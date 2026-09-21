@@ -497,7 +497,6 @@ public class LegacyPolicyVerification
 			yield return CreateOperation(Operations.Node.Options);
 			yield return CreateOperation(Operations.Node.Statistics.Read);
 			yield return CreateOperation(Operations.Node.Statistics.Replication);
-			yield return CreateOperation(Operations.Node.Statistics.Tcp);
 			yield return CreateOperation(Operations.Node.Statistics.Custom);
 		}
 

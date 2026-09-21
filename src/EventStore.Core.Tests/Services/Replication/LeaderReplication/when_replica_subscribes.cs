@@ -10,7 +10,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
-public class when_non_tcp_replica_subscribes : WithReplicationService
+public class when_replica_subscribes : WithReplicationService
 {
 	private static readonly ReplicationSessionStatistics Statistics = new(
 		SendQueueSize: 7,

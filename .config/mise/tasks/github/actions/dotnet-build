@@ -50,7 +50,12 @@ verify)
 	;;
 test)
 	while IFS= read -r -d '' test_project; do
-		timeout --signal=TERM --kill-after=30s 30m \
+		test_timeout=30m
+		if [[ "$TARGET_ARCH" == arm64 && "$test_project" == ./src/EventStore.Core.Tests ]]; then
+			test_timeout=45m
+		fi
+
+		timeout --signal=TERM --kill-after=30s "$test_timeout" \
 			dotnet test \
 			--configuration "$BUILD_CONFIGURATION" \
 			-p:Platform="$TARGET_ARCH" \

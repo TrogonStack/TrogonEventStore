@@ -92,7 +92,7 @@ internal class CommandsProcessor
 			}
 		});
 
-		executedEvent.WaitOne(1000);
+		executedEvent.WaitOne();
 		context.WaitForCompletion();
 
 		if (!string.IsNullOrWhiteSpace(context.Reason))
