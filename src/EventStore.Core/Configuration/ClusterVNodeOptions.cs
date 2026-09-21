@@ -650,7 +650,7 @@ public partial record ClusterVNodeOptions
 		[Description("Advertise the gRPC replication port as.")]
 		public int ReplicationPortAdvertiseAs { get; init; } = 0;
 
-		[Description("Advertise the gRPC replication port as.")]
+		[Description("Deprecated alias for ReplicationPortAdvertiseAs. Advertise the gRPC replication port as.")]
 		[Deprecated(
 			"The ReplicationTcpPortAdvertiseAs setting has been deprecated because replication uses gRPC. " +
 			"Use ReplicationPortAdvertiseAs instead.")]

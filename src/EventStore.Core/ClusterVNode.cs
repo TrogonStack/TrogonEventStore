@@ -316,8 +316,9 @@ public class ClusterVNode<TStreamId> :
 				nodeTcpOptions.NodeTcpPort)
 			: null;
 
-		var intTcpPortAdvertiseAs = disableInternalTcpTls ? options.Interface.ReplicationTcpPortAdvertiseAs : 0;
-		var intSecTcpPortAdvertiseAs = !disableInternalTcpTls ? options.Interface.ReplicationTcpPortAdvertiseAs : 0;
+		var replicationPortAdvertiseAs = options.Interface.GetReplicationPortAdvertiseAs();
+		var intTcpPortAdvertiseAs = disableInternalTcpTls ? replicationPortAdvertiseAs : 0;
+		var intSecTcpPortAdvertiseAs = !disableInternalTcpTls ? replicationPortAdvertiseAs : 0;
 
 		var extTcpPortAdvertiseAs =
 			enableExternalTcp && disableExternalTcpTls && nodeTcpOptions.NodeTcpPortAdvertiseAs.HasValue
@@ -941,7 +942,7 @@ public class ClusterVNode<TStreamId> :
 			var intTcpEndPoint = NodeInfo.InternalTcp == null
 				? null
 				: new DnsEndPoint(intHostToAdvertise, intTcpPortAdvertiseAs > 0
-					? (options.Interface.ReplicationTcpPortAdvertiseAs)
+					? intTcpPortAdvertiseAs
 					: NodeInfo.InternalTcp.Port);
 
 			var intSecureTcpEndPoint = NodeInfo.InternalSecureTcp == null

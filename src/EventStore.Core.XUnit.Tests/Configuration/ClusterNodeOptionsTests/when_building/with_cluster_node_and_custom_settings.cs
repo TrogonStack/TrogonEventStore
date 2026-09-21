@@ -140,6 +140,22 @@ public class with_custom_external_ip_address_as_advertise_info<TLogFormat, TStre
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
+public class with_custom_replication_port_advertise_as<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
+{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) =>
+		options with
+		{
+			Interface = options.Interface with { ReplicationPortAdvertiseAs = 3112 }
+		};
+
+	[Test]
+	public void should_advertise_the_configured_replication_port()
+	{
+		Assert.AreEqual(3112, _node.GossipAdvertiseInfo.InternalSecureTcp.Port);
+	}
+}
+
+[TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class with_0_0_0_0_as_external_ip_address_and_custom_advertise_info<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
