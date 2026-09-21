@@ -297,6 +297,9 @@ public class ClusterVNode<TStreamId> :
 		var enableExternalTcp = nodeTcpOptions.EnableExternalTcp;
 
 		var httpEndPoint = new IPEndPoint(options.Interface.NodeIp, options.Interface.NodePort);
+		var replicationEndPoint = new IPEndPoint(
+			options.Interface.ReplicationIp,
+			options.Interface.ReplicationPort);
 
 		var intTcp = disableInternalTcpTls
 			? new IPEndPoint(options.Interface.ReplicationIp,
@@ -332,7 +335,7 @@ public class ClusterVNode<TStreamId> :
 		Log.Information("Quorum size set to {quorum}.", options.Cluster.QuorumSize);
 
 		NodeInfo = new VNodeInfo(instanceId.Value, debugIndex, intTcp, intSecIp, extTcp, extSecIp,
-			httpEndPoint, options.Cluster.ReadOnlyReplica);
+			httpEndPoint, options.Cluster.ReadOnlyReplica, replicationEndPoint);
 
 		var metricsConfiguration = MetricsConfiguration.Get(configuration);
 		var trackers = new Trackers();
@@ -967,12 +970,16 @@ public class ClusterVNode<TStreamId> :
 				options.Interface.NodePortAdvertiseAs > 0
 					? options.Interface.NodePortAdvertiseAs
 					: NodeInfo.HttpEndPoint.GetPort());
+			var advertisedReplicationEndPoint = new DnsEndPoint(intHostToAdvertise,
+				replicationPortAdvertiseAs > 0
+					? replicationPortAdvertiseAs
+					: NodeInfo.ReplicationEndPoint.GetPort());
 
 			return new GossipAdvertiseInfo(intTcpEndPoint, intSecureTcpEndPoint, extTcpEndPoint,
 				extSecureTcpEndPoint, httpEndPoint, options.Interface.ReplicationHostAdvertiseAs,
 				options.Interface.NodeHostAdvertiseAs, options.Interface.NodePortAdvertiseAs,
 				options.Interface.AdvertiseHostToClientAs, options.Interface.AdvertiseNodePortToClientAs,
-				nodeTcpOptions?.NodeTcpPortAdvertiseAs ?? 0);
+				nodeTcpOptions?.NodeTcpPortAdvertiseAs ?? 0, advertisedReplicationEndPoint);
 		}
 
 		_httpService = new KestrelHttpService(_mainQueue, NodeInfo.HttpEndPoint);
@@ -1485,7 +1492,8 @@ public class ClusterVNode<TStreamId> :
 			GossipAdvertiseInfo.AdvertiseHostToClientAs,
 			GossipAdvertiseInfo.AdvertiseHttpPortToClientAs,
 			GossipAdvertiseInfo.AdvertiseTcpPortToClientAs,
-			options.Cluster.NodePriority, options.Cluster.ReadOnlyReplica, VersionInfo.Version);
+			options.Cluster.NodePriority, options.Cluster.ReadOnlyReplica, VersionInfo.Version,
+			GossipAdvertiseInfo.ReplicationEndPoint);
 
 		// ELECTIONS TRACKER
 		_mainBus.Subscribe<ElectionMessage.ElectionsDone>(trackers.ElectionCounterTracker);
