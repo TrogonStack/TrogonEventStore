@@ -433,15 +433,24 @@ internal static class Program
 	}
 
 	private static ServerOptionsSelectionCallback CreateServerOptionsSelectionCallback(
-		ClusterVNodeHostedService hostedService)
+		ClusterVNodeHostedService hostedService) =>
+		CreateServerOptionsSelectionCallback(
+			hostedService.Node.CertificateSelector,
+			hostedService.Node.IntermediateCertificatesSelector,
+			hostedService.Node.InternalClientCertificateValidator);
+
+	internal static ServerOptionsSelectionCallback CreateServerOptionsSelectionCallback(
+		Func<X509Certificate2> certificateSelector,
+		Func<X509Certificate2Collection> intermediateCertificatesSelector,
+		CertificateDelegates.ClientCertificateValidator clientCertificateValidator)
 	{
 		return ((_, _, _, _) =>
 		{
 			var serverOptions = new SslServerAuthenticationOptions
 			{
 				ServerCertificateContext = SslStreamCertificateContext.Create(
-					hostedService.Node.CertificateSelector(),
-					hostedService.Node.IntermediateCertificatesSelector(),
+					certificateSelector(),
+					intermediateCertificatesSelector(),
 					offline: true),
 				ClientCertificateRequired =
 					true, // request a client certificate but it's not necessary for the client to supply one
@@ -452,11 +461,10 @@ internal static class Program
 						return true;
 					}
 
-					var (isValid, error) =
-						hostedService.Node.InternalClientCertificateValidator(
-							certificate,
-							chain,
-							sslPolicyErrors);
+					var (isValid, error) = clientCertificateValidator(
+						certificate,
+						chain,
+						sslPolicyErrors);
 					if (!isValid && error != null)
 					{
 						Log.Error("Client certificate validation error: {e}", error);
