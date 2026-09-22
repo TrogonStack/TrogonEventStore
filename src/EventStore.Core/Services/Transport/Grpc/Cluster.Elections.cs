@@ -152,11 +152,7 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster
 			_bus.Publish(new ElectionMessage.LeaderIsResigning(
 				Uuid.FromDto(request.LeaderId).ToGuid(),
 				new DnsEndPoint(request.LeaderHttp.Address,
-					(int)request.LeaderHttp.Port).WithClusterDns(_clusterDns),
-				request.LeaderCluster is null
-					? null
-					: new DnsEndPoint(request.LeaderCluster.Address,
-						(int)request.LeaderCluster.Port).WithClusterDns(_clusterDns)));
+					(int)request.LeaderHttp.Port).WithClusterDns(_clusterDns)));
 			return EmptyResult;
 		}
 

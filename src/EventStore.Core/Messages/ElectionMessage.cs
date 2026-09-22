@@ -314,16 +314,11 @@ namespace EventStore.Core.Messages
 		{
 			public readonly Guid LeaderId;
 			public readonly EndPoint LeaderHttpEndPoint;
-			public readonly EndPoint LeaderClusterEndPoint;
 
-			public LeaderIsResigning(
-				Guid leaderId,
-				EndPoint leaderHttpEndPoint,
-				EndPoint leaderClusterEndPoint = null)
+			public LeaderIsResigning(Guid leaderId, EndPoint leaderHttpEndPoint)
 			{
 				LeaderId = leaderId;
 				LeaderHttpEndPoint = leaderHttpEndPoint;
-				LeaderClusterEndPoint = leaderClusterEndPoint;
 			}
 
 			public LeaderIsResigning(ElectionMessageDto.LeaderIsResigningDto dto)
@@ -331,9 +326,6 @@ namespace EventStore.Core.Messages
 				LeaderId = dto.LeaderId;
 				LeaderHttpEndPoint = new IPEndPoint(IPAddress.Parse(dto.LeaderHttpAddress),
 					dto.LeaderHttpPort);
-				LeaderClusterEndPoint = string.IsNullOrEmpty(dto.LeaderClusterAddress)
-					? null
-					: new IPEndPoint(IPAddress.Parse(dto.LeaderClusterAddress), dto.LeaderClusterPort);
 			}
 
 			public override string ToString()

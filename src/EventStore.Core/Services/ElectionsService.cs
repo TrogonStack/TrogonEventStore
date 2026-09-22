@@ -80,6 +80,7 @@ namespace EventStore.Core.Services
 		private MemberInfo[] _clusterMembership;
 		private MemberInfo[] _liveClusterMembers;
 		private Guid? _resigningLeaderInstanceId;
+		private ElectionMessage.LeaderIsResigning _pendingLeaderResignation;
 
 		public ElectionsService(IPublisher publisher,
 			MemberInfo memberInfo,
@@ -197,7 +198,7 @@ namespace EventStore.Core.Services
 				_leaderIsResigningOkReceived.Clear();
 				Handle(leaderIsResigningMessageOk);
 				SendToAllExceptMe(new ElectionMessage.LeaderIsResigning(
-					_memberInfo.InstanceId, _memberInfo.HttpEndPoint, _memberInfo.ClusterEndPoint));
+					_memberInfo.InstanceId, _memberInfo.HttpEndPoint));
 			}
 			else
 			{
@@ -209,21 +210,22 @@ namespace EventStore.Core.Services
 		{
 			Log.Information("ELECTIONS: LEADER IS RESIGNING [{leaderHttpEndPoint}, {leaderId:B}].",
 				message.LeaderHttpEndPoint, message.LeaderId);
-			var leaderClusterEndPoint = message.LeaderClusterEndPoint ??
-				_clusterMembership.FirstOrDefault(x => x.InstanceId == message.LeaderId)?.ClusterEndPoint;
-			if (leaderClusterEndPoint is null)
+			var leader = _clusterMembership.FirstOrDefault(x => x.InstanceId == message.LeaderId);
+			if (leader is null)
 			{
+				_pendingLeaderResignation = message;
 				return;
 			}
+			_pendingLeaderResignation = null;
 
 			var leaderIsResigningMessageOk = new ElectionMessage.LeaderIsResigningOk(
 				message.LeaderId,
-				message.LeaderHttpEndPoint,
+				leader.HttpEndPoint,
 				_memberInfo.InstanceId,
 				_memberInfo.HttpEndPoint);
 
 			_resigningLeaderInstanceId = message.LeaderId;
-			_publisher.Publish(new GrpcMessage.SendOverGrpc(leaderClusterEndPoint, leaderIsResigningMessageOk,
+			_publisher.Publish(new GrpcMessage.SendOverGrpc(leader.ClusterEndPoint, leaderIsResigningMessageOk,
 				_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 		}
 
@@ -259,6 +261,10 @@ namespace EventStore.Core.Services
 				.Where(x => x.IsAlive)
 				.OrderByDescending(x => x.HttpEndPoint, IPComparer)
 				.ToArray();
+			if (_pendingLeaderResignation is not null)
+			{
+				Handle(_pendingLeaderResignation);
+			}
 		}
 
 		public void Handle(ElectionMessage.StartElections message)

@@ -1245,12 +1245,17 @@ public class when_receiving_leader_is_resigning_before_gossip_contains_the_leade
 	}
 
 	[Test]
-	public void should_reply_using_the_endpoint_carried_by_the_message()
+	public void should_defer_the_reply_until_gossip_contains_the_leader()
 	{
 		_sut.Handle(new ElectionMessage.LeaderIsResigning(
 			_nodeTwo.InstanceId,
-			_nodeTwo.HttpEndPoint,
-			_nodeTwo.ClusterEndPoint));
+			_nodeTwo.HttpEndPoint));
+		_publisher.Messages.Should().BeEmpty();
+
+		_sut.Handle(new GossipMessage.GossipUpdated(new ClusterInfo(
+			MemberInfoFromVNode(_node, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0),
+			MemberInfoFromVNode(_nodeTwo, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0),
+			MemberInfoFromVNode(_nodeThree, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0))));
 
 		var expected = new Message[] {
 			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,

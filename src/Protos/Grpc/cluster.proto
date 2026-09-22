@@ -86,7 +86,6 @@ message AcceptRequest {
 message LeaderIsResigningRequest {
 	event_store.client.UUID leader_id = 1;
 	EndPoint leader_http = 2;
-	EndPoint leader_cluster = 3;
 }
 
 message LeaderIsResigningOkRequest {

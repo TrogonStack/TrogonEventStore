@@ -98,11 +98,7 @@ namespace EventStore.Core.Cluster
 		public void SendLeaderIsResigning(ElectionMessage.LeaderIsResigning resigning, EndPoint destinationEndpoint,
 			DateTime deadline)
 		{
-			SendLeaderIsResigningAsync(
-				resigning.LeaderId,
-				resigning.LeaderHttpEndPoint,
-				resigning.LeaderClusterEndPoint,
-				deadline).ContinueWith(r =>
+			SendLeaderIsResigningAsync(resigning.LeaderId, resigning.LeaderHttpEndPoint, deadline).ContinueWith(r =>
 			{
 				if (r.Exception != null)
 				{
@@ -220,23 +216,13 @@ namespace EventStore.Core.Cluster
 			_electionsClient.Accept(request, deadline: deadline.ToUniversalTime());
 		}
 
-		private async Task SendLeaderIsResigningAsync(
-			Guid leaderId,
-			EndPoint leaderHttp,
-			EndPoint leaderCluster,
-			DateTime deadline)
+		private async Task SendLeaderIsResigningAsync(Guid leaderId, EndPoint leaderHttp, DateTime deadline)
 		{
 			var request = new LeaderIsResigningRequest
 			{
 				LeaderId = Uuid.FromGuid(leaderId).ToDto(),
 				LeaderHttp = new GossipEndPoint(leaderHttp.GetHost(), (uint)leaderHttp.GetPort()),
 			};
-			if (leaderCluster is not null)
-			{
-				request.LeaderCluster = new GossipEndPoint(
-					leaderCluster.GetHost(),
-					(uint)leaderCluster.GetPort());
-			}
 			await _electionsClient.LeaderIsResigningAsync(request, deadline: deadline.ToUniversalTime());
 		}
 
