@@ -104,8 +104,8 @@ namespace EventStore.Core.Cluster
 					x.HttpEndPoint.GetHost(),
 					(uint)x.HttpEndPoint.GetPort()),
 				ReplicationEndPoint = new EventStore.Cluster.EndPoint(
-					x.ReplicationEndPoint.GetHost(),
-					(uint)x.ReplicationEndPoint.GetPort()),
+					x.ClusterEndPoint.GetHost(),
+					(uint)x.ClusterEndPoint.GetPort()),
 				InternalTcp = x.InternalSecureTcpEndPoint != null ?
 					new EventStore.Cluster.EndPoint(
 						x.InternalSecureTcpEndPoint.GetHost(),

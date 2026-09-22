@@ -33,7 +33,8 @@ public abstract class ElectionsFixture
 		new IPEndPoint(IPAddress.Loopback, id),
 		new IPEndPoint(IPAddress.Loopback, id),
 		new IPEndPoint(IPAddress.Loopback, id),
-		new IPEndPoint(IPAddress.Loopback, id), false);
+		new IPEndPoint(IPAddress.Loopback, id), false,
+		new IPEndPoint(IPAddress.Loopback, 10_000 + id));
 
 	protected static readonly Func<VNodeInfo, DateTime, VNodeState, bool, int, Guid, int, MemberInfo> MemberInfoFromVNode =
 		(nodeInfo, timestamp, state, isAlive, epochNumber, epochId, priority) => MemberInfo.ForVNode(
@@ -42,7 +43,7 @@ public abstract class ElectionsFixture
 			nodeInfo.InternalSecureTcp, nodeInfo.ExternalTcp, nodeInfo.ExternalSecureTcp,
 			nodeInfo.HttpEndPoint, null, 0, 0,
 			0, 0, 0, 0, epochNumber, epochId, priority,
-			nodeInfo.IsReadOnlyReplica);
+			nodeInfo.IsReadOnlyReplica, clusterEndPoint: nodeInfo.ClusterEndPoint);
 
 	protected ElectionsFixture(VNodeInfo node, VNodeInfo nodeTwo, VNodeInfo nodeThree)
 	{
@@ -82,10 +83,10 @@ public class when_starting_elections : ElectionsFixture
 		_sut.Handle(new ElectionMessage.StartElections());
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.ViewChange(_node.InstanceId, _node.HttpEndPoint, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.ViewChange(_node.InstanceId, _node.HttpEndPoint, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
 			TimerMessage.Schedule.Create(
@@ -228,10 +229,10 @@ public class when_elections_timeout : ElectionsFixture
 		_sut.Handle(new ElectionMessage.ElectionsTimedOut(view));
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.ViewChange(_node.InstanceId, _node.HttpEndPoint, newView),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.ViewChange(_node.InstanceId, _node.HttpEndPoint, newView),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
 			TimerMessage.Schedule.Create(
@@ -320,10 +321,10 @@ public class when_view_change_proof_is_triggered_and_the_first_election_has_comp
 		_sut.Handle(new ElectionMessage.SendViewChangeProof());
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.ViewChangeProof(_node.InstanceId, _node.HttpEndPoint, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.ViewChangeProof(_node.InstanceId, _node.HttpEndPoint, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
 			TimerMessage.Schedule.Create(
@@ -423,10 +424,10 @@ public class when_receiving_a_view_change_for_a_later_view_than_last_attempted_v
 		_sut.Handle(new ElectionMessage.ViewChange(_nodeTwo.InstanceId, _nodeTwo.HttpEndPoint, 10));
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.ViewChange(_node.InstanceId, _node.HttpEndPoint, 10),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.ViewChange(_node.InstanceId, _node.HttpEndPoint, 10),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
 			TimerMessage.Schedule.Create(
@@ -482,10 +483,10 @@ public class when_receiving_view_change_from_majority : ElectionsFixture
 		_sut.Handle(new ElectionMessage.ViewChange(_nodeTwo.InstanceId, _nodeTwo.HttpEndPoint, 0));
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.Prepare(_node.InstanceId, _node.HttpEndPoint, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.Prepare(_node.InstanceId, _node.HttpEndPoint, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout))
 		};
@@ -602,7 +603,7 @@ public class when_receiving_a_prepare : ElectionsFixture
 		_sut.Handle(new ElectionMessage.Prepare(_nodeTwo.InstanceId, _nodeTwo.HttpEndPoint, 0));
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.PrepareOk(0,
 					_node.InstanceId, _node.HttpEndPoint, -1, -1, Guid.Empty, Guid.Empty, 0, 0, 0, 0, _clusterInfo),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
@@ -732,12 +733,12 @@ public class when_receiving_majority_prepare_ok : ElectionsFixture
 		var proposalMessage = (ElectionMessage.Proposal)proposalHttpMessage.Message;
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.Proposal(_node.InstanceId, _node.HttpEndPoint,
 					proposalMessage.LeaderId,
 					proposalMessage.LeaderHttpEndPoint, 0, 0, 0, _epochId, Guid.Empty, 0, 0, 0, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.Proposal(_node.InstanceId, _node.HttpEndPoint,
 					proposalMessage.LeaderId,
 					proposalMessage.LeaderHttpEndPoint, 0, 0, 0, _epochId, Guid.Empty, 0, 0, 0, 0),
@@ -928,12 +929,12 @@ public class when_receiving_a_proposal_as_acceptor : ElectionsFixture
 					_nodeThree.InternalSecureTcp, _nodeThree.ExternalTcp, _nodeThree.ExternalSecureTcp,
 					_nodeThree.HttpEndPoint, null, 0, 0, 0, 0, 0, 0, 0, _epochId, 0,
 					_nodeThree.IsReadOnlyReplica)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.Accept(_node.InstanceId, _node.HttpEndPoint,
 					_nodeThree.InstanceId,
 					_nodeThree.HttpEndPoint, 0),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.Accept(_node.InstanceId, _node.HttpEndPoint,
 					_nodeThree.InstanceId,
 					_nodeThree.HttpEndPoint, 0),
@@ -1195,10 +1196,10 @@ public class when_resigning_node_and_is_the_current_leader : ElectionsFixture
 		_sut.Handle(new ClientMessage.ResignNode());
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.LeaderIsResigning(_node.InstanceId, _node.HttpEndPoint),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
-			new GrpcMessage.SendOverGrpc(_nodeThree.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeThree.ClusterEndPoint,
 				new ElectionMessage.LeaderIsResigning(_node.InstanceId, _node.HttpEndPoint),
 				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
 		};
@@ -1223,7 +1224,41 @@ public class when_receiving_leader_is_resigning : ElectionsFixture
 		_sut.Handle(new ElectionMessage.LeaderIsResigning(_nodeTwo.InstanceId, _nodeTwo.HttpEndPoint));
 
 		var expected = new Message[] {
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint,
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
+				new ElectionMessage.LeaderIsResigningOk(
+					_nodeTwo.InstanceId, _nodeTwo.HttpEndPoint,
+					_node.InstanceId, _node.HttpEndPoint),
+				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
+		};
+		_publisher.Messages.Should().BeEquivalentTo(expected);
+	}
+}
+
+public class when_receiving_leader_is_resigning_before_gossip_contains_the_leader : ElectionsFixture
+{
+	public when_receiving_leader_is_resigning_before_gossip_contains_the_leader() :
+		base(NodeFactory(1), NodeFactory(2), NodeFactory(3))
+	{
+		_sut.Handle(new GossipMessage.GossipUpdated(new ClusterInfo(
+			MemberInfoFromVNode(_node, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0),
+			MemberInfoFromVNode(_nodeThree, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0))));
+	}
+
+	[Test]
+	public void should_defer_the_reply_until_gossip_contains_the_leader()
+	{
+		_sut.Handle(new ElectionMessage.LeaderIsResigning(
+			_nodeTwo.InstanceId,
+			_nodeTwo.HttpEndPoint));
+		_publisher.Messages.Should().BeEmpty();
+
+		_sut.Handle(new GossipMessage.GossipUpdated(new ClusterInfo(
+			MemberInfoFromVNode(_node, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0),
+			MemberInfoFromVNode(_nodeTwo, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0),
+			MemberInfoFromVNode(_nodeThree, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0))));
+
+		var expected = new Message[] {
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
 				new ElectionMessage.LeaderIsResigningOk(
 					_nodeTwo.InstanceId, _nodeTwo.HttpEndPoint,
 					_node.InstanceId, _node.HttpEndPoint),

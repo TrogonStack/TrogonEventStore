@@ -18,7 +18,7 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 	{
 		var isReadOnly = index == 2;
 		var node = new MiniClusterNode<TLogFormat, TStreamId>(
-			PathName, index, endpoints.InternalTcp,
+			PathName, index, endpoints.ClusterEndPoint,
 			endpoints.ExternalTcp, endpoints.HttpEndPoint, gossipSeeds,
 			readOnlyReplica: isReadOnly);
 		if (wait && !isReadOnly)

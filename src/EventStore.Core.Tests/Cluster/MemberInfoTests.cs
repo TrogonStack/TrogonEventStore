@@ -60,12 +60,12 @@ public class MemberInfoTests
 	}
 
 	[Test]
-	public void grpc_round_trip_preserves_tcp_and_replication_endpoints()
+	public void grpc_round_trip_preserves_tcp_and_cluster_endpoints()
 	{
 		var member = EventStore.Core.Cluster.MemberInfo.Initial(Guid.NewGuid(), DateTime.UtcNow,
 			VNodeState.Unknown, true,
 			InternalTcp, null, null, ExternalSecureTcp, Http,
-			"client", 2113, 1113, 0, false, replicationEndPoint: Replication);
+			"client", 2113, 1113, 0, false, clusterEndPoint: Replication);
 
 		var result = FromGrpcClusterInfo(ToGrpcClusterInfo(
 			new EventStore.Core.Cluster.ClusterInfo(member))).Members[0];
@@ -75,11 +75,11 @@ public class MemberInfoTests
 		Assert.That(result.ExternalTcpEndPoint, Is.Null);
 		Assert.That(result.ExternalSecureTcpEndPoint, Is.EqualTo(ExternalSecureTcp));
 		Assert.That(result.HttpEndPoint, Is.EqualTo(Http));
-		Assert.That(result.ReplicationEndPoint, Is.EqualTo(Replication));
+		Assert.That(result.ClusterEndPoint, Is.EqualTo(Replication));
 	}
 
 	[Test]
-	public void explicit_replication_endpoint_is_recognized_without_replacing_tcp_endpoints()
+	public void explicit_cluster_endpoint_is_recognized_without_replacing_tcp_endpoints()
 	{
 		var member = CreateMember(Replication);
 		var vnode = new VNodeInfo(Guid.NewGuid(), 0,
@@ -95,22 +95,42 @@ public class MemberInfoTests
 		Assert.That(member.InternalSecureTcpEndPoint, Is.EqualTo(InternalSecureTcp));
 		Assert.That(member.ExternalTcpEndPoint, Is.EqualTo(ExternalTcp));
 		Assert.That(member.ExternalSecureTcpEndPoint, Is.EqualTo(ExternalSecureTcp));
-		Assert.That(vnode.ReplicationEndPoint, Is.SameAs(Replication));
-		Assert.That(advertise.ReplicationEndPoint, Is.SameAs(Replication));
+		Assert.That(vnode.ClusterEndPoint, Is.SameAs(Replication));
+		Assert.That(advertise.ClusterEndPoint, Is.SameAs(Replication));
 	}
 
 	[Test]
-	public void client_member_preserves_the_replication_endpoint()
+	public void client_member_preserves_the_cluster_endpoint()
 	{
 		var clientMember = new EventStore.Core.Cluster.ClientClusterInfo.ClientMemberInfo(
 			CreateMember(Replication));
 
-		Assert.That(clientMember.ReplicationEndPointIp, Is.EqualTo(Replication.Host));
-		Assert.That(clientMember.ReplicationEndPointPort, Is.EqualTo(Replication.Port));
+		Assert.That(clientMember.ClusterEndPointIp, Is.EqualTo(Replication.Host));
+		Assert.That(clientMember.ClusterEndPointPort, Is.EqualTo(Replication.Port));
 	}
 
 	[Test]
-	public void missing_replication_endpoint_falls_back_to_http_endpoint()
+	public void client_cluster_info_excludes_internal_discovery_placeholders()
+	{
+		var member = CreateMember(Replication);
+		var seed = EventStore.Core.Cluster.MemberInfo.ForManager(
+			Guid.Empty,
+			DateTime.UtcNow,
+			true,
+			Replication,
+			clusterEndPoint: Replication);
+
+		var clientCluster = new EventStore.Core.Cluster.ClientClusterInfo(
+			new EventStore.Core.Cluster.ClusterInfo(member, seed),
+			Http.Host,
+			Http.Port);
+
+		Assert.That(clientCluster.Members, Has.Length.EqualTo(1));
+		Assert.That(clientCluster.Members[0].InstanceId, Is.EqualTo(member.InstanceId));
+	}
+
+	[Test]
+	public void missing_cluster_endpoint_falls_back_to_http_endpoint()
 	{
 		var member = CreateMember();
 		var vnode = new VNodeInfo(Guid.NewGuid(), 0,
@@ -121,13 +141,13 @@ public class MemberInfoTests
 			InternalTcp, InternalSecureTcp, ExternalTcp, ExternalSecureTcp, Http,
 			null, null, 0, null, 0, 0);
 
-		Assert.That(member.ReplicationEndPoint, Is.SameAs(Http));
-		Assert.That(vnode.ReplicationEndPoint, Is.SameAs(Http));
-		Assert.That(advertise.ReplicationEndPoint, Is.SameAs(Http));
+		Assert.That(member.ClusterEndPoint, Is.SameAs(Http));
+		Assert.That(vnode.ClusterEndPoint, Is.SameAs(Http));
+		Assert.That(advertise.ClusterEndPoint, Is.SameAs(Http));
 	}
 
 	[Test]
-	public void grpc_member_without_replication_endpoint_falls_back_to_http_endpoint()
+	public void grpc_member_without_cluster_endpoint_falls_back_to_http_endpoint()
 	{
 		var grpcCluster = ToGrpcClusterInfo(
 			new EventStore.Core.Cluster.ClusterInfo(CreateMember(Replication)));
@@ -135,14 +155,14 @@ public class MemberInfoTests
 
 		var result = FromGrpcClusterInfo(grpcCluster).Members[0];
 
-		Assert.That(result.ReplicationEndPoint, Is.EqualTo(Http));
+		Assert.That(result.ClusterEndPoint, Is.EqualTo(Http));
 	}
 
-	private static EventStore.Core.Cluster.MemberInfo CreateMember(DnsEndPoint replicationEndPoint = null) =>
+	private static EventStore.Core.Cluster.MemberInfo CreateMember(DnsEndPoint clusterEndPoint = null) =>
 		EventStore.Core.Cluster.MemberInfo.Initial(Guid.NewGuid(), DateTime.UtcNow,
 			VNodeState.Unknown, true,
 			InternalTcp, InternalSecureTcp, ExternalTcp, ExternalSecureTcp, Http,
-			"client", 2113, 1113, 0, false, replicationEndPoint: replicationEndPoint);
+			"client", 2113, 1113, 0, false, clusterEndPoint: clusterEndPoint);
 
 	private static EventStore.Cluster.ClusterInfo ToGrpcClusterInfo(
 		EventStore.Core.Cluster.ClusterInfo clusterInfo) =>

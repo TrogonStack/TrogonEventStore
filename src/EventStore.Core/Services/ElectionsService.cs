@@ -77,8 +77,10 @@ namespace EventStore.Core.Services
 		private Guid? _leader;
 		private Guid? _lastElectedLeader;
 
-		private MemberInfo[] _servers;
+		private MemberInfo[] _clusterMembership;
+		private MemberInfo[] _liveClusterMembers;
 		private Guid? _resigningLeaderInstanceId;
+		private ElectionMessage.LeaderIsResigning _pendingLeaderResignation;
 
 		public ElectionsService(IPublisher publisher,
 			MemberInfo memberInfo,
@@ -132,7 +134,7 @@ namespace EventStore.Core.Services
 			}
 
 			var ownInfo = GetOwnInfo();
-			_servers = new[] {
+			_liveClusterMembers = new[] {
 				MemberInfo.ForVNode(memberInfo.InstanceId,
 					_timeProvider.UtcNow,
 					VNodeState.Initializing,
@@ -143,8 +145,9 @@ namespace EventStore.Core.Services
 					memberInfo.AdvertiseHostToClientAs, memberInfo.AdvertiseHttpPortToClientAs, memberInfo.AdvertiseTcpPortToClientAs,
 					ownInfo.LastCommitPosition, ownInfo.WriterCheckpoint, ownInfo.ChaserCheckpoint,
 					ownInfo.EpochPosition, ownInfo.EpochNumber, ownInfo.EpochId, ownInfo.NodePriority,
-					memberInfo.IsReadOnlyReplica, VersionInfo.Version)
+					memberInfo.IsReadOnlyReplica, VersionInfo.Version, memberInfo.ClusterEndPoint)
 			};
+			_clusterMembership = _liveClusterMembers;
 		}
 
 		public void SubscribeMessages(ISubscriber subscriber)
@@ -207,14 +210,22 @@ namespace EventStore.Core.Services
 		{
 			Log.Information("ELECTIONS: LEADER IS RESIGNING [{leaderHttpEndPoint}, {leaderId:B}].",
 				message.LeaderHttpEndPoint, message.LeaderId);
+			var leader = _clusterMembership.FirstOrDefault(x => x.InstanceId == message.LeaderId);
+			if (leader is null)
+			{
+				_pendingLeaderResignation = message;
+				return;
+			}
+			_pendingLeaderResignation = null;
+
 			var leaderIsResigningMessageOk = new ElectionMessage.LeaderIsResigningOk(
 				message.LeaderId,
-				message.LeaderHttpEndPoint,
+				leader.HttpEndPoint,
 				_memberInfo.InstanceId,
 				_memberInfo.HttpEndPoint);
 
 			_resigningLeaderInstanceId = message.LeaderId;
-			_publisher.Publish(new GrpcMessage.SendOverGrpc(message.LeaderHttpEndPoint, leaderIsResigningMessageOk,
+			_publisher.Publish(new GrpcMessage.SendOverGrpc(leader.ClusterEndPoint, leaderIsResigningMessageOk,
 				_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 		}
 
@@ -243,10 +254,17 @@ namespace EventStore.Core.Services
 
 		public void Handle(GossipMessage.GossipUpdated message)
 		{
-			_servers = message.ClusterInfo.Members.Where(x => x.State != VNodeState.Manager)
+			_clusterMembership = message.ClusterInfo.Members
+				.Where(x => x.State != VNodeState.Manager)
+				.ToArray();
+			_liveClusterMembers = _clusterMembership
 				.Where(x => x.IsAlive)
 				.OrderByDescending(x => x.HttpEndPoint, IPComparer)
 				.ToArray();
+			if (_pendingLeaderResignation is not null)
+			{
+				Handle(_pendingLeaderResignation);
+			}
 		}
 
 		public void Handle(ElectionMessage.StartElections message)
@@ -309,9 +327,9 @@ namespace EventStore.Core.Services
 
 		private void SendToAllExceptMe(Message message)
 		{
-			foreach (var server in _servers.Where(x => x.InstanceId != _memberInfo.InstanceId))
+			foreach (var server in _liveClusterMembers.Where(x => x.InstanceId != _memberInfo.InstanceId))
 			{
-				_publisher.Publish(new GrpcMessage.SendOverGrpc(server.HttpEndPoint, message,
+				_publisher.Publish(new GrpcMessage.SendOverGrpc(server.ClusterEndPoint, message,
 					_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 			}
 		}
@@ -412,7 +430,7 @@ namespace EventStore.Core.Services
 
 		private bool AmILeaderOf(int lastAttemptedView)
 		{
-			var serversExcludingNonPotentialLeaders = _servers.Where(x => !x.IsReadOnlyReplica).ToArray();
+			var serversExcludingNonPotentialLeaders = _liveClusterMembers.Where(x => !x.IsReadOnlyReplica).ToArray();
 			var leader =
 				serversExcludingNonPotentialLeaders[lastAttemptedView % serversExcludingNonPotentialLeaders.Length];
 			return leader.InstanceId == _memberInfo.InstanceId;
@@ -447,7 +465,8 @@ namespace EventStore.Core.Services
 				return;
 			}
 
-			if (_servers.All(x => x.InstanceId != message.ServerId))
+			var server = _liveClusterMembers.FirstOrDefault(x => x.InstanceId == message.ServerId);
+			if (server is null)
 			{
 				return; // unknown instance
 			}
@@ -461,14 +480,14 @@ namespace EventStore.Core.Services
 			}
 
 			var prepareOk = CreatePrepareOk(message.View);
-			_publisher.Publish(new GrpcMessage.SendOverGrpc(message.ServerHttpEndPoint, prepareOk,
+			_publisher.Publish(new GrpcMessage.SendOverGrpc(server.ClusterEndPoint, prepareOk,
 				_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 		}
 
 		private ElectionMessage.PrepareOk CreatePrepareOk(int view)
 		{
 			var ownInfo = GetOwnInfo();
-			var clusterInfo = new ClusterInfo(_servers);
+			var clusterInfo = new ClusterInfo(_liveClusterMembers);
 			return new ElectionMessage.PrepareOk(view, ownInfo.InstanceId, ownInfo.HttpEndPoint,
 				ownInfo.EpochNumber, ownInfo.EpochPosition, ownInfo.EpochId, ownInfo.EpochLeaderInstanceId,
 				ownInfo.LastCommitPosition, ownInfo.WriterCheckpoint, ownInfo.ChaserCheckpoint,
@@ -528,7 +547,11 @@ namespace EventStore.Core.Services
 			_acceptsReceived.Clear();
 			_leaderProposal = null;
 
-			var leader = GetBestLeaderCandidate(_prepareOkReceived, _servers, _resigningLeaderInstanceId, _lastAttemptedView);
+			var leader = GetBestLeaderCandidate(
+				_prepareOkReceived,
+				_liveClusterMembers,
+				_resigningLeaderInstanceId,
+				_lastAttemptedView);
 			if (leader == null)
 			{
 				Log.Information("ELECTIONS: (V={lastAttemptedView}) NO LEADER CANDIDATE WHEN TRYING TO SEND PROPOSAL.",
@@ -746,12 +769,12 @@ namespace EventStore.Core.Services
 				return;
 			}
 
-			if (_servers.All(x => x.InstanceId != message.ServerId))
+			if (_liveClusterMembers.All(x => x.InstanceId != message.ServerId))
 			{
 				return;
 			}
 
-			if (_servers.All(x => x.InstanceId != message.LeaderId))
+			if (_liveClusterMembers.All(x => x.InstanceId != message.LeaderId))
 			{
 				return;
 			}
@@ -779,7 +802,7 @@ namespace EventStore.Core.Services
 
 			var ownInfo = GetOwnInfo();
 			if (!IsLegitimateLeader(message.View, message.ServerHttpEndPoint, message.ServerId,
-				candidate, _servers, _lastElectedLeader, _memberInfo.InstanceId, ownInfo,
+				candidate, _liveClusterMembers, _lastElectedLeader, _memberInfo.InstanceId, ownInfo,
 				_resigningLeaderInstanceId))
 			{
 				return;
@@ -841,7 +864,7 @@ namespace EventStore.Core.Services
 
 			if (_acceptsReceived.Add(message.ServerId) && _acceptsReceived.Count == _clusterSize / 2 + 1)
 			{
-				var leader = _servers.FirstOrDefault(x => x.InstanceId == _leaderProposal.InstanceId);
+				var leader = _liveClusterMembers.FirstOrDefault(x => x.InstanceId == _leaderProposal.InstanceId);
 				if (leader != null)
 				{
 					_leader = _leaderProposal.InstanceId;

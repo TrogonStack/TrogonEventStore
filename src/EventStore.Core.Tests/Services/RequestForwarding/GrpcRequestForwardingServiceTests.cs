@@ -571,7 +571,7 @@ public class GrpcRequestForwardingSupervisorTests
 		fixture.Supervisor.Handle(new SystemMessage.BecomePreReplica(
 			Guid.NewGuid(), Guid.NewGuid(), fixture.Leader));
 
-		Assert.That(fixture.Factory.EndPoints.Single(), Is.EqualTo(fixture.Leader.HttpEndPoint));
+		Assert.That(fixture.Factory.EndPoints.Single(), Is.EqualTo(fixture.Leader.ClusterEndPoint));
 	}
 
 	[Test]
@@ -660,13 +660,31 @@ public class GrpcRequestForwardingSupervisorTests
 	}
 
 	[Test]
-	public void reconnect_replaces_the_stream_when_the_http_endpoint_changes()
+	public void reconnect_keeps_the_stream_when_only_the_client_endpoint_changes()
 	{
 		var fixture = CreateFixture();
 		fixture.Supervisor.Handle(new SystemMessage.BecomePreReplica(
 			Guid.NewGuid(), Guid.NewGuid(), fixture.Leader));
 		var service = fixture.Factory.Services.Single();
 		var movedLeader = CreateLeader(fixture.Leader.InstanceId, httpPort: 2213);
+
+		fixture.Supervisor.Handle(new ReplicationMessage.ReconnectToLeader(Guid.NewGuid(), movedLeader));
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(fixture.Factory.Services, Has.Exactly(1).Items);
+			Assert.That(service.StopCalls, Is.Zero);
+		});
+	}
+
+	[Test]
+	public void reconnect_replaces_the_stream_when_the_cluster_endpoint_changes()
+	{
+		var fixture = CreateFixture();
+		fixture.Supervisor.Handle(new SystemMessage.BecomePreReplica(
+			Guid.NewGuid(), Guid.NewGuid(), fixture.Leader));
+		var service = fixture.Factory.Services.Single();
+		var movedLeader = CreateLeader(fixture.Leader.InstanceId, clusterPort: 3212);
 
 		fixture.Supervisor.Handle(new ReplicationMessage.ReconnectToLeader(Guid.NewGuid(), movedLeader));
 
@@ -786,7 +804,10 @@ public class GrpcRequestForwardingSupervisorTests
 		};
 	}
 
-	private static MemberInfo CreateLeader(Guid? instanceId = null, int httpPort = 2113) => MemberInfo.ForVNode(
+	private static MemberInfo CreateLeader(
+		Guid? instanceId = null,
+		int httpPort = 2113,
+		int clusterPort = 3112) => MemberInfo.ForVNode(
 		instanceId ?? Guid.NewGuid(),
 		DateTime.UtcNow,
 		VNodeState.Leader,
@@ -806,7 +827,8 @@ public class GrpcRequestForwardingSupervisorTests
 		0,
 		Guid.NewGuid(),
 		0,
-		false);
+		false,
+		clusterEndPoint: new DnsEndPoint("leader-forwarding.internal", clusterPort));
 
 	private static async Task WaitUntil(Func<bool> condition)
 	{

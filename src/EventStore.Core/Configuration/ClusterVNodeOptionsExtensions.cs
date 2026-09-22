@@ -99,7 +99,7 @@ public static class ClusterVNodeOptionsExtensions
 		options with { Interface = options.Interface with { NodeIp = endPoint.Address, } };
 
 	/// <summary>
-	/// Sets the internal tcp endpoint to the specified value
+	/// Sets the gRPC replication endpoint to the specified value
 	/// </summary>
 	/// <param name="options">The <see cref="ClusterVNodeOptions"/></param>
 	/// <param name="endPoint">The internal endpoint to use</param>
@@ -145,6 +145,18 @@ public static class ClusterVNodeOptionsExtensions
 			{
 				ReplicationHostAdvertiseAs = endPoint.GetHost(),
 				ReplicationTcpPortAdvertiseAs = endPoint.GetPort()
+			}
+		};
+
+	public static ClusterVNodeOptions AdvertiseReplicationHostAs(
+		this ClusterVNodeOptions options,
+		EndPoint endPoint) =>
+		options with
+		{
+			Interface = options.Interface with
+			{
+				ReplicationHostAdvertiseAs = endPoint.GetHost(),
+				ReplicationPortAdvertiseAs = endPoint.GetPort()
 			}
 		};
 

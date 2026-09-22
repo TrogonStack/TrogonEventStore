@@ -25,6 +25,7 @@ using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -272,6 +273,25 @@ internal static class Program
 						{
 							x.SuppressStatusMessages = true;
 						});
+					EndpointBinding[] endpointBindings =
+						[
+							new(EndpointRole.Client,
+								new System.Net.IPEndPoint(options.Interface.NodeIp, options.Interface.NodePort),
+								HttpProtocols.Http1AndHttp2),
+							new(EndpointRole.Cluster,
+								options.Interface.GetClusterListenEndPoint(),
+								HttpProtocols.Http2),
+						];
+					var endpointPolicy = new EndpointPolicy(
+						endpointBindings,
+						[
+							new(EventStore.Cluster.Gossip.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Cluster.Elections.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Replication.Replication.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Forwarding.RequestForwarding.Descriptor, EndpointRole.Cluster),
+						],
+						defaultRouteRole: EndpointRole.Client,
+						nonIpEndpointRole: EndpointRole.Client);
 
 					builder.WebHost.ConfigureKestrel(server =>
 					{
@@ -280,9 +300,13 @@ internal static class Program
 						server.Limits.Http2.KeepAlivePingTimeout =
 							TimeSpan.FromMilliseconds(options.Grpc.KeepAliveTimeout);
 
-						server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
-							ConfigureHttpOptions(listenOptions, hostedService,
-								useHttps: !hostedService.Node.DisableHttps));
+						foreach (var binding in endpointBindings)
+						{
+							server.Listen(binding.ListenEndPoint, listenOptions =>
+								ConfigureHttpOptions(listenOptions, hostedService,
+									useHttps: !hostedService.Node.DisableHttps,
+									protocols: binding.Protocols));
+						}
 
 						if (hostedService.Node.EnableUnixSocket)
 						{
@@ -325,6 +349,16 @@ internal static class Program
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
+					app.Use(async (context, next) =>
+					{
+						if (!endpointPolicy.Allows(context))
+						{
+							context.Response.StatusCode = StatusCodes.Status404NotFound;
+							return;
+						}
+
+						await next(context);
+					});
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					hostedService.Node.Startup.Configure(app);
 					if (oauthEnabled)
@@ -376,14 +410,19 @@ internal static class Program
 		}
 	}
 
-	private static void ConfigureHttpOptions(ListenOptions listenOptions, ClusterVNodeHostedService hostedService,
-		bool useHttps)
+	private static void ConfigureHttpOptions(
+		ListenOptions listenOptions,
+		ClusterVNodeHostedService hostedService,
+		bool useHttps,
+		HttpProtocols protocols = HttpProtocols.Http1AndHttp2)
 	{
+		listenOptions.Protocols = protocols;
+
 		if (useHttps)
 		{
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
 		}
-		else
+		else if (protocols != HttpProtocols.Http2)
 		{
 			listenOptions.Use(next =>
 				new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);

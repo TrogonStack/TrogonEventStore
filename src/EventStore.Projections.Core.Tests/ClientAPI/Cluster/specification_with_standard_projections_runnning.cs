@@ -44,19 +44,19 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected class Endpoints
 	{
-		public readonly IPEndPoint InternalTcp;
+		public readonly IPEndPoint ClusterEndPoint;
 		public readonly IPEndPoint ExternalTcp;
 		public readonly IPEndPoint HttpEndPoint;
 		private readonly int[] _ports;
 
-		public Endpoints(int internalTcp, int externalTcp, int httpPort)
+		public Endpoints(int clusterPort, int externalTcp, int httpPort)
 		{
 			var testIp = Environment.GetEnvironmentVariable("ES-TESTIP");
 			var address = string.IsNullOrEmpty(testIp) ? IPAddress.Loopback : IPAddress.Parse(testIp);
-			InternalTcp = new IPEndPoint(address, internalTcp);
+			ClusterEndPoint = new IPEndPoint(address, clusterPort);
 			ExternalTcp = new IPEndPoint(address, externalTcp);
 			HttpEndPoint = new IPEndPoint(address, httpPort);
-			_ports = [internalTcp, httpPort, externalTcp];
+			_ports = [clusterPort, httpPort, externalTcp];
 		}
 
 		public IEnumerable<int> Ports => _ports;
@@ -79,7 +79,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		{
 			var gossipSeeds = _nodeEndpoints
 				.Where((_, otherIndex) => otherIndex != index)
-				.Select(x => (EndPoint)x.HttpEndPoint)
+				.Select(x => (EndPoint)x.ClusterEndPoint)
 				.ToArray();
 			_nodes[index] = CreateNode(index, _nodeEndpoints[index], gossipSeeds);
 		}
@@ -130,7 +130,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		return new MiniClusterNode<TLogFormat, TStreamId>(
 			PathName,
 			index,
-			endpoints.InternalTcp,
+			endpoints.ClusterEndPoint,
 			endpoints.ExternalTcp,
 			endpoints.HttpEndPoint,
 			subsystems: [_projections[index]],
