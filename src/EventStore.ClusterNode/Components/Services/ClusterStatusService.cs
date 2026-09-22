@@ -212,7 +212,7 @@ public sealed class ClusterStatusService(
 	{
 		var cleaned = endpoint.Replace("Unspecified/", "", StringComparison.OrdinalIgnoreCase);
 		return members.FirstOrDefault(x =>
-			string.Equals(ReplicationEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase) ||
+			string.Equals(ClusterEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase) ||
 			string.Equals(HttpEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase));
 	}
 
@@ -221,8 +221,8 @@ public sealed class ClusterStatusService(
 		ClientClusterInfo.ClientMemberInfo leader) =>
 		new UriBuilder(request.Scheme, leader.HttpEndPointIp, leader.HttpEndPointPort).Uri;
 
-	private static string ReplicationEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
-		Endpoint(member.ReplicationEndPointIp, member.ReplicationEndPointPort);
+	private static string ClusterEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
+		Endpoint(member.ClusterEndPointIp, member.ClusterEndPointPort);
 	private static string HttpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
 		Endpoint(member.HttpEndPointIp, member.HttpEndPointPort);
 

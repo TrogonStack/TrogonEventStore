@@ -408,10 +408,10 @@ public partial record ClusterVNodeOptions
 		[Description("DNS name from which other nodes can be discovered.")]
 		public string ClusterDns { get; init; } = "fake.dns";
 
-		[Description("The port on which cluster nodes' managers are running.")]
-		public int ClusterGossipPort { get; init; } = 2113;
+		[Description("The internal cluster port used for DNS gossip discovery. A value of 0 uses the advertised cluster port.")]
+		public int ClusterGossipPort { get; init; } = 0;
 
-		[Description("Endpoints for other cluster nodes from which to seed gossip.")]
+		[Description("Internal cluster endpoints for other nodes from which to seed gossip.")]
 		public EndPoint[] GossipSeed { get; init; } = [];
 
 		[Description("The interval, in ms, nodes should try to gossip with each other."),
@@ -620,7 +620,7 @@ public partial record ClusterVNodeOptions
 	[Description("Interface Options")]
 	public record InterfaceOptions
 	{
-		[Description("The IP address used by the gRPC replication listener.")]
+		[Description("The IP address used by the internal gRPC cluster listener. The option name is retained for compatibility.")]
 		public IPAddress ReplicationIp { get; init; } = IPAddress.Loopback;
 
 		[Description("The IP Address for the node.")]
@@ -629,13 +629,13 @@ public partial record ClusterVNodeOptions
 		[Description("The Port to run the HTTP server on.")]
 		public int NodePort { get; init; } = 2113;
 
-		[Description("The port used by the gRPC replication listener.")]
+		[Description("The port used by the internal gRPC cluster listener. The option name is retained for compatibility.")]
 		public int ReplicationPort { get; init; } = 1112;
 
 		[Description("Advertise the Node's host name to other nodes and external clients as.")]
 		public string? NodeHostAdvertiseAs { get; init; } = null;
 
-		[Description("Advertise the gRPC replication host name to other nodes in the cluster as.")]
+		[Description("Advertise the internal cluster host name to other nodes. The option name is retained for compatibility.")]
 		public string? ReplicationHostAdvertiseAs { get; init; } = null;
 
 		[Description("Advertise Host in Gossip to Client As.")]
@@ -647,10 +647,10 @@ public partial record ClusterVNodeOptions
 		[Description("Advertise Http Port As.")]
 		public int NodePortAdvertiseAs { get; init; } = 0;
 
-		[Description("Advertise the gRPC replication port as.")]
+		[Description("Advertise the internal gRPC cluster port. The option name is retained for compatibility.")]
 		public int ReplicationPortAdvertiseAs { get; init; } = 0;
 
-		[Description("Deprecated alias for ReplicationPortAdvertiseAs. Advertise the gRPC replication port as.")]
+		[Description("Deprecated alias for ReplicationPortAdvertiseAs. Advertise the internal gRPC cluster port.")]
 		[Deprecated(
 			"The ReplicationTcpPortAdvertiseAs setting has been deprecated because replication uses gRPC. " +
 			"Use ReplicationPortAdvertiseAs instead.")]
@@ -661,11 +661,17 @@ public partial record ClusterVNodeOptions
 				? ReplicationPortAdvertiseAs
 				: ReplicationTcpPortAdvertiseAs;
 
-		[Description("Keepalive ping timeout for gRPC replication connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
+		public IPEndPoint GetClusterListenEndPoint() => new(ReplicationIp, ReplicationPort);
+
+		public string? GetClusterHostAdvertiseAs() => ReplicationHostAdvertiseAs;
+
+		public int GetClusterPortAdvertiseAs() => GetReplicationPortAdvertiseAs();
+
+		[Description("Keepalive ping timeout for internal gRPC cluster connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
 		 Unit("ms")]
 		public int ReplicationHeartbeatTimeout { get; init; } = 700;
 
-		[Description("Keepalive ping interval for gRPC replication connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
+		[Description("Keepalive ping interval for internal gRPC cluster connections. Values below 1000 ms use the HTTP/2 minimum of 1000 ms."),
 		 Unit("ms")]
 		public int ReplicationHeartbeatInterval { get; init; } = 700;
 

@@ -166,8 +166,8 @@ namespace EventStore.Core.Services.Gossip
 				{
 					_cluster = UpdateCluster(_cluster, x => x.InstanceId == _memberInfo.InstanceId ? GetUpdatedMe(x) : x,
 						_timeProvider, DeadMemberRemovalPeriod, CurrentRole);
-					_bus.Publish(new GrpcMessage.SendOverGrpc(node.HttpEndPoint,
-						new GossipMessage.SendGossip(_cluster, _memberInfo.HttpEndPoint),
+					_bus.Publish(new GrpcMessage.SendOverGrpc(node.ClusterEndPoint,
+						new GossipMessage.SendGossip(_cluster, _memberInfo.ClusterEndPoint),
 						_timeProvider.LocalTime.Add(GossipTimeout)));
 				}
 
@@ -213,7 +213,7 @@ namespace EventStore.Core.Services.Gossip
 				_timeProvider.UtcNow, _memberInfo, CurrentLeader?.InstanceId, AllowedTimeDifference,
 				DeadMemberRemovalPeriod);
 
-			message.Envelope.ReplyWith(new GossipMessage.SendGossip(_cluster, _memberInfo.HttpEndPoint));
+			message.Envelope.ReplyWith(new GossipMessage.SendGossip(_cluster, _memberInfo.ClusterEndPoint));
 
 			if (_cluster.HasChangedSince(oldCluster))
 			{
@@ -227,7 +227,7 @@ namespace EventStore.Core.Services.Gossip
 		{
 			if (_cluster != null)
 			{
-				message.Envelope.ReplyWith(new GossipMessage.SendGossip(_cluster, _memberInfo.HttpEndPoint));
+				message.Envelope.ReplyWith(new GossipMessage.SendGossip(_cluster, _memberInfo.ClusterEndPoint));
 			}
 		}
 
@@ -304,7 +304,7 @@ namespace EventStore.Core.Services.Gossip
 
 			Log.Information("Looks like node [{nodeEndPoint}] is DEAD (replication connection lost). Issuing a gossip to confirm.",
 				message.VNodeEndPoint);
-			_bus.Publish(new GrpcMessage.SendOverGrpc(node.HttpEndPoint,
+			_bus.Publish(new GrpcMessage.SendOverGrpc(node.ClusterEndPoint,
 				new GossipMessage.GetGossip(),
 				_timeProvider.LocalTime.Add(GossipTimeout)));
 		}
@@ -405,12 +405,14 @@ namespace EventStore.Core.Services.Gossip
 			bool isPeerOld = peerNode?.ESVersion == null;
 			foreach (var member in othersCluster.Members)
 			{
-				if (member.InstanceId == me.InstanceId || member.Is(me.HttpEndPoint)
-				) // we know about ourselves better
+				if (member.InstanceId == me.InstanceId ||
+					member.Is(me.HttpEndPoint) ||
+					member.Is(me.ClusterEndPoint)) // we know about ourselves better
 				{
 					continue;
 				}
 
+				var existingMem = members.Values.FirstOrDefault(existing => IsSameMember(existing, member));
 				if (member.Equals(peerNode)) // peer knows about itself better
 				{
 					if ((utcNow - member.TimeStamp).Duration() > allowedTimeDifference)
@@ -419,35 +421,35 @@ namespace EventStore.Core.Services.Gossip
 								  + "UTC now: {dateTime:yyyy-MM-dd HH:mm:ss.fff}, peer's time stamp: {peerTimestamp:yyyy-MM-dd HH:mm:ss.fff}.",
 							peerEndPoint, utcNow, member.TimeStamp);
 					}
-					members[member.HttpEndPoint] = member.Updated(utcNow: member.TimeStamp, esVersion: isPeerOld ? VersionInfo.OldVersion : member.ESVersion);
+					SetMember(members, existingMem,
+						member.Updated(utcNow: member.TimeStamp,
+							esVersion: isPeerOld ? VersionInfo.OldVersion : member.ESVersion));
 				}
 				else
 				{
-					MemberInfo existingMem;
 					// if there is no data about this member or data is stale -- update
-					if (!members.TryGetValue(member.HttpEndPoint, out existingMem) ||
-						IsMoreUpToDate(member, existingMem))
+					if (existingMem is null || IsMoreUpToDate(member, existingMem))
 					{
 						// we do not trust leader's alive status and state to come from outside
 						if (currentLeaderInstanceId != null && existingMem != null &&
 							member.InstanceId == currentLeaderInstanceId)
 						{
-							members[member.HttpEndPoint] =
+							SetMember(members, existingMem,
 								member.Updated(utcNow: utcNow, isAlive: existingMem.IsAlive,
-									state: existingMem.State);
+									state: existingMem.State));
 						}
 						else
 						{
-							members[member.HttpEndPoint] = member;
+							SetMember(members, existingMem, member);
 						}
 					}
 
 					if (peerNode != null && isPeerOld)
 					{
-						MemberInfo newInfo = members[member.HttpEndPoint];
+						var newInfo = members.Values.First(x => IsSameMember(x, member));
 						// if we don't have past information about es version of the node, es version is unknown because old peer won't be sending version info in gossip
-						members[member.HttpEndPoint] = newInfo.Updated(newInfo.TimeStamp,
-							esVersion: existingMem?.ESVersion ?? VersionInfo.UnknownVersion);
+						SetMember(members, newInfo, newInfo.Updated(newInfo.TimeStamp,
+							esVersion: existingMem?.ESVersion ?? VersionInfo.UnknownVersion));
 					}
 				}
 			}
@@ -455,6 +457,22 @@ namespace EventStore.Core.Services.Gossip
 			var newMembers = members.Values.Select(update)
 				.Where(x => KeepNodeInGossip(x, utcNow, deadMemberRemovalTimeout, me.State));
 			return new ClusterInfo(newMembers);
+		}
+
+		private static bool IsSameMember(MemberInfo left, MemberInfo right) =>
+			(left.InstanceId != Guid.Empty && right.InstanceId != Guid.Empty && left.InstanceId == right.InstanceId) ||
+			left.Is(right.HttpEndPoint) || left.Is(right.ClusterEndPoint) ||
+			right.Is(left.HttpEndPoint) || right.Is(left.ClusterEndPoint);
+
+		private static void SetMember(
+			IDictionary<EndPoint, MemberInfo> members,
+			MemberInfo existing,
+			MemberInfo updated)
+		{
+			if (existing is not null)
+				members.Remove(existing.HttpEndPoint);
+
+			members[updated.HttpEndPoint] = updated;
 		}
 
 		private static bool IsMoreUpToDate(MemberInfo member, MemberInfo existingMem)

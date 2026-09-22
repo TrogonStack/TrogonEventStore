@@ -277,7 +277,7 @@ public sealed class GrpcReplicaServiceSupervisor :
 		{
 			active.Service = _factory.Create(
 				new FencedPublisher(this, active),
-				new GrpcReplicaConnectionEndpoints(leader.ReplicationEndPoint, _advertisedReplicaEndPoint));
+				new GrpcReplicaConnectionEndpoints(leader.ClusterEndPoint, _advertisedReplicaEndPoint));
 			SetActive(active);
 			var task = active.Service.Start();
 			_trackTask(task);
@@ -297,7 +297,7 @@ public sealed class GrpcReplicaServiceSupervisor :
 			ClearActive(active);
 			await StopAsync(active.Service);
 			Log.Warning(exception, "Failed to start replication stream to [{leaderEndPoint}].",
-				leader.ReplicationEndPoint);
+				leader.ClusterEndPoint);
 			_publisher.Publish(new ReplicationMessage.LeaderConnectionFailed(
 				leaderConnectionCorrelationId, leader));
 		}

@@ -49,9 +49,9 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 	protected override async Task Given()
 	{
 		_nodeGossipSeeds = new[] {
-			new EndPoint[] {_nodeEndpoints[1].NodeEndPoint, _nodeEndpoints[2].NodeEndPoint},
-			new EndPoint[] {_nodeEndpoints[0].NodeEndPoint, _nodeEndpoints[2].NodeEndPoint},
-			new EndPoint[] {_nodeEndpoints[0].NodeEndPoint, _nodeEndpoints[1].NodeEndPoint}
+			new EndPoint[] {_nodeEndpoints[1].ClusterEndPoint, _nodeEndpoints[2].ClusterEndPoint},
+			new EndPoint[] {_nodeEndpoints[0].ClusterEndPoint, _nodeEndpoints[2].ClusterEndPoint},
+			new EndPoint[] {_nodeEndpoints[0].ClusterEndPoint, _nodeEndpoints[1].ClusterEndPoint}
 		};
 		_httpClient = new HttpClient(new SocketsHttpHandler
 		{
@@ -164,7 +164,7 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 
 	private MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		int nodePriority, string replicationHostAdvertiseAs) => new(
-		PathName, index, endpoints.NodeEndPoint, endpoints.ReplicationEndPoint,
+		PathName, index, endpoints.HttpEndPoint, endpoints.ClusterEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds,
 		nodePriority: nodePriority, replicationHostAdvertiseAs: replicationHostAdvertiseAs);
 

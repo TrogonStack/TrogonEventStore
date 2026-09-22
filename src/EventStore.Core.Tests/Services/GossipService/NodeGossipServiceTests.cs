@@ -43,20 +43,28 @@ public abstract class NodeGossipServiceTestFixture
 
 		_currentNode = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000001"), 1,
-			new IPEndPoint(IPAddress.Loopback, 1111), false);
+			new IPEndPoint(IPAddress.Loopback, 1111),
+			false,
+			new IPEndPoint(IPAddress.Loopback, 11112));
 		_nodeTwo = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000002"), 2,
-			new IPEndPoint(IPAddress.Loopback, 2222), false);
+			new IPEndPoint(IPAddress.Loopback, 2222),
+			false,
+			new IPEndPoint(IPAddress.Loopback, 22212));
 		_nodeThree = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000003"), 3,
-			new IPEndPoint(IPAddress.Loopback, 3333), false);
+			new IPEndPoint(IPAddress.Loopback, 3333),
+			false,
+			new IPEndPoint(IPAddress.Loopback, 33312));
 		_nodeFour = new VNodeInfo(
 			Guid.Parse("00000000-0000-0000-0000-000000000004"), 4,
-			new IPEndPoint(IPAddress.Loopback, 4444), false);
+			new IPEndPoint(IPAddress.Loopback, 4444),
+			false,
+			new IPEndPoint(IPAddress.Loopback, 44412));
 
-		_getNodeToGossipTo = infos => infos.First(x => Equals(x.HttpEndPoint, _nodeTwo.HttpEndPoint));
+		_getNodeToGossipTo = infos => infos.First(x => Equals(x.ClusterEndPoint, _nodeTwo.ClusterEndPoint));
 		_gossipSeedSource = new KnownEndpointGossipSeedSource(new[]
-			{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint});
+			{_currentNode.ClusterEndPoint, _nodeTwo.ClusterEndPoint, _nodeThree.ClusterEndPoint});
 	}
 
 	[SetUp]
@@ -95,7 +103,7 @@ public abstract class NodeGossipServiceTestFixture
 		return new Message[] {
 			new SystemMessage.SystemInit(),
 			new GossipMessage.GotGossipSeedSources(new[]
-				{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint})
+				{_currentNode.ClusterEndPoint, _nodeTwo.ClusterEndPoint, _nodeThree.ClusterEndPoint})
 		}.Concat(additionalGivens).ToArray();
 	}
 
@@ -104,8 +112,9 @@ public abstract class NodeGossipServiceTestFixture
 		VNodeState nodeState = VNodeState.Initializing, string esVersion = VersionInfo.DefaultVersion, bool isAlive = true)
 	{
 		return MemberInfo.ForVNode(nodeInfo.InstanceId, utcNow, nodeState, isAlive,
-			nodeInfo.HttpEndPoint, null, 0,
-			0, writerCheckpoint ?? 0, 0, -1, epochNumber ?? -1, Guid.Empty, nodePriority ?? 0, false, esVersion);
+			nodeInfo.HttpEndPoint, null, 0, 0,
+			writerCheckpoint ?? 0, 0, -1, epochNumber ?? -1, Guid.Empty, nodePriority ?? 0, false, esVersion,
+			nodeInfo.ClusterEndPoint);
 	}
 
 	/// <summary>
@@ -113,7 +122,8 @@ public abstract class NodeGossipServiceTestFixture
 	/// </summary>
 	protected static MemberInfo InitialStateForVNode(VNodeInfo nodeInfo, DateTime utcNow, bool isAlive = true, string version = VersionInfo.UnknownVersion)
 	{
-		return MemberInfo.ForManager(Guid.Empty, utcNow, isAlive, nodeInfo.HttpEndPoint, esVersion: version);
+		return MemberInfo.ForManager(Guid.Empty, utcNow, isAlive, nodeInfo.ClusterEndPoint, esVersion: version,
+			clusterEndPoint: nodeInfo.ClusterEndPoint);
 	}
 }
 
@@ -130,7 +140,7 @@ public class when_system_initializes : NodeGossipServiceTestFixture
 	{
 		ExpectMessages(
 			new GossipMessage.GotGossipSeedSources(new[]
-				{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint}));
+				{_currentNode.ClusterEndPoint, _nodeTwo.ClusterEndPoint, _nodeThree.ClusterEndPoint}));
 	}
 }
 
@@ -164,7 +174,7 @@ public class when_retrieving_gossip_seed_sources : NodeGossipServiceTestFixture
 	{
 		ExpectMessages(
 			new GossipMessage.GotGossipSeedSources(new[]
-				{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint}));
+				{_currentNode.ClusterEndPoint, _nodeTwo.ClusterEndPoint, _nodeThree.ClusterEndPoint}));
 	}
 }
 
@@ -212,19 +222,63 @@ public class when_got_gossip_seed_sources : NodeGossipServiceTestFixture
 
 	protected override Message When() =>
 		new GossipMessage.GotGossipSeedSources(new[]
-			{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint});
+			{_currentNode.ClusterEndPoint, _nodeTwo.ClusterEndPoint, _nodeThree.ClusterEndPoint});
 
 	[Test]
 	public void should_start_gossiping_and_schedule_another_gossip()
 	{
 		ExpectMessages(
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeTwo, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeThree, _timeProvider.UtcNow)),
-				_currentNode.HttpEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
+				_currentNode.ClusterEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
 			TimerMessage.Schedule.Create(GossipServiceBase.GossipStartupInterval, _bus,
 				new GossipMessage.Gossip(1)));
+	}
+}
+
+public class when_got_gossip_seed_sources_with_distinct_cluster_endpoint : NodeGossipServiceTestFixture
+{
+	public when_got_gossip_seed_sources_with_distinct_cluster_endpoint()
+	{
+		_currentNode = new VNodeInfo(
+			Guid.Parse("00000000-0000-0000-0000-000000000001"), 1,
+			new IPEndPoint(IPAddress.Loopback, 1111), false,
+			new IPEndPoint(IPAddress.Loopback, 1112));
+	}
+
+	protected override Message[] Given() => [new SystemMessage.SystemInit()];
+
+	protected override Message When() =>
+		new GossipMessage.GotGossipSeedSources([
+			_currentNode.ClusterEndPoint,
+			_nodeTwo.ClusterEndPoint,
+			_nodeThree.ClusterEndPoint
+		]);
+
+	[Test]
+	public void should_preserve_the_cluster_endpoint()
+	{
+		var gossip = (GossipMessage.SendGossip)_bus.Messages
+			.OfType<GrpcMessage.SendOverGrpc>()
+			.Single()
+			.Message;
+		var currentMember = gossip.ClusterInfo.Members.Single(x => x.InstanceId == _currentNode.InstanceId);
+
+		Assert.That(currentMember.ClusterEndPoint, Is.EqualTo(_currentNode.ClusterEndPoint));
+	}
+
+	[Test]
+	public void should_not_retain_the_cluster_endpoint_seed_as_a_member()
+	{
+		var gossip = (GossipMessage.SendGossip)_bus.Messages
+			.OfType<GrpcMessage.SendOverGrpc>()
+			.Single()
+			.Message;
+
+		Assert.That(gossip.ClusterInfo.Members, Has.None.Matches<MemberInfo>(member =>
+			member.InstanceId == Guid.Empty && member.Is(_currentNode.ClusterEndPoint)));
 	}
 }
 
@@ -242,11 +296,11 @@ public class when_gossip : NodeGossipServiceTestFixture
 	public void should_send_the_gossip_over_http_and_schedule_the_next_gossip()
 	{
 		ExpectMessages(
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeTwo, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeThree, _timeProvider.UtcNow)),
-				_currentNode.HttpEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
+				_currentNode.ClusterEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
 			TimerMessage.Schedule.Create(_gossipInterval, _bus,
 				new GossipMessage.Gossip(++_gossipRound)));
 	}
@@ -303,11 +357,11 @@ public class when_gossip_and_gossip_round_less_than_startup_gossip_threshold : N
 	public void should_use_startup_gossip_interval()
 	{
 		ExpectMessages(
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeTwo, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeThree, _timeProvider.UtcNow)),
-				_currentNode.HttpEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
+				_currentNode.ClusterEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
 			TimerMessage.Schedule.Create(GossipServiceBase.GossipStartupInterval, _bus,
 				new GossipMessage.Gossip(++_gossipRound)));
 	}
@@ -327,11 +381,11 @@ public class when_gossip_and_gossip_round_larger_than_startup_gossip_threshold :
 	public void should_use_provided_gossip_interval_for_next_gossip()
 	{
 		ExpectMessages(
-			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeTwo, _timeProvider.UtcNow),
 					InitialStateForVNode(_nodeThree, _timeProvider.UtcNow)),
-				_currentNode.HttpEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
+				_currentNode.ClusterEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
 			TimerMessage.Schedule.Create(_gossipInterval, _bus,
 				new GossipMessage.Gossip(++_gossipRound)));
 	}
@@ -394,7 +448,7 @@ public class if_gossip_reply_includes_es_version : NodeGossipServiceTestFixture
 		//updated cluster info should have version info of currentNode, nodeTwo and nodeThree
 		ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 		//gossip reply should have version info of currentNode, nodeTwo and nodeThree
-		_capturedMessage.Should().BeEquivalentTo(new GossipMessage.SendGossip(GetExpectedClusterInfo(), _currentNode.HttpEndPoint));
+		_capturedMessage.Should().BeEquivalentTo(new GossipMessage.SendGossip(GetExpectedClusterInfo(), _currentNode.ClusterEndPoint));
 	}
 
 	private void CaptureGossipReply(Message message) => _capturedMessage = message;
@@ -426,7 +480,7 @@ public class if_gossip_read_reply_includes_es_version : NodeGossipServiceTestFix
 	public void reply_should_have_version_info()
 	{
 		_capturedMessage.Should()
-			.BeEquivalentTo(new GossipMessage.SendGossip(GetExpectedClusterInfo(), _currentNode.HttpEndPoint));
+			.BeEquivalentTo(new GossipMessage.SendGossip(GetExpectedClusterInfo(), _currentNode.ClusterEndPoint));
 	}
 
 	private void CaptureGossipReply(Message message) => _capturedMessage = message;
@@ -677,7 +731,7 @@ public class when_gossip_send_failed : NodeGossipServiceTestFixture
 		GivenSystemInitializedWithKnownGossipSeedSources();
 
 	protected override Message When() =>
-		new GossipMessage.GossipSendFailed("failed", _nodeTwo.HttpEndPoint);
+		new GossipMessage.GossipSendFailed("failed", _nodeTwo.ClusterEndPoint);
 
 	[Test]
 	public void should_mark_the_node_as_dead()
@@ -749,7 +803,7 @@ public class when_vnode_connection_lost : NodeGossipServiceTestFixture
 	public void should_issue_get_gossip()
 	{
 		ExpectMessages(
-			new GrpcMessage.SendOverGrpc(_currentNode.HttpEndPoint, new GossipMessage.GetGossip(),
+			new GrpcMessage.SendOverGrpc(_currentNode.ClusterEndPoint, new GossipMessage.GetGossip(),
 				_timeProvider.LocalTime.Add(_gossipTimeout)));
 	}
 }
@@ -1097,6 +1151,35 @@ public class when_merging_clusters
 
 	private static object[] AllowedNodeRemovalStates => DeadNodeRemoval.AllowedNodeRemovalStates;
 	private static object[] DisallowedNodeRemovalStates => DeadNodeRemoval.DisallowedNodeRemovalStates;
+
+	[Test]
+	public void should_never_replace_self_with_a_newer_cluster_endpoint_seed()
+	{
+		var now = DateTime.UtcNow;
+		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
+		var clusterEndPoint = new IPEndPoint(IPAddress.Loopback, 1112);
+		var me = MemberInfo.ForVNode(
+			Guid.NewGuid(), now, VNodeState.Initializing, true,
+			httpEndPoint, null, 0, 0, -1, -1, -1, -1, Guid.Empty, 0, false,
+			clusterEndPoint: clusterEndPoint);
+		var selfSeed = MemberInfo.ForManager(
+			Guid.Empty, now.AddSeconds(1), true, clusterEndPoint,
+			clusterEndPoint: clusterEndPoint);
+
+		var updatedCluster = GossipServiceBase.MergeClusters(
+			new ClusterInfo(me),
+			new ClusterInfo(selfSeed),
+			peerEndPoint: null,
+			info => info,
+			now,
+			me,
+			currentLeaderInstanceId: null,
+			allowedTimeDifference: TimeSpan.FromSeconds(1),
+			deadMemberRemovalTimeout: TimeSpan.FromMinutes(30));
+
+		Assert.That(updatedCluster.Members, Has.Exactly(1).Matches<MemberInfo>(member =>
+			member.InstanceId == me.InstanceId && member.ClusterEndPoint.Equals(clusterEndPoint)));
+	}
 
 	[Test]
 	[TestCaseSource(nameof(AllowedNodeRemovalStates))]

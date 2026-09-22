@@ -23,13 +23,13 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected class Endpoints
 	{
-		public readonly IPEndPoint NodeEndPoint;
-		public readonly IPEndPoint ReplicationEndPoint;
+		public readonly IPEndPoint ClusterEndPoint;
+		public readonly IPEndPoint HttpEndPoint;
 
 		public IEnumerable<int> Ports()
 		{
-			yield return NodeEndPoint.Port;
-			yield return ReplicationEndPoint.Port;
+			yield return ClusterEndPoint.Port;
+			yield return HttpEndPoint.Port;
 		}
 
 		private readonly List<Socket> _sockets;
@@ -40,15 +40,16 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 			var defaultLoopBack = new IPEndPoint(IPAddress.Loopback, 0);
 
-			var nodeEndpoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			nodeEndpoint.Bind(defaultLoopBack);
-			_sockets.Add(nodeEndpoint);
-			var replicationEndpoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			replicationEndpoint.Bind(defaultLoopBack);
-			_sockets.Add(replicationEndpoint);
+			var cluster = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			cluster.Bind(defaultLoopBack);
+			_sockets.Add(cluster);
 
-			NodeEndPoint = CopyEndpoint((IPEndPoint)nodeEndpoint.LocalEndPoint);
-			ReplicationEndPoint = CopyEndpoint((IPEndPoint)replicationEndpoint.LocalEndPoint);
+			var httpEndPoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			httpEndPoint.Bind(defaultLoopBack);
+			_sockets.Add(httpEndPoint);
+
+			ClusterEndPoint = CopyEndpoint((IPEndPoint)cluster.LocalEndPoint);
+			HttpEndPoint = CopyEndpoint((IPEndPoint)httpEndPoint.LocalEndPoint);
 		}
 
 		public void DisposeSockets()
@@ -92,7 +93,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 				nodeIndex,
 				_nodeEndpoints[nodeIndex],
 				_nodeEndpoints.Where((_, otherIndex) => otherIndex != nodeIndex)
-					.Select(x => (EndPoint)x.NodeEndPoint)
+					.Select(x => (EndPoint)x.ClusterEndPoint)
 					.ToArray(),
 				wait));
 			_nodes[nodeIndex] = _nodeCreationFactory[nodeIndex](true);
@@ -155,7 +156,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected virtual MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		bool wait = true) => new(
-		PathName, index, endpoints.NodeEndPoint, endpoints.ReplicationEndPoint,
+		PathName, index, endpoints.HttpEndPoint, endpoints.ClusterEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
 
 	[TearDown]
