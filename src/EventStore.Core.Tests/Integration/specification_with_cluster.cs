@@ -102,7 +102,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 				nodeIndex,
 				_nodeEndpoints[nodeIndex],
 				_nodeEndpoints.Where((_, otherIndex) => otherIndex != nodeIndex)
-					.Select(x => (EndPoint)x.HttpEndPoint)
+					.Select(x => (EndPoint)x.InternalTcp)
 					.ToArray(),
 				wait));
 			_nodes[nodeIndex] = _nodeCreationFactory[nodeIndex](true);

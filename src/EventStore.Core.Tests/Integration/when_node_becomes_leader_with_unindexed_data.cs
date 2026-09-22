@@ -49,9 +49,9 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 	protected override async Task Given()
 	{
 		_nodeGossipSeeds = new[] {
-			new EndPoint[] {_nodeEndpoints[1].HttpEndPoint, _nodeEndpoints[2].HttpEndPoint},
-			new EndPoint[] {_nodeEndpoints[0].HttpEndPoint, _nodeEndpoints[2].HttpEndPoint},
-			new EndPoint[] {_nodeEndpoints[0].HttpEndPoint, _nodeEndpoints[1].HttpEndPoint}
+			new EndPoint[] {_nodeEndpoints[1].InternalTcp, _nodeEndpoints[2].InternalTcp},
+			new EndPoint[] {_nodeEndpoints[0].InternalTcp, _nodeEndpoints[2].InternalTcp},
+			new EndPoint[] {_nodeEndpoints[0].InternalTcp, _nodeEndpoints[1].InternalTcp}
 		};
 		_httpClient = new HttpClient(new SocketsHttpHandler
 		{

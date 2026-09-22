@@ -235,7 +235,7 @@ public class when_archiving_and_restoring_a_cluster<TLogFormat, TStreamId>
 	private EndPoint[] GossipSeedsFor(int nodeIndex) =>
 		_nodeEndpoints
 			.Where((_, index) => index != nodeIndex)
-			.Select(x => (EndPoint)x.HttpEndPoint)
+			.Select(x => (EndPoint)x.InternalTcp)
 			.ToArray();
 
 	private async Task WaitForArchiveCheckpoint(long minimum)

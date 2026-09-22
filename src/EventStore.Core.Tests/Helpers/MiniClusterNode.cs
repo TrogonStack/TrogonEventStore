@@ -46,7 +46,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	public IPEndPoint InternalTcpEndPoint { get; }
 	public IPEndPoint ExternalTcpEndPoint { get; }
 	public IPEndPoint HttpEndPoint { get; }
-	public IPEndPoint ReplicationEndPoint { get; }
+	public IPEndPoint ClusterEndPoint { get; }
 
 	public readonly int DebugIndex;
 
@@ -81,7 +81,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		InternalTcpEndPoint = internalTcp;
 		ExternalTcpEndPoint = externalTcp;
 		HttpEndPoint = httpEndPoint;
-		ReplicationEndPoint = internalTcp;
+		ClusterEndPoint = internalTcp;
 
 		_dbPath = Path.Combine(
 			pathname,
@@ -240,7 +240,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 						}
 
 						o.Listen(HttpEndPoint, ConfigureHttps);
-						o.Listen(ReplicationEndPoint, options =>
+						o.Listen(ClusterEndPoint, options =>
 						{
 							options.Protocols = HttpProtocols.Http2;
 							ConfigureHttps(options);

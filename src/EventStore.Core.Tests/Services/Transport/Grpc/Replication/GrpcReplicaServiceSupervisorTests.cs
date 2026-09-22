@@ -22,7 +22,7 @@ public class GrpcReplicaServiceSupervisorTests
 
 	[TestCase(false)]
 	[TestCase(true)]
-	public async Task pre_replica_state_starts_and_tracks_a_stream_for_the_advertised_replication_endpoints(
+	public async Task pre_replica_state_starts_and_tracks_a_stream_for_the_advertised_cluster_endpoints(
 		bool readOnlyReplica)
 	{
 		var fixture = CreateFixture();
@@ -37,7 +37,7 @@ public class GrpcReplicaServiceSupervisorTests
 		var request = fixture.Factory.Requests.Single();
 		Assert.Multiple(() =>
 		{
-			Assert.That(request.Endpoints.LeaderEndPoint, Is.EqualTo(fixture.Leader.ReplicationEndPoint));
+			Assert.That(request.Endpoints.LeaderEndPoint, Is.EqualTo(fixture.Leader.ClusterEndPoint));
 			Assert.That(request.Endpoints.AdvertisedReplicaEndPoint, Is.EqualTo(fixture.AdvertisedEndPoint));
 			Assert.That(request.Service.StartCalls, Is.EqualTo(1));
 			Assert.That(fixture.TrackedTasks.Single(), Is.SameAs(request.Service.Task));
@@ -448,7 +448,7 @@ public class GrpcReplicaServiceSupervisorTests
 		Guid.NewGuid(),
 		0,
 		false,
-		replicationEndPoint: new DnsEndPoint("leader.replication.internal", 1112));
+		clusterEndPoint: new DnsEndPoint("leader.replication.internal", 1112));
 
 	private static SystemMessage.StateChangeMessage CreateReplicaState(
 		VNodeState state,

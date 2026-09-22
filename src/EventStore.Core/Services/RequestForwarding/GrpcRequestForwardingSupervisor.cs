@@ -214,11 +214,11 @@ public sealed class GrpcRequestForwardingSupervisor :
 		IGrpcRequestForwardingService service = null;
 		try
 		{
-			var active = new ActiveStream(leader.InstanceId, leader.ReplicationEndPoint, connectionGeneration);
+			var active = new ActiveStream(leader.InstanceId, leader.ClusterEndPoint, connectionGeneration);
 			service = _factory.Create(
 				message => TryPublishIfActive(active, message),
 				_publisher.Publish,
-				leader.ReplicationEndPoint,
+				leader.ClusterEndPoint,
 				new ForwardingSessionGeneration(connectionGeneration));
 			active.Service = service;
 			_active = active;
@@ -237,7 +237,7 @@ public sealed class GrpcRequestForwardingSupervisor :
 
 			service?.Stop();
 			Log.Warning(exception, "Failed to start request forwarding stream to [{leaderEndPoint}].",
-				leader.ReplicationEndPoint);
+				leader.ClusterEndPoint);
 			if (connectionGeneration == _connectionGeneration)
 			{
 				ScheduleReconnect(leader.InstanceId, connectionGeneration);
@@ -280,7 +280,7 @@ public sealed class GrpcRequestForwardingSupervisor :
 		_active is not null &&
 		!_active.Service.Task.IsCompleted &&
 		_active.LeaderId == leader.InstanceId &&
-		Equals(_active.LeaderEndPoint, leader.ReplicationEndPoint);
+		Equals(_active.LeaderEndPoint, leader.ClusterEndPoint);
 
 	private void PublishIfActive(ActiveStream active, Message message)
 	{

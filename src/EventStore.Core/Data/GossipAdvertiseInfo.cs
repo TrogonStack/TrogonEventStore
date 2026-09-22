@@ -10,7 +10,8 @@ namespace EventStore.Core.Data
 		public DnsEndPoint ExternalTcp { get; }
 		public DnsEndPoint ExternalSecureTcp { get; }
 		public DnsEndPoint HttpEndPoint { get; }
-		public DnsEndPoint ReplicationEndPoint { get; }
+		public DnsEndPoint ClusterEndPoint { get; }
+		public DnsEndPoint ReplicationEndPoint => ClusterEndPoint;
 		public string AdvertiseInternalHostAs { get; }
 		public string AdvertiseExternalHostAs { get; }
 		public int AdvertiseHttpPortAs { get; }
@@ -23,7 +24,7 @@ namespace EventStore.Core.Data
 			DnsEndPoint httpEndPoint,
 			string advertiseInternalHostAs, string advertiseExternalHostAs, int advertiseHttpPortAs,
 			string advertiseHostToClientAs, int advertiseHttpPortToClientAs, int advertiseTcpPortToClientAs,
-			DnsEndPoint replicationEndPoint = null)
+			DnsEndPoint clusterEndPoint = null)
 		{
 			Ensure.Equal(false, internalTcp == null && internalSecureTcp == null, "Both internal TCP endpoints are null");
 
@@ -32,7 +33,7 @@ namespace EventStore.Core.Data
 			ExternalTcp = externalTcp;
 			ExternalSecureTcp = externalSecureTcp;
 			HttpEndPoint = httpEndPoint;
-			ReplicationEndPoint = replicationEndPoint ?? httpEndPoint;
+			ClusterEndPoint = clusterEndPoint ?? httpEndPoint;
 			AdvertiseInternalHostAs = advertiseInternalHostAs;
 			AdvertiseExternalHostAs = advertiseExternalHostAs;
 			AdvertiseHttpPortAs = advertiseHttpPortAs;
@@ -46,7 +47,7 @@ namespace EventStore.Core.Data
 			return string.Format(
 				$"IntTcp: {InternalTcp}, IntSecureTcp: {InternalSecureTcp}\n" +
 				$"ExtTcp: {ExternalTcp}, ExtSecureTcp: {ExternalSecureTcp}\n" +
-				$"Http: {HttpEndPoint}, Replication: {ReplicationEndPoint}, HttpAdvertiseAs: {AdvertiseExternalHostAs}:{AdvertiseHttpPortAs},\n" +
+				$"Http: {HttpEndPoint}, Cluster: {ClusterEndPoint}, HttpAdvertiseAs: {AdvertiseExternalHostAs}:{AdvertiseHttpPortAs},\n" +
 				$"HttpAdvertiseToClientAs: {AdvertiseHostToClientAs}:{AdvertiseHttpPortToClientAs},\n" +
 				$"TcpAdvertiseToClientAs: {AdvertiseHostToClientAs}:{AdvertiseTcpPortToClientAs}");
 		}

@@ -135,7 +135,7 @@ public class GrpcRequestForwardingTransportSecurityTests
 		Guid.NewGuid(),
 		0,
 		false,
-		replicationEndPoint: new DnsEndPoint("leader-forwarding.internal", 3112));
+		clusterEndPoint: new DnsEndPoint("leader-forwarding.internal", 3112));
 
 	private sealed class RejectingServiceFactory : IGrpcRequestForwardingServiceFactory
 	{

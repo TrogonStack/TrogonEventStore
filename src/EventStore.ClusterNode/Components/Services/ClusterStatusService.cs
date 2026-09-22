@@ -227,7 +227,7 @@ public sealed class ClusterStatusService(
 			member.InternalSecureTcpPort != 0 ? member.InternalSecureTcpPort : member.InternalTcpPort);
 
 	private static string ReplicationEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
-		Endpoint(member.ReplicationEndPointIp, member.ReplicationEndPointPort);
+		Endpoint(member.ClusterEndPointIp, member.ClusterEndPointPort);
 
 	private static string HttpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
 		Endpoint(member.HttpEndPointIp, member.HttpEndPointPort);

@@ -77,6 +77,7 @@ namespace EventStore.Core.Services
 		private Guid? _leader;
 		private Guid? _lastElectedLeader;
 
+		private MemberInfo[] _members;
 		private MemberInfo[] _servers;
 		private Guid? _resigningLeaderInstanceId;
 
@@ -143,8 +144,9 @@ namespace EventStore.Core.Services
 					memberInfo.AdvertiseHostToClientAs, memberInfo.AdvertiseHttpPortToClientAs, memberInfo.AdvertiseTcpPortToClientAs,
 					ownInfo.LastCommitPosition, ownInfo.WriterCheckpoint, ownInfo.ChaserCheckpoint,
 					ownInfo.EpochPosition, ownInfo.EpochNumber, ownInfo.EpochId, ownInfo.NodePriority,
-					memberInfo.IsReadOnlyReplica, VersionInfo.Version, memberInfo.ReplicationEndPoint)
+					memberInfo.IsReadOnlyReplica, VersionInfo.Version, memberInfo.ClusterEndPoint)
 			};
+			_members = _servers;
 		}
 
 		public void SubscribeMessages(ISubscriber subscriber)
@@ -207,6 +209,12 @@ namespace EventStore.Core.Services
 		{
 			Log.Information("ELECTIONS: LEADER IS RESIGNING [{leaderHttpEndPoint}, {leaderId:B}].",
 				message.LeaderHttpEndPoint, message.LeaderId);
+			var leader = _members.FirstOrDefault(x => x.InstanceId == message.LeaderId);
+			if (leader is null)
+			{
+				return;
+			}
+
 			var leaderIsResigningMessageOk = new ElectionMessage.LeaderIsResigningOk(
 				message.LeaderId,
 				message.LeaderHttpEndPoint,
@@ -214,7 +222,7 @@ namespace EventStore.Core.Services
 				_memberInfo.HttpEndPoint);
 
 			_resigningLeaderInstanceId = message.LeaderId;
-			_publisher.Publish(new GrpcMessage.SendOverGrpc(message.LeaderHttpEndPoint, leaderIsResigningMessageOk,
+			_publisher.Publish(new GrpcMessage.SendOverGrpc(leader.ClusterEndPoint, leaderIsResigningMessageOk,
 				_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 		}
 
@@ -243,7 +251,8 @@ namespace EventStore.Core.Services
 
 		public void Handle(GossipMessage.GossipUpdated message)
 		{
-			_servers = message.ClusterInfo.Members.Where(x => x.State != VNodeState.Manager)
+			_members = message.ClusterInfo.Members.Where(x => x.State != VNodeState.Manager).ToArray();
+			_servers = _members
 				.Where(x => x.IsAlive)
 				.OrderByDescending(x => x.HttpEndPoint, IPComparer)
 				.ToArray();
@@ -311,7 +320,7 @@ namespace EventStore.Core.Services
 		{
 			foreach (var server in _servers.Where(x => x.InstanceId != _memberInfo.InstanceId))
 			{
-				_publisher.Publish(new GrpcMessage.SendOverGrpc(server.HttpEndPoint, message,
+				_publisher.Publish(new GrpcMessage.SendOverGrpc(server.ClusterEndPoint, message,
 					_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 			}
 		}
@@ -447,7 +456,8 @@ namespace EventStore.Core.Services
 				return;
 			}
 
-			if (_servers.All(x => x.InstanceId != message.ServerId))
+			var server = _servers.FirstOrDefault(x => x.InstanceId == message.ServerId);
+			if (server is null)
 			{
 				return; // unknown instance
 			}
@@ -461,7 +471,7 @@ namespace EventStore.Core.Services
 			}
 
 			var prepareOk = CreatePrepareOk(message.View);
-			_publisher.Publish(new GrpcMessage.SendOverGrpc(message.ServerHttpEndPoint, prepareOk,
+			_publisher.Publish(new GrpcMessage.SendOverGrpc(server.ClusterEndPoint, prepareOk,
 				_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 		}
 

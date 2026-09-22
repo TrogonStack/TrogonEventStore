@@ -10,12 +10,12 @@ namespace EventStore.Core.Tests.Regression;
 public class ClusterStatusServiceTests
 {
 	[Test]
-	public void replication_statistics_match_the_member_replication_endpoint()
+	public void replication_statistics_match_the_member_cluster_endpoint()
 	{
 		var member = new ClientClusterInfo.ClientMemberInfo
 		{
-			ReplicationEndPointIp = "replica.internal",
-			ReplicationEndPointPort = 1112
+			ClusterEndPointIp = "replica.internal",
+			ClusterEndPointPort = 1112
 		};
 
 		var result = (ClientClusterInfo.ClientMemberInfo)typeof(ClusterStatusService)

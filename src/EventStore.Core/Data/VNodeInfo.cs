@@ -13,7 +13,8 @@ namespace EventStore.Core.Data
 		public readonly IPEndPoint ExternalTcp;
 		public readonly IPEndPoint ExternalSecureTcp;
 		public readonly EndPoint HttpEndPoint;
-		public readonly EndPoint ReplicationEndPoint;
+		public readonly EndPoint ClusterEndPoint;
+		public EndPoint ReplicationEndPoint => ClusterEndPoint;
 		public readonly bool IsReadOnlyReplica;
 
 		public VNodeInfo(Guid instanceId, int debugIndex,
@@ -21,7 +22,7 @@ namespace EventStore.Core.Data
 			IPEndPoint externalTcp, IPEndPoint externalSecureTcp,
 			EndPoint httpEndPoint,
 			bool isReadOnlyReplica,
-			EndPoint replicationEndPoint = null)
+			EndPoint clusterEndPoint = null)
 		{
 			Ensure.NotEmptyGuid(instanceId, "instanceId");
 			Ensure.Equal(false, internalTcp == null && internalSecureTcp == null, "Both internal TCP endpoints are null");
@@ -34,7 +35,7 @@ namespace EventStore.Core.Data
 			ExternalTcp = externalTcp;
 			ExternalSecureTcp = externalSecureTcp;
 			HttpEndPoint = httpEndPoint;
-			ReplicationEndPoint = replicationEndPoint ?? httpEndPoint;
+			ClusterEndPoint = clusterEndPoint ?? httpEndPoint;
 			IsReadOnlyReplica = isReadOnlyReplica;
 		}
 
@@ -42,7 +43,7 @@ namespace EventStore.Core.Data
 		{
 			return endPoint != null
 				   && (HttpEndPoint.Equals(endPoint)
-					   || ReplicationEndPoint.Equals(endPoint)
+					   || ClusterEndPoint.Equals(endPoint)
 					   || (InternalTcp != null && InternalTcp.Equals(endPoint))
 					   || (InternalSecureTcp != null && InternalSecureTcp.Equals(endPoint))
 					   || (ExternalTcp != null && ExternalTcp.Equals(endPoint))
@@ -53,14 +54,14 @@ namespace EventStore.Core.Data
 		{
 			return string.Format("InstanceId: {0:B}, InternalTcp: {1}, InternalSecureTcp: {2}, " +
 								 "ExternalTcp: {3}, ExternalSecureTcp: {4}, HttpEndPoint: {5}, " +
-								 "ReplicationEndPoint: {6}, IsReadOnlyReplica: {7}",
+								 "ClusterEndPoint: {6}, IsReadOnlyReplica: {7}",
 				InstanceId,
 				InternalTcp,
 				InternalSecureTcp,
 				ExternalTcp,
 				ExternalSecureTcp,
 				HttpEndPoint,
-				ReplicationEndPoint,
+				ClusterEndPoint,
 				IsReadOnlyReplica);
 		}
 	}
