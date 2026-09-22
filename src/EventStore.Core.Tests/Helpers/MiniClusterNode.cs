@@ -43,7 +43,6 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 
 	private static readonly ILogger Log = Serilog.Log.ForContext<MiniClusterNode<TLogFormat, TStreamId>>();
 
-	public IPEndPoint InternalTcpEndPoint { get; }
 	public IPEndPoint ExternalTcpEndPoint { get; }
 	public IPEndPoint HttpEndPoint { get; }
 	public IPEndPoint ClusterEndPoint { get; }
@@ -64,7 +63,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	public VNodeState NodeState = VNodeState.Unknown;
 	private readonly IHost _host;
 
-	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint internalTcp, IPEndPoint externalTcp,
+	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint clusterEndPoint, IPEndPoint externalTcp,
 		IPEndPoint httpEndPoint, EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
 		bool enableTrustedAuth = false, int memTableSize = 1000,
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
@@ -78,10 +77,9 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		RunCount += 1;
 
 		DebugIndex = debugIndex;
-		InternalTcpEndPoint = internalTcp;
 		ExternalTcpEndPoint = externalTcp;
 		HttpEndPoint = httpEndPoint;
-		ClusterEndPoint = internalTcp;
+		ClusterEndPoint = clusterEndPoint;
 
 		_dbPath = Path.Combine(
 			pathname,
@@ -121,9 +119,9 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			},
 			Interface = new()
 			{
-				ReplicationIp = InternalTcpEndPoint.Address,
+				ReplicationIp = ClusterEndPoint.Address,
 				NodeIp = ExternalTcpEndPoint.Address,
-				ReplicationPort = InternalTcpEndPoint.Port,
+				ReplicationPort = ClusterEndPoint.Port,
 				NodePort = HttpEndPoint.Port,
 				ReplicationHeartbeatTimeout = 2_000,
 				ReplicationHeartbeatInterval = 2_000,

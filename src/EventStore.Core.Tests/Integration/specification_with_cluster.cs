@@ -25,13 +25,13 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected class Endpoints
 	{
-		public readonly IPEndPoint InternalTcp;
+		public readonly IPEndPoint ClusterEndPoint;
 		public readonly IPEndPoint ExternalTcp;
 		public readonly IPEndPoint HttpEndPoint;
 
 		public IEnumerable<int> Ports()
 		{
-			yield return InternalTcp.Port;
+			yield return ClusterEndPoint.Port;
 			yield return ExternalTcp.Port;
 			yield return HttpEndPoint.Port;
 		}
@@ -44,9 +44,9 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 			var defaultLoopBack = new IPEndPoint(IPAddress.Loopback, 0);
 
-			var internalTcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			internalTcp.Bind(defaultLoopBack);
-			_sockets.Add(internalTcp);
+			var cluster = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			cluster.Bind(defaultLoopBack);
+			_sockets.Add(cluster);
 
 			var externalTcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			externalTcp.Bind(defaultLoopBack);
@@ -56,7 +56,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			httpEndPoint.Bind(defaultLoopBack);
 			_sockets.Add(httpEndPoint);
 
-			InternalTcp = CopyEndpoint((IPEndPoint)internalTcp.LocalEndPoint);
+			ClusterEndPoint = CopyEndpoint((IPEndPoint)cluster.LocalEndPoint);
 			ExternalTcp = CopyEndpoint((IPEndPoint)externalTcp.LocalEndPoint);
 			HttpEndPoint = CopyEndpoint((IPEndPoint)httpEndPoint.LocalEndPoint);
 		}
@@ -102,7 +102,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 				nodeIndex,
 				_nodeEndpoints[nodeIndex],
 				_nodeEndpoints.Where((_, otherIndex) => otherIndex != nodeIndex)
-					.Select(x => (EndPoint)x.InternalTcp)
+					.Select(x => (EndPoint)x.ClusterEndPoint)
 					.ToArray(),
 				wait));
 			_nodes[nodeIndex] = _nodeCreationFactory[nodeIndex](true);
@@ -171,7 +171,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected virtual MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		bool wait = true) => new(
-		PathName, index, endpoints.InternalTcp,
+		PathName, index, endpoints.ClusterEndPoint,
 		endpoints.ExternalTcp, endpoints.HttpEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
 
