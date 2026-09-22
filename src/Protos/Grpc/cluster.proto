@@ -146,4 +146,5 @@ message MemberInfo {
     uint32 advertise_http_port_to_client_as = 19;
     uint32 advertise_tcp_port_to_client_as = 20;
 	string es_version = 21;
+	EndPoint replication_end_point = 22;
 }

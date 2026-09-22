@@ -122,7 +122,8 @@ public abstract class NodeGossipServiceTestFixture
 		return MemberInfo.ForVNode(nodeInfo.InstanceId, utcNow, nodeState, isAlive,
 			nodeInfo.InternalTcp, nodeInfo.InternalSecureTcp, nodeInfo.ExternalTcp,
 			nodeInfo.ExternalSecureTcp, nodeInfo.HttpEndPoint, null, 0, 0,
-			0, writerCheckpoint ?? 0, 0, -1, epochNumber ?? -1, Guid.Empty, nodePriority ?? 0, false, esVersion);
+			0, writerCheckpoint ?? 0, 0, -1, epochNumber ?? -1, Guid.Empty, nodePriority ?? 0, false, esVersion,
+			nodeInfo.ReplicationEndPoint);
 	}
 
 	/// <summary>
@@ -242,6 +243,42 @@ public class when_got_gossip_seed_sources : NodeGossipServiceTestFixture
 				_currentNode.HttpEndPoint), _timeProvider.LocalTime.Add(_gossipTimeout)),
 			TimerMessage.Schedule.Create(GossipServiceBase.GossipStartupInterval, _bus,
 				new GossipMessage.Gossip(1)));
+	}
+}
+
+public class when_got_gossip_seed_sources_with_distinct_replication_endpoint : NodeGossipServiceTestFixture
+{
+	public when_got_gossip_seed_sources_with_distinct_replication_endpoint()
+	{
+		_currentNode = new VNodeInfo(
+			Guid.Parse("00000000-0000-0000-0000-000000000001"), 1,
+			new IPEndPoint(IPAddress.Loopback, 1111),
+			new IPEndPoint(IPAddress.Loopback, 1111),
+			new IPEndPoint(IPAddress.Loopback, 1111),
+			new IPEndPoint(IPAddress.Loopback, 1111),
+			new IPEndPoint(IPAddress.Loopback, 1111), false,
+			new IPEndPoint(IPAddress.Loopback, 1112));
+	}
+
+	protected override Message[] Given() => [new SystemMessage.SystemInit()];
+
+	protected override Message When() =>
+		new GossipMessage.GotGossipSeedSources([
+			_currentNode.HttpEndPoint,
+			_nodeTwo.HttpEndPoint,
+			_nodeThree.HttpEndPoint
+		]);
+
+	[Test]
+	public void should_preserve_the_replication_endpoint()
+	{
+		var gossip = (GossipMessage.SendGossip)_bus.Messages
+			.OfType<GrpcMessage.SendOverGrpc>()
+			.Single()
+			.Message;
+		var currentMember = gossip.ClusterInfo.Members.Single(x => x.InstanceId == _currentNode.InstanceId);
+
+		Assert.That(currentMember.ReplicationEndPoint, Is.EqualTo(_currentNode.ReplicationEndPoint));
 	}
 }
 
