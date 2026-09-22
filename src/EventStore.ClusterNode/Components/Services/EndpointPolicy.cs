@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using Google.Protobuf.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
@@ -17,18 +18,21 @@ public sealed record EndpointBinding(
 	IPEndPoint ListenEndPoint,
 	HttpProtocols Protocols);
 
-public sealed record EndpointRoute(PathString Path, EndpointRole Role);
+public sealed record GrpcEndpointRoute(ServiceDescriptor Service, EndpointRole Role)
+{
+	public PathString Path => new($"/{Service.FullName}");
+}
 
 public sealed class EndpointPolicy
 {
 	private readonly IReadOnlyList<EndpointBinding> _bindings;
-	private readonly IReadOnlyList<EndpointRoute> _routes;
+	private readonly IReadOnlyList<GrpcEndpointRoute> _routes;
 	private readonly EndpointRole _defaultRouteRole;
 	private readonly EndpointRole _nonIpEndpointRole;
 
 	public EndpointPolicy(
 		IReadOnlyList<EndpointBinding> bindings,
-		IReadOnlyList<EndpointRoute> routes,
+		IReadOnlyList<GrpcEndpointRoute> routes,
 		EndpointRole defaultRouteRole,
 		EndpointRole nonIpEndpointRole)
 	{

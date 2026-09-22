@@ -285,10 +285,10 @@ internal static class Program
 					var endpointPolicy = new EndpointPolicy(
 						endpointBindings,
 						[
-							new("/event_store.cluster.Gossip", EndpointRole.Cluster),
-							new("/event_store.cluster.Elections", EndpointRole.Cluster),
-							new("/event_store.replication.Replication", EndpointRole.Cluster),
-							new("/event_store.forwarding.RequestForwarding", EndpointRole.Cluster),
+							new(EventStore.Cluster.Gossip.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Cluster.Elections.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Replication.Replication.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Forwarding.RequestForwarding.Descriptor, EndpointRole.Cluster),
 						],
 						defaultRouteRole: EndpointRole.Client,
 						nonIpEndpointRole: EndpointRole.Client);

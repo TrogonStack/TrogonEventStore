@@ -71,13 +71,13 @@ public class EndpointPolicyTests
 				new(EndpointRole.Client, new IPEndPoint(IPAddress.Loopback, 2113), HttpProtocols.Http1AndHttp2),
 				new(EndpointRole.Cluster, new IPEndPoint(IPAddress.Loopback, 1112), HttpProtocols.Http2),
 			],
-			[new("/event_store.cluster.FutureService", EndpointRole.Cluster)],
+			[new(EventStore.Client.Monitoring.Monitoring.Descriptor, EndpointRole.Cluster)],
 			defaultRouteRole: EndpointRole.Client,
 			nonIpEndpointRole: EndpointRole.Client);
 		var context = new DefaultHttpContext();
 		context.Connection.LocalIpAddress = IPAddress.Loopback;
 		context.Connection.LocalPort = 1112;
-		context.Request.Path = "/event_store.cluster.FutureService/Call";
+		context.Request.Path = "/event_store.client.monitoring.Monitoring/Stats";
 
 		Assert.That(policy.Allows(context), Is.True);
 	}
@@ -114,10 +114,10 @@ public class EndpointPolicyTests
 				new(EndpointRole.Cluster, clusterEndPoint, HttpProtocols.Http2),
 			],
 			[
-				new("/event_store.cluster.Gossip", EndpointRole.Cluster),
-				new("/event_store.cluster.Elections", EndpointRole.Cluster),
-				new("/event_store.replication.Replication", EndpointRole.Cluster),
-				new("/event_store.forwarding.RequestForwarding", EndpointRole.Cluster),
+				new(EventStore.Cluster.Gossip.Descriptor, EndpointRole.Cluster),
+				new(EventStore.Cluster.Elections.Descriptor, EndpointRole.Cluster),
+				new(EventStore.Replication.Replication.Descriptor, EndpointRole.Cluster),
+				new(EventStore.Forwarding.RequestForwarding.Descriptor, EndpointRole.Cluster),
 			],
 			defaultRouteRole: EndpointRole.Client,
 			nonIpEndpointRole: EndpointRole.Client);
