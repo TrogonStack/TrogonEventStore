@@ -25,12 +25,16 @@ on:
         required: false
         type: string
         default: eventstore-image
+      runner-label:
+        required: false
+        type: string
+        default: ubuntu-latest
 
 jobs:
   build-container:
     strategy:
       fail-fast: false
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner-label }}
     name: ${{ format('{0} / {1}', inputs.container-runtime, inputs.test-group-name) }}
     steps:
       - name: Checkout
