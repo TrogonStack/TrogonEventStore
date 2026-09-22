@@ -38,7 +38,7 @@ jobs:
         id: select
         uses: TrogonStack/github-actions/actions/runs-on-selector@266fc0eaedf8ec0711fa87f8de24d3ba18087a85
         with:
-          pools-json: '{"github":"ubuntu-latest","blacksmith":"blacksmith-2vcpu-ubuntu-2404"}'
+          pools-json: '{"github":"ubuntu-latest","blacksmith":"blacksmith-4vcpu-ubuntu-2404"}'
           default-pool-name: github
 
   build-images:
