@@ -17,7 +17,10 @@ namespace EventStore.Core.Cluster
 
 		public ClientClusterInfo(ClusterInfo clusterInfo, string serverIp, int serverPort)
 		{
-			Members = clusterInfo.Members.Select(x => new ClientMemberInfo(x)).ToArray();
+			Members = clusterInfo.Members
+				.Where(x => x.State != VNodeState.Manager)
+				.Select(x => new ClientMemberInfo(x))
+				.ToArray();
 			ServerIp = serverIp;
 			ServerPort = serverPort;
 		}

@@ -110,6 +110,26 @@ public class MemberInfoTests
 	}
 
 	[Test]
+	public void client_cluster_info_excludes_internal_discovery_placeholders()
+	{
+		var member = CreateMember(Replication);
+		var seed = EventStore.Core.Cluster.MemberInfo.ForManager(
+			Guid.Empty,
+			DateTime.UtcNow,
+			true,
+			Replication,
+			clusterEndPoint: Replication);
+
+		var clientCluster = new EventStore.Core.Cluster.ClientClusterInfo(
+			new EventStore.Core.Cluster.ClusterInfo(member, seed),
+			Http.Host,
+			Http.Port);
+
+		Assert.That(clientCluster.Members, Has.Length.EqualTo(1));
+		Assert.That(clientCluster.Members[0].InstanceId, Is.EqualTo(member.InstanceId));
+	}
+
+	[Test]
 	public void missing_cluster_endpoint_falls_back_to_http_endpoint()
 	{
 		var member = CreateMember();
