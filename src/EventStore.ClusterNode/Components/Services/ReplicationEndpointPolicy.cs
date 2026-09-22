@@ -6,8 +6,10 @@ namespace EventStore.ClusterNode.Components.Services;
 
 public sealed class ReplicationEndpointPolicy(IPEndPoint listenEndPoint)
 {
-	private static readonly PathString ReplicationServicePath = "/event_store.replication.Replication";
-	private static readonly PathString RequestForwardingServicePath = "/event_store.forwarding.RequestForwarding";
+	private static readonly PathString ReplicationServicePath =
+		new($"/{EventStore.Replication.Replication.Descriptor.FullName}");
+	private static readonly PathString RequestForwardingServicePath =
+		new($"/{EventStore.Forwarding.RequestForwarding.Descriptor.FullName}");
 
 	public bool Allows(HttpContext context)
 	{
