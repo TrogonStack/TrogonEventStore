@@ -1827,6 +1827,11 @@
                 "id": 2,
                 "name": "leader_http",
                 "type": "EndPoint"
+              },
+              {
+                "id": 3,
+                "name": "leader_cluster",
+                "type": "EndPoint"
               }
             ]
           },

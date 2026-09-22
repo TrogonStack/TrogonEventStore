@@ -197,7 +197,7 @@ namespace EventStore.Core.Services
 				_leaderIsResigningOkReceived.Clear();
 				Handle(leaderIsResigningMessageOk);
 				SendToAllExceptMe(new ElectionMessage.LeaderIsResigning(
-					_memberInfo.InstanceId, _memberInfo.HttpEndPoint));
+					_memberInfo.InstanceId, _memberInfo.HttpEndPoint, _memberInfo.ClusterEndPoint));
 			}
 			else
 			{
@@ -209,8 +209,9 @@ namespace EventStore.Core.Services
 		{
 			Log.Information("ELECTIONS: LEADER IS RESIGNING [{leaderHttpEndPoint}, {leaderId:B}].",
 				message.LeaderHttpEndPoint, message.LeaderId);
-			var leader = _clusterMembership.FirstOrDefault(x => x.InstanceId == message.LeaderId);
-			if (leader is null)
+			var leaderClusterEndPoint = message.LeaderClusterEndPoint ??
+				_clusterMembership.FirstOrDefault(x => x.InstanceId == message.LeaderId)?.ClusterEndPoint;
+			if (leaderClusterEndPoint is null)
 			{
 				return;
 			}
@@ -222,7 +223,7 @@ namespace EventStore.Core.Services
 				_memberInfo.HttpEndPoint);
 
 			_resigningLeaderInstanceId = message.LeaderId;
-			_publisher.Publish(new GrpcMessage.SendOverGrpc(leader.ClusterEndPoint, leaderIsResigningMessageOk,
+			_publisher.Publish(new GrpcMessage.SendOverGrpc(leaderClusterEndPoint, leaderIsResigningMessageOk,
 				_timeProvider.LocalTime.Add(_leaderElectionProgressTimeout)));
 		}
 

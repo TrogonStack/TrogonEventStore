@@ -1234,6 +1234,35 @@ public class when_receiving_leader_is_resigning : ElectionsFixture
 	}
 }
 
+public class when_receiving_leader_is_resigning_before_gossip_contains_the_leader : ElectionsFixture
+{
+	public when_receiving_leader_is_resigning_before_gossip_contains_the_leader() :
+		base(NodeFactory(1), NodeFactory(2), NodeFactory(3))
+	{
+		_sut.Handle(new GossipMessage.GossipUpdated(new ClusterInfo(
+			MemberInfoFromVNode(_node, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0),
+			MemberInfoFromVNode(_nodeThree, _timeProvider.UtcNow, VNodeState.Unknown, true, 0, _epochId, 0))));
+	}
+
+	[Test]
+	public void should_reply_using_the_endpoint_carried_by_the_message()
+	{
+		_sut.Handle(new ElectionMessage.LeaderIsResigning(
+			_nodeTwo.InstanceId,
+			_nodeTwo.HttpEndPoint,
+			_nodeTwo.ClusterEndPoint));
+
+		var expected = new Message[] {
+			new GrpcMessage.SendOverGrpc(_nodeTwo.ClusterEndPoint,
+				new ElectionMessage.LeaderIsResigningOk(
+					_nodeTwo.InstanceId, _nodeTwo.HttpEndPoint,
+					_node.InstanceId, _node.HttpEndPoint),
+				_timeProvider.LocalTime.Add(LeaderElectionProgressTimeout)),
+		};
+		_publisher.Messages.Should().BeEquivalentTo(expected);
+	}
+}
+
 public class when_resigning_node_and_majority_resigning_ok_received : ElectionsFixture
 {
 	public when_resigning_node_and_majority_resigning_ok_received() :

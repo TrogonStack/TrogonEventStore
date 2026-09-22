@@ -200,6 +200,8 @@ namespace EventStore.Core.Messages
 			public Guid LeaderId { get; set; }
 			public string LeaderHttpAddress { get; set; }
 			public int LeaderHttpPort { get; set; }
+			public string LeaderClusterAddress { get; set; }
+			public int LeaderClusterPort { get; set; }
 			public LeaderIsResigningDto()
 			{
 			}
@@ -209,6 +211,8 @@ namespace EventStore.Core.Messages
 				LeaderId = message.LeaderId;
 				LeaderHttpAddress = message.LeaderHttpEndPoint.GetHost();
 				LeaderHttpPort = message.LeaderHttpEndPoint.GetPort();
+				LeaderClusterAddress = message.LeaderClusterEndPoint?.GetHost();
+				LeaderClusterPort = message.LeaderClusterEndPoint?.GetPort() ?? 0;
 			}
 		}
 
