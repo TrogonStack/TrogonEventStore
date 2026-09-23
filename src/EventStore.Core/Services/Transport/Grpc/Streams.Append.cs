@@ -122,6 +122,12 @@ namespace EventStore.Core.Services.Transport.Grpc
 						appendResponseSource.TrySetException(ex);
 						return;
 					}
+					if (message is ClientMessage.NotAuthenticated notAuthenticated)
+					{
+						appendResponseSource.TrySetException(new RpcException(
+							new Status(StatusCode.Unauthenticated, notAuthenticated.Reason)));
+						return;
+					}
 
 					if (!(message is ClientMessage.WriteEventsCompleted completed))
 					{
