@@ -21,6 +21,7 @@
 			blocks: [],
 			queues: [],
 			networkConnections: [],
+			networkAvailable: false,
 			networkSamples: new Map(),
 			networkPage: 0,
 			replicationConnections: [],
@@ -127,12 +128,16 @@
 		state.queues = parsed.queues;
 		state.blocks = parsed.blocks;
 		state.networkConnections = parseNetworkConnections(payload, state);
+		state.networkAvailable = payload.networkAvailable === true;
 		state.replicationConnections = parseReplicationConnections(payload);
 		setStatus(
 			state.root,
 			payload.message ? "Live stats unavailable" : "Live stats",
 			payload.message || "Updated " + formatTime(new Date()));
-		setNetworkStatus(state.root, payload.message, state.networkConnections.length);
+		setNetworkStatus(
+			state.root,
+			state.networkAvailable ? "" : (payload.message || "Network statistics are unavailable."),
+			state.networkConnections.length);
 		render(state);
 	}
 
@@ -155,6 +160,7 @@
 			state.queues = [];
 			state.blocks = [];
 			state.networkConnections = [];
+			state.networkAvailable = false;
 			state.replicationConnections = [];
 			setStatus(state.root, "Live stats unavailable", friendlyMessage(error));
 			setNetworkStatus(state.root, friendlyMessage(error), 0);
@@ -498,7 +504,9 @@
 			var empty = element("tr");
 			var emptyCell = element("td", "px-5 py-4 text-es-muted");
 			emptyCell.colSpan = 10;
-			emptyCell.textContent = "No active shared-endpoint connections.";
+			emptyCell.textContent = state.networkAvailable
+				? "No active shared-endpoint connections."
+				: "Network statistics are unavailable.";
 			empty.appendChild(emptyCell);
 			tbody.appendChild(empty);
 			updateNetworkPagination(state, 0);

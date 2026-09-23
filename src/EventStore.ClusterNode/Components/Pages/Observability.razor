@@ -55,7 +55,7 @@
 				<tbody class="divide-y divide-es-ink/10" data-network-table-body>
 					@if (NetworkRows.Count == 0)
 					{
-						<tr><td class="px-5 py-4 text-es-muted" colspan="10">No active shared-endpoint connections.</td></tr>
+						<tr><td class="px-5 py-4 text-es-muted" colspan="10">@NetworkEmptyMessage</td></tr>
 					}
 					else
 					{
@@ -208,9 +208,18 @@
 	private string DashboardPayloadJson => Page?.ClientPayloadJson ?? "{}";
 	private IReadOnlyList<NodeConnectionSnapshot> NetworkRows =>
 		Page?.NodeConnections ?? Array.Empty<NodeConnectionSnapshot>();
-	private string NetworkStatusLabel => NetworkRows.Count == 0
-		? "Network live"
-		: string.Create(CultureInfo.InvariantCulture, $"Network live · {NetworkRows.Count} connection{(NetworkRows.Count == 1 ? "" : "s")}");
+	private string NetworkStatusLabel => Page is null
+		? "Connecting network stats..."
+		: !Page.NetworkAvailable
+			? "Network unavailable"
+			: NetworkRows.Count == 0
+				? "Network live"
+				: string.Create(CultureInfo.InvariantCulture, $"Network live · {NetworkRows.Count} connection{(NetworkRows.Count == 1 ? "" : "s")}");
+	private string NetworkEmptyMessage => Page is null
+		? "Waiting for network statistics..."
+		: Page.NetworkAvailable
+			? "No active shared-endpoint connections."
+			: "Network statistics are unavailable.";
 	private string NetworkPageStatusLabel => NetworkRows.Count == 0
 		? "No pages"
 		: string.Create(CultureInfo.InvariantCulture, $"Page 1 of {Math.Max(1, (int)Math.Ceiling(NetworkRows.Count / 5.0))}");
