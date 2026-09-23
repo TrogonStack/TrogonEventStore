@@ -14,8 +14,8 @@ using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
-using GrpcStreams = EventStore.Client.Streams.Streams;
 using GrpcMetadata = EventStore.Core.Services.Transport.Grpc.Constants.Metadata;
+using GrpcStreams = EventStore.Client.Streams.Streams;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 
@@ -55,8 +55,10 @@ public class ForwardedAuthenticationTests
 	public void delete_reports_forwarded_authentication_failure()
 	{
 		var service = CreateService(new AuthenticationFailurePublisher());
-		var request = new DeleteReq {
-			Options = new DeleteReq.Types.Options {
+		var request = new DeleteReq
+		{
+			Options = new DeleteReq.Types.Options
+			{
 				NoStream = new(),
 				StreamIdentifier = "forwarded-auth-delete"
 			}
@@ -85,7 +87,10 @@ public class ForwardedAuthenticationTests
 		public void Publish(Message message)
 		{
 			if (message is not ClientMessage.WriteRequestMessage request)
+			{
 				throw new InvalidOperationException($"Unexpected message {message.GetType().Name}");
+			}
+
 			request.Envelope.ReplyWith(new ClientMessage.NotAuthenticated(request.CorrelationId, "forwarding denied"));
 		}
 	}
@@ -98,7 +103,10 @@ public class ForwardedAuthenticationTests
 		public Task<bool> MoveNext(CancellationToken cancellationToken)
 		{
 			if (!_values.MoveNext())
+			{
 				return Task.FromResult(false);
+			}
+
 			Current = _values.Current;
 			return Task.FromResult(true);
 		}
@@ -108,7 +116,8 @@ public class ForwardedAuthenticationTests
 	{
 		public TestServerCallContext()
 		{
-			UserStateCore["__HttpContext"] = new DefaultHttpContext {
+			UserStateCore["__HttpContext"] = new DefaultHttpContext
+			{
 				User = new ClaimsPrincipal(new ClaimsIdentity())
 			};
 		}
