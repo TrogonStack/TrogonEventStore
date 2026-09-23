@@ -60,7 +60,8 @@ public sealed class QueueDashboardService
 		}
 		catch (TimeoutException)
 		{
-			return QueueDashboardPage.Unavailable("Timed out reading queue statistics.");
+			return QueueDashboardPage.Unavailable("Timed out reading queue statistics.",
+				_nodeConnectionTracker.Snapshot());
 		}
 		catch (OperationCanceledException)
 		{
@@ -69,11 +70,14 @@ public sealed class QueueDashboardService
 				throw;
 			}
 
-			return QueueDashboardPage.Unavailable("Timed out reading queue statistics.");
+			return QueueDashboardPage.Unavailable("Timed out reading queue statistics.",
+				_nodeConnectionTracker.Snapshot());
 		}
 		catch (Exception ex)
 		{
-			return QueueDashboardPage.Unavailable($"Unable to read queue statistics: {UiMessages.Friendly(ex)}");
+			return QueueDashboardPage.Unavailable(
+				$"Unable to read queue statistics: {UiMessages.Friendly(ex)}",
+				_nodeConnectionTracker.Snapshot());
 		}
 	}
 
@@ -219,12 +223,14 @@ public sealed record QueueDashboardPage(
 			"",
 			replicationMessage);
 
-	public static QueueDashboardPage Unavailable(string message) =>
+	public static QueueDashboardPage Unavailable(
+		string message,
+		IReadOnlyList<NodeConnectionSnapshot> nodeConnections = null) =>
 		new(
 			Array.Empty<QueueDashboardBlock>(),
 			Array.Empty<QueueDashboardRow>(),
 			Array.Empty<ReplicationConnectionRow>(),
-			Array.Empty<NodeConnectionSnapshot>(),
+			nodeConnections ?? Array.Empty<NodeConnectionSnapshot>(),
 			message,
 			"");
 

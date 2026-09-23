@@ -52,6 +52,56 @@ public class GrpcOnlySurfaceParityTests
 	}
 
 	[Test]
+	public async Task queue_stats_failure_does_not_hide_active_connections()
+	{
+		var tracker = new NodeConnectionTracker();
+		var incoming = new Pipe();
+		var outgoing = new Pipe();
+		var connection = new DefaultConnectionContext("active-connection")
+		{
+			LocalEndPoint = new IPEndPoint(IPAddress.Loopback, 2113),
+			RemoteEndPoint = new IPEndPoint(IPAddress.Loopback, 50123),
+			Transport = new TestDuplexPipe(incoming.Reader, outgoing.Writer)
+		};
+		var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var tracking = tracker.Track(connection, async _ =>
+		{
+			started.SetResult();
+			await release.Task;
+		}, isTls: false);
+		await started.Task;
+
+		try
+		{
+			var components = new StandardComponents(
+				null, null, null, null, null, null, null, new QueueStatsPublisher(failQueueStats: true),
+				null, null, false);
+			var service = new QueueDashboardService(
+				new PassthroughAuthorizationProvider(),
+				new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+				components,
+				tracker);
+
+			var page = await service.Read();
+			using var payload = JsonDocument.Parse(page.ClientPayloadJson);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(page.IsAvailable, Is.False);
+				Assert.That(page.NodeConnections, Has.One.Matches<NodeConnectionSnapshot>(x =>
+					x.ConnectionId == "active-connection"));
+				Assert.That(payload.RootElement.GetProperty("nodeConnections").GetArrayLength(), Is.EqualTo(1));
+			});
+		}
+		finally
+		{
+			release.SetResult();
+			await tracking;
+		}
+	}
+
+	[Test]
 	public async Task http_connections_are_visible_only_while_active()
 	{
 		var tracker = new NodeConnectionTracker();
@@ -108,13 +158,18 @@ public class GrpcOnlySurfaceParityTests
 		public PipeWriter Output { get; } = output;
 	}
 
-	private sealed class QueueStatsPublisher : IPublisher
+	private sealed class QueueStatsPublisher(bool failQueueStats = false) : IPublisher
 	{
 		public void Publish(Message message)
 		{
 			switch (message)
 			{
 				case MonitoringMessage.GetFreshStats request:
+					if (failQueueStats)
+					{
+						throw new InvalidOperationException("Queue statistics are unavailable.");
+					}
+
 					request.Envelope.ReplyWith(new MonitoringMessage.GetFreshStatsCompleted(
 						success: true,
 						stats: new Dictionary<string, object>

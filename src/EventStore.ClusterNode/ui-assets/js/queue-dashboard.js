@@ -132,7 +132,7 @@
 			state.root,
 			payload.message ? "Live stats unavailable" : "Live stats",
 			payload.message || "Updated " + formatTime(new Date()));
-		setNetworkStatus(state.root, payload.message, state.networkConnections.length);
+		setNetworkStatus(state.root, "", state.networkConnections.length);
 		render(state);
 	}
 
