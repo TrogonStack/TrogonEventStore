@@ -91,6 +91,31 @@ public class GrpcOnlySurfaceParityTests
 	}
 
 	[Test]
+	public async Task queue_stats_failure_does_not_hide_replication_connections()
+	{
+		var components = new StandardComponents(
+			null, null, null, null, null, null, null,
+			new QueueStatsPublisher(failQueueStats: true, provideReplicationStats: true),
+			null, null, false);
+		var service = new QueueDashboardService(
+			new PassthroughAuthorizationProvider(),
+			new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+			components,
+			new NodeConnectionTracker());
+
+		var page = await service.Read();
+		using var payload = JsonDocument.Parse(page.ClientPayloadJson);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(page.IsAvailable, Is.False);
+			Assert.That(page.ReplicationConnections,
+				Has.One.Matches<ReplicationConnectionRow>(x => x.Endpoint == "replica:1112"));
+			Assert.That(payload.RootElement.GetProperty("replicationConnections").GetArrayLength(), Is.EqualTo(1));
+		});
+	}
+
+	[Test]
 	public async Task denied_statistics_access_does_not_expose_or_mark_connections_available()
 	{
 		var (tracker, release, tracking) = TrackActiveConnection();
@@ -203,7 +228,7 @@ public class GrpcOnlySurfaceParityTests
 			ValueTask.FromResult(false);
 	}
 
-	private sealed class QueueStatsPublisher(bool failQueueStats = false) : IPublisher
+	private sealed class QueueStatsPublisher(bool failQueueStats = false, bool provideReplicationStats = false) : IPublisher
 	{
 		public void Publish(Message message)
 		{
@@ -231,8 +256,16 @@ public class GrpcOnlySurfaceParityTests
 							}
 						}));
 					break;
-				case ReplicationMessage.GetReplicationStats:
-					throw new InvalidOperationException("Replication statistics are unavailable.");
+				case ReplicationMessage.GetReplicationStats request:
+					if (!provideReplicationStats)
+					{
+						throw new InvalidOperationException("Replication statistics are unavailable.");
+					}
+
+					request.Envelope.ReplyWith(new ReplicationMessage.GetReplicationStatsCompleted(
+						[new ReplicationMessage.ReplicationStats(
+							Guid.NewGuid(), Guid.NewGuid(), "replica:1112", 0, 0, 0, 0, 0)]));
+					break;
 			}
 		}
 	}

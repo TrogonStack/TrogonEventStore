@@ -43,13 +43,14 @@ public sealed class QueueDashboardService
 			return QueueDashboardPage.Unavailable("Runtime statistics access was denied.");
 		}
 
+		Task<ReplicationStatsRead> replicationConnectionsTask = null;
 		try
 		{
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
 
 			var queuesTask = ReadQueueStats(timeout.Token);
-			var replicationConnectionsTask = ReadReplicationStatsOrEmpty(timeout.Token, cancellationToken);
+			replicationConnectionsTask = ReadReplicationStatsOrEmpty(timeout.Token, cancellationToken);
 			await Task.WhenAll(queuesTask, replicationConnectionsTask);
 			var replication = await replicationConnectionsTask;
 			return QueueDashboardPage.Success(
@@ -60,8 +61,7 @@ public sealed class QueueDashboardService
 		}
 		catch (TimeoutException)
 		{
-			return QueueDashboardPage.QueueUnavailable("Timed out reading queue statistics.",
-				_nodeConnectionTracker.Snapshot());
+			return QueueUnavailable("Timed out reading queue statistics.");
 		}
 		catch (OperationCanceledException)
 		{
@@ -70,14 +70,20 @@ public sealed class QueueDashboardService
 				throw;
 			}
 
-			return QueueDashboardPage.QueueUnavailable("Timed out reading queue statistics.",
-				_nodeConnectionTracker.Snapshot());
+			return QueueUnavailable("Timed out reading queue statistics.");
 		}
 		catch (Exception ex)
 		{
+			return QueueUnavailable($"Unable to read queue statistics: {UiMessages.Friendly(ex)}");
+		}
+
+		QueueDashboardPage QueueUnavailable(string message)
+		{
+			var replication = replicationConnectionsTask is { IsCompletedSuccessfully: true }
+				? replicationConnectionsTask.Result
+				: new ReplicationStatsRead(Array.Empty<ReplicationConnectionRow>(), "");
 			return QueueDashboardPage.QueueUnavailable(
-				$"Unable to read queue statistics: {UiMessages.Friendly(ex)}",
-				_nodeConnectionTracker.Snapshot());
+				message, _nodeConnectionTracker.Snapshot(), replication.Rows, replication.Message);
 		}
 	}
 
@@ -228,15 +234,17 @@ public sealed record QueueDashboardPage(
 
 	public static QueueDashboardPage QueueUnavailable(
 		string message,
-		IReadOnlyList<NodeConnectionSnapshot> nodeConnections) =>
+		IReadOnlyList<NodeConnectionSnapshot> nodeConnections,
+		IReadOnlyList<ReplicationConnectionRow> replicationConnections = null,
+		string replicationMessage = "") =>
 		new(
 			Array.Empty<QueueDashboardBlock>(),
 			Array.Empty<QueueDashboardRow>(),
-			Array.Empty<ReplicationConnectionRow>(),
+			replicationConnections ?? Array.Empty<ReplicationConnectionRow>(),
 			nodeConnections,
 			true,
 			message,
-			"");
+			replicationMessage);
 
 	public static QueueDashboardPage Unavailable(string message) =>
 		new(
