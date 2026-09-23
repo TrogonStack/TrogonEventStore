@@ -17,7 +17,10 @@ namespace EventStore.Core.Cluster
 
 		public ClientClusterInfo(ClusterInfo clusterInfo, string serverIp, int serverPort)
 		{
-			Members = clusterInfo.Members.Select(x => new ClientMemberInfo(x)).ToArray();
+			Members = clusterInfo.Members
+				.Where(x => x.State != VNodeState.Manager)
+				.Select(x => new ClientMemberInfo(x))
+				.ToArray();
 			ServerIp = serverIp;
 			ServerPort = serverPort;
 		}
@@ -39,8 +42,8 @@ namespace EventStore.Core.Cluster
 
 			public string InternalHttpEndPointIp { get; set; }
 			public int InternalHttpEndPointPort { get; set; }
-			public string ReplicationEndPointIp { get; set; }
-			public int ReplicationEndPointPort { get; set; }
+			public string ClusterEndPointIp { get; set; }
+			public int ClusterEndPointPort { get; set; }
 
 			public string HttpEndPointIp { get; set; }
 			public int HttpEndPointPort { get; set; }
@@ -72,8 +75,8 @@ namespace EventStore.Core.Cluster
 
 				InternalHttpEndPointIp = member.HttpEndPoint.GetHost();
 				InternalHttpEndPointPort = member.HttpEndPoint.GetPort();
-				ReplicationEndPointIp = member.ReplicationEndPoint.GetHost();
-				ReplicationEndPointPort = member.ReplicationEndPoint.GetPort();
+				ClusterEndPointIp = member.ClusterEndPoint.GetHost();
+				ClusterEndPointPort = member.ClusterEndPoint.GetPort();
 
 				HttpEndPointIp = string.IsNullOrEmpty(member.AdvertiseHostToClientAs)
 					? member.HttpEndPoint.GetHost()
@@ -101,7 +104,7 @@ namespace EventStore.Core.Cluster
 				return
 					$"InstanceId: {InstanceId:B}, TimeStamp: {TimeStamp:yyyy-MM-dd HH:mm:ss.fff}, State: {State}, IsAlive: {IsAlive}, " +
 					$"InternalHttpEndPointIp: {InternalHttpEndPointIp}, InternalHttpEndPointPort: {InternalHttpEndPointPort}, " +
-					$"ReplicationEndPointIp: {ReplicationEndPointIp}, ReplicationEndPointPort: {ReplicationEndPointPort}, " +
+					$"ClusterEndPointIp: {ClusterEndPointIp}, ClusterEndPointPort: {ClusterEndPointPort}, " +
 					$"HttpEndPointIp: {HttpEndPointIp}, HttpEndPointPort: {HttpEndPointPort}, " +
 					$"LastCommitPosition: {LastCommitPosition}, WriterCheckpoint: {WriterCheckpoint}, ChaserCheckpoint: {ChaserCheckpoint}, " +
 					$"EpochPosition: {EpochPosition}, EpochNumber: {EpochNumber}, EpochId: {EpochId:B}, NodePriority: {NodePriority}, " +

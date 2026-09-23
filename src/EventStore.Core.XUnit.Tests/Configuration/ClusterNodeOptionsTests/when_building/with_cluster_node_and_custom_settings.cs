@@ -153,8 +153,8 @@ public class with_custom_replication_port_advertise_as<TLogFormat, TStreamId> : 
 	{
 		Assert.Multiple(() =>
 		{
-			Assert.AreEqual(_options.Interface.ReplicationPort, _node.NodeInfo.ReplicationEndPoint.GetPort());
-			Assert.AreEqual(3112, _node.GossipAdvertiseInfo.ReplicationEndPoint.Port);
+			Assert.AreEqual(_options.Interface.ReplicationPort, _node.NodeInfo.ClusterEndPoint.GetPort());
+			Assert.AreEqual(3112, _node.GossipAdvertiseInfo.ClusterEndPoint.Port);
 		});
 	}
 }

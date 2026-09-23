@@ -274,12 +274,28 @@ internal static class Program
 						{
 							x.SuppressStatusMessages = true;
 						});
-
 					var nodeConnectionTracker = new NodeConnectionTracker();
-					var replicationEndpointPolicy = new ReplicationEndpointPolicy(
-						new System.Net.IPEndPoint(options.Interface.ReplicationIp, options.Interface.ReplicationPort));
 					builder.Services.AddSingleton(nodeConnectionTracker);
 					builder.Services.AddSingleton<IConnectionStatsProvider>(nodeConnectionTracker);
+					EndpointBinding[] endpointBindings =
+						[
+							new(EndpointRole.Client,
+								new System.Net.IPEndPoint(options.Interface.NodeIp, options.Interface.NodePort),
+								HttpProtocols.Http1AndHttp2),
+							new(EndpointRole.Cluster,
+								options.Interface.GetClusterListenEndPoint(),
+								HttpProtocols.Http2),
+						];
+					var endpointPolicy = new EndpointPolicy(
+						endpointBindings,
+						[
+							new(EventStore.Cluster.Gossip.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Cluster.Elections.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Replication.Replication.Descriptor, EndpointRole.Cluster),
+							new(EventStore.Forwarding.RequestForwarding.Descriptor, EndpointRole.Cluster),
+						],
+						defaultRouteRole: EndpointRole.Client,
+						nonIpEndpointRole: EndpointRole.Client);
 					builder.WebHost.ConfigureKestrel(server =>
 					{
 						server.Limits.Http2.KeepAlivePingDelay =
@@ -287,12 +303,13 @@ internal static class Program
 						server.Limits.Http2.KeepAlivePingTimeout =
 							TimeSpan.FromMilliseconds(options.Grpc.KeepAliveTimeout);
 
-						server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
-							ConfigureHttpOptions(listenOptions, hostedService, nodeConnectionTracker,
-								useHttps: !hostedService.Node.DisableHttps));
-						server.Listen(options.Interface.ReplicationIp, options.Interface.ReplicationPort, listenOptions =>
-							ConfigureHttpOptions(listenOptions, hostedService, nodeConnectionTracker,
-								useHttps: !hostedService.Node.DisableHttps, http2Only: true));
+						foreach (var binding in endpointBindings)
+						{
+							server.Listen(binding.ListenEndPoint, listenOptions =>
+								ConfigureHttpOptions(listenOptions, hostedService, nodeConnectionTracker,
+									useHttps: !hostedService.Node.DisableHttps,
+									protocols: binding.Protocols));
+						}
 
 						if (hostedService.Node.EnableUnixSocket)
 						{
@@ -350,7 +367,7 @@ internal static class Program
 					});
 					app.Use(async (context, next) =>
 					{
-						if (!replicationEndpointPolicy.Allows(context))
+						if (!endpointPolicy.Allows(context))
 						{
 							context.Response.StatusCode = StatusCodes.Status404NotFound;
 							return;
@@ -414,19 +431,16 @@ internal static class Program
 		ClusterVNodeHostedService hostedService,
 		NodeConnectionTracker connectionTracker,
 		bool useHttps,
-		bool http2Only = false)
+		HttpProtocols protocols = HttpProtocols.Http1AndHttp2)
 	{
 		listenOptions.Use(next => context => connectionTracker.Track(context, next, useHttps));
-		if (http2Only)
-		{
-			listenOptions.Protocols = HttpProtocols.Http2;
-		}
+		listenOptions.Protocols = protocols;
 
 		if (useHttps)
 		{
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
 		}
-		else if (!http2Only)
+		else if (protocols != HttpProtocols.Http2)
 		{
 			listenOptions.Use(next =>
 				new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);

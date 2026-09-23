@@ -9,21 +9,19 @@ namespace EventStore.Core.Tests.Cluster;
 [TestFixture]
 public class MemberInfoTests
 {
+	private static readonly DnsEndPoint Http = new("http", 2113);
+	private static readonly DnsEndPoint Cluster = new("cluster", 1112);
+
 	[Test]
 	public void member_with_dns_endpoint_should_equal()
 	{
 		var ipAddress = "127.0.0.1";
 		var port = 1113;
-		var memberWithDnsEndPoint = EventStore.Core.Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
-			VNodeState.Unknown, true,
-			new DnsEndPoint(ipAddress, port),
-			null, 0, 0, false);
+		var member = EventStore.Core.Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
+			VNodeState.Unknown, true, new DnsEndPoint(ipAddress, port), null, 0, 0, false);
 
-		var ipEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
-		var dnsEndPoint = new DnsEndPoint(ipAddress, port);
-
-		Assert.True(memberWithDnsEndPoint.Is(ipEndPoint));
-		Assert.True(memberWithDnsEndPoint.Is(dnsEndPoint));
+		Assert.That(member.Is(new IPEndPoint(IPAddress.Parse(ipAddress), port)), Is.True);
+		Assert.That(member.Is(new DnsEndPoint(ipAddress, port)), Is.True);
 	}
 
 	[Test]
@@ -31,93 +29,96 @@ public class MemberInfoTests
 	{
 		var ipAddress = "127.0.0.1";
 		var port = 1113;
-		var memberWithDnsEndPoint = EventStore.Core.Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
-			VNodeState.Unknown, true,
-			new IPEndPoint(IPAddress.Parse(ipAddress), port),
-			null, 0, 0, false);
+		var member = EventStore.Core.Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
+			VNodeState.Unknown, true, new IPEndPoint(IPAddress.Parse(ipAddress), port), null, 0, 0, false);
 
-		var ipEndPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
-		var dnsEndPoint = new DnsEndPoint(ipAddress, port);
-
-		Assert.True(memberWithDnsEndPoint.Is(ipEndPoint));
-		Assert.True(memberWithDnsEndPoint.Is(dnsEndPoint));
+		Assert.That(member.Is(new IPEndPoint(IPAddress.Parse(ipAddress), port)), Is.True);
+		Assert.That(member.Is(new DnsEndPoint(ipAddress, port)), Is.True);
 	}
 
 	[Test]
-	public void internal_gossip_round_trip_preserves_the_grpc_replication_endpoint()
+	public void grpc_round_trip_preserves_client_and_cluster_endpoints()
 	{
-		var replicationEndPoint = new DnsEndPoint("replication-node", 1112);
-		var httpEndPoint = new DnsEndPoint("public-node", 2113);
-		var member = EventStore.Core.Cluster.MemberInfo.Initial(
-			Guid.NewGuid(),
-			DateTime.UtcNow,
-			VNodeState.Unknown,
-			true,
-			httpEndPoint,
-			null,
-			0,
-			0,
-			false,
-			replicationEndPoint: replicationEndPoint);
+		var result = FromGrpcClusterInfo(ToGrpcClusterInfo(
+			new EventStore.Core.Cluster.ClusterInfo(CreateMember(Cluster)))).Members[0];
 
-		var grpc = ToGrpcClusterInfo(new EventStore.Core.Cluster.ClusterInfo(member));
-		var roundTrip = FromGrpcClusterInfo(grpc);
-
-		Assert.That(roundTrip.Members, Has.Length.EqualTo(1));
-		Assert.That(roundTrip.Members[0].HttpEndPoint, Is.EqualTo(httpEndPoint));
-		Assert.That(roundTrip.Members[0].ReplicationEndPoint, Is.EqualTo(replicationEndPoint));
+		Assert.That(result.HttpEndPoint, Is.EqualTo(Http));
+		Assert.That(result.ClusterEndPoint, Is.EqualTo(Cluster));
+		Assert.That(result.ReplicationEndPoint, Is.EqualTo(Cluster));
 	}
 
 	[Test]
-	public void member_without_a_replication_endpoint_uses_its_http_endpoint()
+	public void explicit_cluster_endpoint_is_recognized()
 	{
-		var httpEndPoint = new DnsEndPoint("mixed-version-node", 2113);
-		var member = EventStore.Core.Cluster.MemberInfo.Initial(
-			Guid.NewGuid(),
-			DateTime.UtcNow,
-			VNodeState.Unknown,
-			true,
-			httpEndPoint,
-			null,
-			0,
-			0,
-			false);
-		var grpc = ToGrpcClusterInfo(new EventStore.Core.Cluster.ClusterInfo(member));
-		grpc.Members[0].ReplicationEndPoint = null;
+		var member = CreateMember(Cluster);
+		var vnode = new VNodeInfo(Guid.NewGuid(), 0, Http, false, Cluster);
+		var advertise = new GossipAdvertiseInfo(Http, null, 0, Cluster);
 
-		var roundTrip = FromGrpcClusterInfo(grpc);
-
-		Assert.That(roundTrip.Members[0].ReplicationEndPoint, Is.EqualTo(httpEndPoint));
+		Assert.That(member.Is(Cluster), Is.True);
+		Assert.That(vnode.ClusterEndPoint, Is.SameAs(Cluster));
+		Assert.That(advertise.ClusterEndPoint, Is.SameAs(Cluster));
 	}
 
 	[Test]
-	public void client_member_preserves_the_replication_endpoint()
+	public void client_member_preserves_the_cluster_endpoint()
 	{
-		var replicationEndPoint = new DnsEndPoint("replication-node", 1112);
-		var clientMember = new EventStore.Core.Cluster.ClientClusterInfo.ClientMemberInfo(
-			EventStore.Core.Cluster.MemberInfo.Initial(
-				Guid.NewGuid(),
-				DateTime.UtcNow,
-				VNodeState.Unknown,
-				true,
-				new DnsEndPoint("public-node", 2113),
-				null,
-				0,
-				0,
-				false,
-				replicationEndPoint: replicationEndPoint));
+		var clientMember = new EventStore.Core.Cluster.ClientClusterInfo.ClientMemberInfo(CreateMember(Cluster));
 
-		Assert.That(clientMember.ReplicationEndPointIp, Is.EqualTo(replicationEndPoint.Host));
-		Assert.That(clientMember.ReplicationEndPointPort, Is.EqualTo(replicationEndPoint.Port));
+		Assert.That(clientMember.ClusterEndPointIp, Is.EqualTo(Cluster.Host));
+		Assert.That(clientMember.ClusterEndPointPort, Is.EqualTo(Cluster.Port));
 	}
 
-	private static EventStore.Cluster.ClusterInfo ToGrpcClusterInfo(EventStore.Core.Cluster.ClusterInfo clusterInfo) =>
+	[Test]
+	public void client_cluster_info_excludes_internal_discovery_placeholders()
+	{
+		var member = CreateMember(Cluster);
+		var seed = EventStore.Core.Cluster.MemberInfo.ForManager(
+			Guid.Empty, DateTime.UtcNow, true, Cluster, clusterEndPoint: Cluster);
+
+		var clientCluster = new EventStore.Core.Cluster.ClientClusterInfo(
+			new EventStore.Core.Cluster.ClusterInfo(member, seed), Http.Host, Http.Port);
+
+		Assert.That(clientCluster.Members, Has.Length.EqualTo(1));
+		Assert.That(clientCluster.Members[0].InstanceId, Is.EqualTo(member.InstanceId));
+	}
+
+	[Test]
+	public void missing_cluster_endpoint_falls_back_to_http_endpoint()
+	{
+		var member = CreateMember();
+		var vnode = new VNodeInfo(Guid.NewGuid(), 0, Http, false);
+		var advertise = new GossipAdvertiseInfo(Http, null, 0);
+
+		Assert.That(member.ClusterEndPoint, Is.SameAs(Http));
+		Assert.That(vnode.ClusterEndPoint, Is.SameAs(Http));
+		Assert.That(advertise.ClusterEndPoint, Is.SameAs(Http));
+	}
+
+	[Test]
+	public void grpc_member_without_cluster_endpoint_falls_back_to_http_endpoint()
+	{
+		var grpcCluster = ToGrpcClusterInfo(
+			new EventStore.Core.Cluster.ClusterInfo(CreateMember(Cluster)));
+		grpcCluster.Members[0].ReplicationEndPoint = null;
+
+		var result = FromGrpcClusterInfo(grpcCluster).Members[0];
+
+		Assert.That(result.ClusterEndPoint, Is.EqualTo(Http));
+	}
+
+	private static EventStore.Core.Cluster.MemberInfo CreateMember(DnsEndPoint clusterEndPoint = null) =>
+		EventStore.Core.Cluster.MemberInfo.Initial(Guid.NewGuid(), DateTime.UtcNow,
+			VNodeState.Unknown, true, Http, null, 0, 0, false, clusterEndPoint: clusterEndPoint);
+
+	private static EventStore.Cluster.ClusterInfo ToGrpcClusterInfo(
+		EventStore.Core.Cluster.ClusterInfo clusterInfo) =>
 		(EventStore.Cluster.ClusterInfo)typeof(EventStore.Core.Cluster.ClusterInfo)
-			.GetMethod("ToGrpcClusterInfo", BindingFlags.Static | BindingFlags.NonPublic)
-			.Invoke(null, [clusterInfo]);
+			.GetMethod("ToGrpcClusterInfo", BindingFlags.NonPublic | BindingFlags.Static)!
+			.Invoke(null, [clusterInfo])!;
 
-	private static EventStore.Core.Cluster.ClusterInfo FromGrpcClusterInfo(EventStore.Cluster.ClusterInfo clusterInfo) =>
+	private static EventStore.Core.Cluster.ClusterInfo FromGrpcClusterInfo(
+		EventStore.Cluster.ClusterInfo clusterInfo) =>
 		(EventStore.Core.Cluster.ClusterInfo)typeof(EventStore.Core.Cluster.ClusterInfo)
-			.GetMethod("FromGrpcClusterInfo", BindingFlags.Static | BindingFlags.NonPublic)
-			.Invoke(null, [clusterInfo, null]);
+			.GetMethod("FromGrpcClusterInfo", BindingFlags.NonPublic | BindingFlags.Static)!
+			.Invoke(null, [clusterInfo, null])!;
 }

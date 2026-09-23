@@ -102,6 +102,7 @@ public class ClusterVNodeOptionsTests
 
 		options.Interface.ReplicationPortAdvertiseAs.Should().Be(2112);
 		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+		options.Interface.GetClusterPortAdvertiseAs().Should().Be(2112);
 		Assert.Empty(options.Unknown.Options);
 	}
 
@@ -119,6 +120,7 @@ public class ClusterVNodeOptionsTests
 
 		options.Interface.ReplicationPortAdvertiseAs.Should().Be(2112);
 		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+		options.Interface.GetClusterPortAdvertiseAs().Should().Be(2112);
 	}
 
 	[Fact]
@@ -137,6 +139,7 @@ public class ClusterVNodeOptionsTests
 
 			options.Interface.ReplicationPortAdvertiseAs.Should().Be(2112);
 			options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+			options.Interface.GetClusterPortAdvertiseAs().Should().Be(2112);
 		}
 		finally
 		{
@@ -150,6 +153,7 @@ public class ClusterVNodeOptionsTests
 		var options = GetOptions("--replication-tcp-port-advertise-as 3112");
 
 		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(3112);
+		options.Interface.GetClusterPortAdvertiseAs().Should().Be(3112);
 		options.GetDeprecationWarnings().Should().Contain(
 			"ReplicationTcpPortAdvertiseAs setting has been deprecated");
 		Assert.Empty(options.Unknown.Options);
@@ -162,6 +166,7 @@ public class ClusterVNodeOptionsTests
 			"--replication-port-advertise-as 2112 --replication-tcp-port-advertise-as 3112");
 
 		options.Interface.GetReplicationPortAdvertiseAs().Should().Be(2112);
+		options.Interface.GetClusterPortAdvertiseAs().Should().Be(2112);
 	}
 
 	[Fact]

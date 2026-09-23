@@ -42,7 +42,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	private static readonly ILogger Log = Serilog.Log.ForContext<MiniClusterNode<TLogFormat, TStreamId>>();
 
 	public IPEndPoint HttpEndPoint { get; }
-	public IPEndPoint ReplicationEndPoint { get; }
+	public IPEndPoint ClusterEndPoint { get; }
 
 	public readonly int DebugIndex;
 
@@ -60,7 +60,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	public VNodeState NodeState = VNodeState.Unknown;
 	private readonly IHost _host;
 
-	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint nodeEndPoint, IPEndPoint replicationEndPoint,
+	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint httpEndPoint, IPEndPoint clusterEndPoint,
 		EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
 		bool enableTrustedAuth = false, int memTableSize = 1000,
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
@@ -74,12 +74,12 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		RunCount += 1;
 
 		DebugIndex = debugIndex;
-		HttpEndPoint = nodeEndPoint;
-		ReplicationEndPoint = replicationEndPoint;
+		HttpEndPoint = httpEndPoint;
+		ClusterEndPoint = clusterEndPoint;
 
 		_dbPath = Path.Combine(
 			pathname,
-			$"mini-cluster-node-db-{nodeEndPoint.Port}");
+			$"mini-cluster-node-db-{httpEndPoint.Port}");
 
 		Directory.CreateDirectory(_dbPath);
 		FileStreamExtensions.ConfigureFlush(disableFlushToDisk);
@@ -116,8 +116,10 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			{
 				NodeIp = HttpEndPoint.Address,
 				NodePort = HttpEndPoint.Port,
-				ReplicationIp = ReplicationEndPoint.Address,
-				ReplicationPort = ReplicationEndPoint.Port,
+				ReplicationIp = ClusterEndPoint.Address,
+				ReplicationPort = ClusterEndPoint.Port,
+				ReplicationHeartbeatTimeout = 2_000,
+				ReplicationHeartbeatInterval = 2_000,
 				ReplicationHostAdvertiseAs = replicationHostAdvertiseAs,
 				EnableTrustedAuth = enableTrustedAuth
 			},
@@ -224,7 +226,11 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 						}
 
 						o.Listen(HttpEndPoint, ConfigureHttps);
-						o.Listen(ReplicationEndPoint, ConfigureHttps);
+						o.Listen(ClusterEndPoint, options =>
+						{
+							options.Protocols = HttpProtocols.Http2;
+							ConfigureHttps(options);
+						});
 					})
 					.UseStartup(Node.Startup);
 			})

@@ -5,25 +5,26 @@ namespace EventStore.Core.Data
 {
 	public class GossipAdvertiseInfo
 	{
-		public DnsEndPoint ReplicationEndPoint { get; }
 		public DnsEndPoint HttpEndPoint { get; }
+		public DnsEndPoint ClusterEndPoint { get; }
+		public DnsEndPoint ReplicationEndPoint => ClusterEndPoint;
 		public string AdvertiseHostToClientAs { get; }
 		public int AdvertiseHttpPortToClientAs { get; }
 
 		public GossipAdvertiseInfo(DnsEndPoint httpEndPoint,
 			string advertiseHostToClientAs, int advertiseHttpPortToClientAs,
-			DnsEndPoint replicationEndPoint = null)
+			DnsEndPoint clusterEndPoint = null)
 		{
 			Ensure.NotNull(httpEndPoint, nameof(httpEndPoint));
-			ReplicationEndPoint = replicationEndPoint ?? httpEndPoint;
 			HttpEndPoint = httpEndPoint;
+			ClusterEndPoint = clusterEndPoint ?? httpEndPoint;
 			AdvertiseHostToClientAs = advertiseHostToClientAs;
 			AdvertiseHttpPortToClientAs = advertiseHttpPortToClientAs;
 		}
 
 		public override string ToString()
 		{
-			return $"Replication: {ReplicationEndPoint}, Http: {HttpEndPoint}, HttpAdvertiseToClientAs: {AdvertiseHostToClientAs}:{AdvertiseHttpPortToClientAs}";
+			return $"Cluster: {ClusterEndPoint}, Http: {HttpEndPoint}, HttpAdvertiseToClientAs: {AdvertiseHostToClientAs}:{AdvertiseHttpPortToClientAs}";
 		}
 	}
 }

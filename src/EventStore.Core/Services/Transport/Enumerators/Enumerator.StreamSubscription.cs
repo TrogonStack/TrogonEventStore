@@ -39,6 +39,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			private readonly CancellationToken _cancellationToken;
 			private readonly Channel<ReadResponse> _channel;
 			private readonly Channel<(ulong SequenceNumber, ResolvedEvent ResolvedEvent)> _liveEvents;
+			private readonly Task<Task> _subscriptionStartupTask;
 
 			private ReadResponse _current;
 			private bool _disposed;
@@ -75,26 +76,31 @@ namespace EventStore.Core.Services.Transport.Enumerators
 
 				SubscriptionId = _subscriptionId.ToString();
 
-				Subscribe(checkpoint, _cts.Token);
+				_subscriptionStartupTask = Subscribe(checkpoint, _cts.Token);
 			}
 
-			public override ValueTask DisposeAsync()
+			public override async ValueTask DisposeAsync()
 			{
 				if (_disposed)
 				{
-					return ValueTask.CompletedTask;
+					return;
 				}
 
 				Log.Verbose("Subscription {subscriptionId} to {streamName} disposed.", _subscriptionId,
 					_streamName);
 				_disposed = true;
 
+				_cts.Cancel();
+				try
+				{
+					await _subscriptionStartupTask;
+				}
+				catch (OperationCanceledException)
+				{
+				}
 				Unsubscribe();
 
-				_cts.Cancel();
 				_cts.Dispose();
-
-				return ValueTask.CompletedTask;
 			}
 
 			public override async ValueTask<bool> MoveNextAsync()
@@ -148,9 +154,9 @@ ReadLoop:
 				return true;
 			}
 
-			private void Subscribe(StreamRevision? checkpoint, CancellationToken ct)
+			private Task<Task> Subscribe(StreamRevision? checkpoint, CancellationToken ct)
 			{
-				Task.Factory.StartNew(() => MainLoop(checkpoint, ct), ct);
+				return Task.Factory.StartNew(() => MainLoop(checkpoint, ct), ct);
 			}
 
 			private static long ConvertCheckpoint(StreamRevision? checkpoint, long lastLiveEventNumber)

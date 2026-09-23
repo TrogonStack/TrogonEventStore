@@ -44,17 +44,17 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected class Endpoints
 	{
-		public readonly IPEndPoint NodeEndPoint;
-		public readonly IPEndPoint ReplicationEndPoint;
+		public readonly IPEndPoint ClusterEndPoint;
+		public readonly IPEndPoint HttpEndPoint;
 		private readonly int[] _ports;
 
-		public Endpoints(int nodePort, int replicationPort)
+		public Endpoints(int clusterPort, int httpPort)
 		{
 			var testIp = Environment.GetEnvironmentVariable("ES-TESTIP");
 			var address = string.IsNullOrEmpty(testIp) ? IPAddress.Loopback : IPAddress.Parse(testIp);
-			NodeEndPoint = new IPEndPoint(address, nodePort);
-			ReplicationEndPoint = new IPEndPoint(address, replicationPort);
-			_ports = [nodePort, replicationPort];
+			ClusterEndPoint = new IPEndPoint(address, clusterPort);
+			HttpEndPoint = new IPEndPoint(address, httpPort);
+			_ports = [clusterPort, httpPort];
 		}
 
 		public IEnumerable<int> Ports => _ports;
@@ -76,7 +76,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		{
 			var gossipSeeds = _nodeEndpoints
 				.Where((_, otherIndex) => otherIndex != index)
-				.Select(x => (EndPoint)x.NodeEndPoint)
+				.Select(x => (EndPoint)x.ClusterEndPoint)
 				.ToArray();
 			_nodes[index] = CreateNode(index, _nodeEndpoints[index], gossipSeeds);
 		}
@@ -127,8 +127,8 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		return new MiniClusterNode<TLogFormat, TStreamId>(
 			PathName,
 			index,
-			endpoints.NodeEndPoint,
-			endpoints.ReplicationEndPoint,
+			endpoints.HttpEndPoint,
+			endpoints.ClusterEndPoint,
 			subsystems: [_projections[index]],
 			gossipSeeds: gossipSeeds);
 	}

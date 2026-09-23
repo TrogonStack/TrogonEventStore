@@ -291,14 +291,13 @@ public class ClusterVNode<TStreamId> :
 		OptionsFormatter.LogConfig("Archive", archiveOptions);
 
 		var httpEndPoint = new IPEndPoint(options.Interface.NodeIp, options.Interface.NodePort);
-		var replicationEndPoint = new IPEndPoint(
-			options.Interface.ReplicationIp,
-			options.Interface.ReplicationPort);
+		var clusterEndPoint = options.Interface.GetClusterListenEndPoint();
+		var clusterPortAdvertiseAs = options.Interface.GetClusterPortAdvertiseAs();
 
 		Log.Information("Quorum size set to {quorum}.", options.Cluster.QuorumSize);
 
 		NodeInfo = new VNodeInfo(instanceId.Value, debugIndex, httpEndPoint, options.Cluster.ReadOnlyReplica,
-			replicationEndPoint);
+			clusterEndPoint);
 
 		var metricsConfiguration = MetricsConfiguration.Get(configuration);
 		var trackers = new Trackers();
@@ -906,14 +905,13 @@ public class ClusterVNode<TStreamId> :
 				options.Interface.NodePortAdvertiseAs > 0
 					? options.Interface.NodePortAdvertiseAs
 					: NodeInfo.HttpEndPoint.GetPort());
-			var replicationPortAdvertiseAs = options.Interface.GetReplicationPortAdvertiseAs();
-			var advertisedReplicationEndPoint = new DnsEndPoint(replicationHostToAdvertise,
-				replicationPortAdvertiseAs > 0
-					? replicationPortAdvertiseAs
-					: NodeInfo.ReplicationEndPoint.GetPort());
+			var advertisedClusterEndPoint = new DnsEndPoint(replicationHostToAdvertise,
+				clusterPortAdvertiseAs > 0
+					? clusterPortAdvertiseAs
+					: NodeInfo.ClusterEndPoint.GetPort());
 
 			return new GossipAdvertiseInfo(httpEndPoint, options.Interface.AdvertiseHostToClientAs,
-				options.Interface.AdvertiseNodePortToClientAs, advertisedReplicationEndPoint);
+				options.Interface.AdvertiseNodePortToClientAs, advertisedClusterEndPoint);
 		}
 
 		_httpService = new KestrelHttpService(_mainQueue, NodeInfo.HttpEndPoint);
@@ -1409,7 +1407,7 @@ public class ClusterVNode<TStreamId> :
 			GossipAdvertiseInfo.AdvertiseHostToClientAs,
 			GossipAdvertiseInfo.AdvertiseHttpPortToClientAs,
 			options.Cluster.NodePriority, options.Cluster.ReadOnlyReplica, VersionInfo.Version,
-			GossipAdvertiseInfo.ReplicationEndPoint);
+			GossipAdvertiseInfo.ClusterEndPoint);
 
 		// ELECTIONS TRACKER
 		_mainBus.Subscribe<ElectionMessage.ElectionsDone>(trackers.ElectionCounterTracker);
@@ -1463,7 +1461,7 @@ public class ClusterVNode<TStreamId> :
 					options.Cluster.ReadOnlyReplica
 						? ReplicaPromotability.NonPromotable
 						: ReplicaPromotability.Promotable),
-				GossipAdvertiseInfo.ReplicationEndPoint,
+				GossipAdvertiseInfo.ClusterEndPoint,
 				AddTask);
 			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(_grpcReplicaServiceSupervisor);
 			_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(_grpcReplicaServiceSupervisor);
@@ -1513,13 +1511,18 @@ public class ClusterVNode<TStreamId> :
 
 		// GOSSIP
 
+		var clusterGossipPort = options.Cluster.ClusterGossipPort > 0
+			? options.Cluster.ClusterGossipPort
+			: clusterPortAdvertiseAs > 0
+				? clusterPortAdvertiseAs
+				: options.Interface.ReplicationPort;
 		var gossipSeedSource = (
 				options.Cluster.DiscoverViaDns,
 				options.Cluster.ClusterSize > 1,
 				options.Cluster.GossipSeed is { Length: > 0 }) switch
 		{
 			(true, true, _) => (IGossipSeedSource)new DnsGossipSeedSource(options.Cluster.ClusterDns,
-				options.Cluster.ClusterGossipPort),
+				clusterGossipPort),
 			(false, true, false) => throw new InvalidConfigurationException(
 				"DNS discovery is disabled, but no gossip seed endpoints have been specified. "
 				+ "Specify gossip seeds using the `GossipSeed` option."),
@@ -2192,5 +2195,5 @@ public class ClusterVNode<TStreamId> :
 	}
 
 	public override string ToString() =>
-		$"[{NodeInfo.InstanceId:B}, {NodeInfo.ReplicationEndPoint}, {NodeInfo.HttpEndPoint}]";
+		$"[{NodeInfo.InstanceId:B}, {NodeInfo.ClusterEndPoint}, {NodeInfo.HttpEndPoint}]";
 }

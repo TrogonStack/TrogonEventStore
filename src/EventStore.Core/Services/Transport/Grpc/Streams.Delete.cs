@@ -148,6 +148,12 @@ internal partial class Streams<TStreamId>
 				deleteResponseSource.TrySetException(ex);
 				return;
 			}
+			if (message is ClientMessage.NotAuthenticated notAuthenticated)
+			{
+				deleteResponseSource.TrySetException(new RpcException(
+					new Status(StatusCode.Unauthenticated, notAuthenticated.Reason)));
+				return;
+			}
 
 			if (message is not ClientMessage.DeleteStreamCompleted completed)
 			{

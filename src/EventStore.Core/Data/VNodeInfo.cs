@@ -8,32 +8,33 @@ namespace EventStore.Core.Data
 	{
 		public readonly Guid InstanceId;
 		public readonly int DebugIndex;
-		public readonly EndPoint ReplicationEndPoint;
 		public readonly EndPoint HttpEndPoint;
+		public readonly EndPoint ClusterEndPoint;
+		public EndPoint ReplicationEndPoint => ClusterEndPoint;
 		public readonly bool IsReadOnlyReplica;
 
 		public VNodeInfo(Guid instanceId, int debugIndex, EndPoint httpEndPoint,
-			bool isReadOnlyReplica, EndPoint replicationEndPoint = null)
+			bool isReadOnlyReplica, EndPoint clusterEndPoint = null)
 		{
 			Ensure.NotEmptyGuid(instanceId, "instanceId");
 			Ensure.NotNull(httpEndPoint, nameof(httpEndPoint));
 
 			DebugIndex = debugIndex;
 			InstanceId = instanceId;
-			ReplicationEndPoint = replicationEndPoint ?? httpEndPoint;
 			HttpEndPoint = httpEndPoint;
+			ClusterEndPoint = clusterEndPoint ?? httpEndPoint;
 			IsReadOnlyReplica = isReadOnlyReplica;
 		}
 
 		public bool Is(EndPoint endPoint)
 		{
 			return endPoint != null &&
-				(HttpEndPoint.Equals(endPoint) || ReplicationEndPoint.Equals(endPoint));
+				(HttpEndPoint.Equals(endPoint) || ClusterEndPoint.Equals(endPoint));
 		}
 
 		public override string ToString()
 		{
-			return $"InstanceId: {InstanceId:B}, ReplicationEndPoint: {ReplicationEndPoint}, HttpEndPoint: {HttpEndPoint}, IsReadOnlyReplica: {IsReadOnlyReplica}";
+			return $"InstanceId: {InstanceId:B}, ClusterEndPoint: {ClusterEndPoint}, HttpEndPoint: {HttpEndPoint}, IsReadOnlyReplica: {IsReadOnlyReplica}";
 		}
 	}
 }
