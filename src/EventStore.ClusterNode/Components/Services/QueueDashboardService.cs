@@ -18,6 +18,7 @@ public sealed class QueueDashboardService
 {
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 	private static readonly Operation StatisticsOperation = new(Operations.Node.Statistics.Read);
+	private static readonly Operation ReplicationStatisticsOperation = new(Operations.Node.Statistics.Replication);
 
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly IHttpContextAccessor _httpContextAccessor;
@@ -136,6 +137,13 @@ public sealed class QueueDashboardService
 	{
 		try
 		{
+			if (!await HasAccess(ReplicationStatisticsOperation, timeoutToken))
+			{
+				return new ReplicationStatsRead(
+					Array.Empty<ReplicationConnectionRow>(),
+					"Replication statistics access was denied.");
+			}
+
 			return new ReplicationStatsRead(await ReadReplicationStats(timeoutToken), "");
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
