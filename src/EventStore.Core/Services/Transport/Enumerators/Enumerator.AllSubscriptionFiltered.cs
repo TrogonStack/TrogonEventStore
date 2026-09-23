@@ -33,6 +33,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			private readonly CancellationToken _cancellationToken;
 			private readonly Channel<ReadResponse> _channel;
 			private readonly Channel<(ulong SequenceNumber, ResolvedEvent? ResolvedEvent, TFPos? Checkpoint)> _liveEvents;
+			private readonly Task<Task> _subscriptionStartupTask;
 
 			private ReadResponse _current;
 			private bool _disposed;
@@ -73,25 +74,30 @@ namespace EventStore.Core.Services.Transport.Enumerators
 
 				SubscriptionId = _subscriptionId.ToString();
 
-				Subscribe(checkpoint, _cts.Token);
+				_subscriptionStartupTask = Subscribe(checkpoint, _cts.Token);
 			}
 
-			public ValueTask DisposeAsync()
+			public async ValueTask DisposeAsync()
 			{
 				if (_disposed)
 				{
-					return ValueTask.CompletedTask;
+					return;
 				}
 
 				Log.Verbose("Subscription {subscriptionId} to $all:{eventFilter} disposed.", _subscriptionId, _eventFilter);
 
 				_disposed = true;
-				Unsubscribe();
 
 				_cts.Cancel();
+				try
+				{
+					await _subscriptionStartupTask;
+				}
+				catch (OperationCanceledException)
+				{
+				}
+				Unsubscribe();
 				_cts.Dispose();
-
-				return ValueTask.CompletedTask;
 			}
 
 			public async ValueTask<bool> MoveNextAsync()
@@ -162,9 +168,9 @@ ReadLoop:
 				return true;
 			}
 
-			private void Subscribe(Position? checkpoint, CancellationToken ct)
+			private Task<Task> Subscribe(Position? checkpoint, CancellationToken ct)
 			{
-				Task.Factory.StartNew(() => MainLoop(checkpoint, ct), ct);
+				return Task.Factory.StartNew(() => MainLoop(checkpoint, ct), ct);
 			}
 
 			private static TFPos ConvertCheckpoint(Position? checkpoint, TFPos lastLivePos)
