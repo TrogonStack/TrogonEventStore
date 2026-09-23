@@ -8,6 +8,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 using CoreReplicationStats = EventStore.Core.Messages.ReplicationMessage.ReplicationStats;
 
@@ -51,7 +52,7 @@ public class ReplicationStatsTests
 			serviceType!,
 			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 			binder: null,
-			args: [_publisher],
+			args: [_publisher, null, new AllowMonitoringAuthorizationProvider()],
 			culture: null);
 
 		var task = (Task<ReplicationStatsResp>)serviceType!.GetMethod(
@@ -115,6 +116,7 @@ public class ReplicationStatsTests
 
 		private TestServerCallContext()
 		{
+			UserStateCore["__HttpContext"] = new DefaultHttpContext();
 		}
 
 		protected override string MethodCore =>

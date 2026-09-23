@@ -4,6 +4,7 @@ using EventStore.Client.Monitoring;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
+using EventStore.Plugins.Authorization;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
@@ -13,9 +14,13 @@ namespace EventStore.Core.Services.Transport.Grpc
 	{
 		private readonly IPublisher _publisher;
 		private readonly IConnectionStatsProvider _connectionStatsProvider;
+		private readonly IAuthorizationProvider _authorizationProvider;
+		private static readonly Operation ReadStatisticsOperation = new(Plugins.Authorization.Operations.Node.Statistics.Read);
+		private static readonly Operation ReadReplicationStatisticsOperation = new(Plugins.Authorization.Operations.Node.Statistics.Replication);
 
-		public override Task Stats(StatsReq request, IServerStreamWriter<StatsResp> responseStream, ServerCallContext context)
+		public override async Task Stats(StatsReq request, IServerStreamWriter<StatsResp> responseStream, ServerCallContext context)
 		{
+			await RequireAccess(ReadStatisticsOperation, context);
 			var useGrouping = request.HasUseGrouping ? request.UseGrouping : false;
 			if (!useGrouping && !string.IsNullOrEmpty(request.StatsPath))
 			{
@@ -24,7 +29,7 @@ namespace EventStore.Core.Services.Transport.Grpc
 						"Dynamic stats selection works only with grouping enabled"));
 			}
 
-			return StreamStats();
+			await StreamStats();
 
 			async Task StreamStats()
 			{
@@ -86,11 +91,11 @@ namespace EventStore.Core.Services.Transport.Grpc
 			}
 		}
 
-		public override Task<ConnectionStatsResp> ConnectionStats(
+		public override async Task<ConnectionStatsResp> ConnectionStats(
 			ConnectionStatsReq request,
 			ServerCallContext context)
 		{
-			context.CancellationToken.ThrowIfCancellationRequested();
+			await RequireAccess(ReadStatisticsOperation, context);
 			var response = new ConnectionStatsResp();
 			foreach (var connection in _connectionStatsProvider.Snapshot())
 			{
@@ -111,11 +116,12 @@ namespace EventStore.Core.Services.Transport.Grpc
 				});
 			}
 
-			return Task.FromResult(response);
+			return response;
 		}
 
-		public override Task<ReplicationStatsResp> ReplicationStats(ReplicationStatsReq request, ServerCallContext context)
+		public override async Task<ReplicationStatsResp> ReplicationStats(ReplicationStatsReq request, ServerCallContext context)
 		{
+			await RequireAccess(ReadReplicationStatisticsOperation, context);
 			var responseSource =
 				new TaskCompletionSource<ReplicationStatsResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 			var envelope = new CallbackEnvelope(message =>
@@ -147,17 +153,24 @@ namespace EventStore.Core.Services.Transport.Grpc
 			});
 
 			_publisher.Publish(new ReplicationMessage.GetReplicationStats(envelope));
-			return responseSource.Task.WaitAsync(context.CancellationToken);
+			return await responseSource.Task.WaitAsync(context.CancellationToken);
 		}
 
-		public Monitoring(IPublisher publisher) : this(publisher, null)
-		{
-		}
-
-		public Monitoring(IPublisher publisher, IConnectionStatsProvider connectionStatsProvider)
+		public Monitoring(IPublisher publisher, IConnectionStatsProvider connectionStatsProvider,
+			IAuthorizationProvider authorizationProvider)
 		{
 			_publisher = publisher;
 			_connectionStatsProvider = connectionStatsProvider ?? EmptyConnectionStatsProvider.Instance;
+			_authorizationProvider = authorizationProvider ?? throw new ArgumentNullException(nameof(authorizationProvider));
+		}
+
+		private async Task RequireAccess(Operation operation, ServerCallContext context)
+		{
+			if (!await _authorizationProvider.CheckAccessAsync(
+				context.GetHttpContext().User, operation, context.CancellationToken))
+			{
+				throw RpcExceptions.AccessDenied();
+			}
 		}
 
 		private static Exception UnknownMessage<T>(Message message) where T : Message =>
