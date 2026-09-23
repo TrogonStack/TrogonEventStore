@@ -237,7 +237,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				_trackers.GossipTrackers.ProcessingRequestFromGrpcClient))
 			.AddSingleton(serviceProvider => new Monitoring(
 				_monitoringQueue,
-				serviceProvider.GetService<IConnectionStatsProvider>()))
+				serviceProvider.GetService<IConnectionStatsProvider>(),
+				_authorizationProvider))
 			.AddSingleton(_nodeInformationProvider)
 			.AddSingleton(new NodeInformation(_nodeInformationProvider, _authorizationProvider))
 			.AddSingleton(new Redaction(_mainQueue, _authorizationProvider))

@@ -106,7 +106,7 @@ public class ConnectionStatsKestrelTests
 				serviceType,
 				BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 				binder: null,
-				args: [new RejectingPublisher(), tracker],
+				args: [new RejectingPublisher(), tracker, new AllowMonitoringAuthorizationProvider()],
 				culture: null)!;
 			_method = serviceType.GetMethod(nameof(ConnectionStats))!;
 		}

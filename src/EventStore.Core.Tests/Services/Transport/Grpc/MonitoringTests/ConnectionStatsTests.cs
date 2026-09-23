@@ -8,6 +8,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Transport.Grpc;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.MonitoringTests;
@@ -43,7 +44,7 @@ public class ConnectionStatsTests
 			serviceType!,
 			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 			binder: null,
-			args: [new NoOpPublisher(), provider],
+			args: [new NoOpPublisher(), provider, new AllowMonitoringAuthorizationProvider()],
 			culture: null);
 
 		var task = (Task<ConnectionStatsResp>)serviceType!.GetMethod(
@@ -93,6 +94,7 @@ public class ConnectionStatsTests
 
 		private TestServerCallContext()
 		{
+			UserStateCore["__HttpContext"] = new DefaultHttpContext();
 		}
 
 		protected override string MethodCore =>
