@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Net;
+using System.Security.Claims;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClusterNode.Components.Services;
 using EventStore.Core;
@@ -10,6 +12,7 @@ using EventStore.Core.Authorization;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
+using EventStore.Plugins.Authorization;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
@@ -54,23 +57,7 @@ public class GrpcOnlySurfaceParityTests
 	[Test]
 	public async Task queue_stats_failure_does_not_hide_active_connections()
 	{
-		var tracker = new NodeConnectionTracker();
-		var incoming = new Pipe();
-		var outgoing = new Pipe();
-		var connection = new DefaultConnectionContext("active-connection")
-		{
-			LocalEndPoint = new IPEndPoint(IPAddress.Loopback, 2113),
-			RemoteEndPoint = new IPEndPoint(IPAddress.Loopback, 50123),
-			Transport = new TestDuplexPipe(incoming.Reader, outgoing.Writer)
-		};
-		var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-		var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-		var tracking = tracker.Track(connection, async _ =>
-		{
-			started.SetResult();
-			await release.Task;
-		}, isTls: false);
-		await started.Task;
+		var (tracker, release, tracking) = TrackActiveConnection();
 
 		try
 		{
@@ -92,6 +79,42 @@ public class GrpcOnlySurfaceParityTests
 				Assert.That(page.NodeConnections, Has.One.Matches<NodeConnectionSnapshot>(x =>
 					x.ConnectionId == "active-connection"));
 				Assert.That(payload.RootElement.GetProperty("nodeConnections").GetArrayLength(), Is.EqualTo(1));
+				Assert.That(payload.RootElement.TryGetProperty("networkAvailable", out var networkAvailable), Is.True);
+				Assert.That(networkAvailable.GetBoolean(), Is.True);
+			});
+		}
+		finally
+		{
+			release.SetResult();
+			await tracking;
+		}
+	}
+
+	[Test]
+	public async Task denied_statistics_access_does_not_expose_or_mark_connections_available()
+	{
+		var (tracker, release, tracking) = TrackActiveConnection();
+		try
+		{
+			var components = new StandardComponents(
+				null, null, null, null, null, null, null, new QueueStatsPublisher(),
+				null, null, false);
+			var service = new QueueDashboardService(
+				new DenyingAuthorizationProvider(),
+				new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+				components,
+				tracker);
+
+			var page = await service.Read();
+			using var payload = JsonDocument.Parse(page.ClientPayloadJson);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(page.IsAvailable, Is.False);
+				Assert.That(page.NodeConnections, Is.Empty);
+				Assert.That(payload.RootElement.GetProperty("nodeConnections").GetArrayLength(), Is.Zero);
+				Assert.That(payload.RootElement.TryGetProperty("networkAvailable", out var networkAvailable), Is.True);
+				Assert.That(networkAvailable.GetBoolean(), Is.False);
 			});
 		}
 		finally
@@ -156,6 +179,28 @@ public class GrpcOnlySurfaceParityTests
 	{
 		public PipeReader Input { get; } = input;
 		public PipeWriter Output { get; } = output;
+	}
+
+	private static (NodeConnectionTracker Tracker, TaskCompletionSource Release, Task Tracking)
+		TrackActiveConnection()
+	{
+		var tracker = new NodeConnectionTracker();
+		var connection = new DefaultConnectionContext("active-connection")
+		{
+			LocalEndPoint = new IPEndPoint(IPAddress.Loopback, 2113),
+			RemoteEndPoint = new IPEndPoint(IPAddress.Loopback, 50123),
+			Transport = new TestDuplexPipe(new Pipe().Reader, new Pipe().Writer)
+		};
+		var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var tracking = tracker.Track(connection, _ => release.Task, isTls: false);
+		return (tracker, release, tracking);
+	}
+
+	private sealed class DenyingAuthorizationProvider : PassthroughAuthorizationProvider
+	{
+		public override ValueTask<bool> CheckAccessAsync(
+			ClaimsPrincipal principal, Operation operation, CancellationToken cancellationToken) =>
+			ValueTask.FromResult(false);
 	}
 
 	private sealed class QueueStatsPublisher(bool failQueueStats = false) : IPublisher
