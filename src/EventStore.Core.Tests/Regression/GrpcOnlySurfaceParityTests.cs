@@ -116,6 +116,49 @@ public class GrpcOnlySurfaceParityTests
 	}
 
 	[Test]
+	public async Task replication_statistics_require_replication_access_without_hiding_other_diagnostics()
+	{
+		var (tracker, release, tracking) = TrackActiveConnection();
+		try
+		{
+			var publisher = new QueueStatsPublisher(provideReplicationStats: true);
+			var authorization = new ReadOnlyStatisticsAuthorizationProvider();
+			var components = new StandardComponents(
+				null, null, null, null, null, null, null, publisher, null, null, false);
+			var service = new QueueDashboardService(
+				authorization,
+				new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+				components,
+				tracker);
+
+			var page = await service.Read();
+			using var payload = JsonDocument.Parse(page.ClientPayloadJson);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(page.IsAvailable, Is.True);
+				Assert.That(page.Queues, Has.One.Matches<QueueDashboardRow>(x => x.Name == "mainQueue"));
+				Assert.That(page.NodeConnections, Has.One.Matches<NodeConnectionSnapshot>(x =>
+					x.ConnectionId == "active-connection"));
+				Assert.That(page.ReplicationConnections, Is.Empty);
+				Assert.That(page.ReplicationMessage, Is.EqualTo("Replication statistics access was denied."));
+				Assert.That(payload.RootElement.GetProperty("replicationConnections").GetArrayLength(), Is.Zero);
+				Assert.That(publisher.ReplicationRequests, Is.Zero);
+				Assert.That(authorization.RequestedOperations, Is.EquivalentTo(new[]
+				{
+					new Operation(Operations.Node.Statistics.Read),
+					new Operation(Operations.Node.Statistics.Replication)
+				}));
+			});
+		}
+		finally
+		{
+			release.SetResult();
+			await tracking;
+		}
+	}
+
+	[Test]
 	public async Task denied_statistics_access_does_not_expose_or_mark_connections_available()
 	{
 		var (tracker, release, tracking) = TrackActiveConnection();
@@ -228,8 +271,22 @@ public class GrpcOnlySurfaceParityTests
 			ValueTask.FromResult(false);
 	}
 
+	private sealed class ReadOnlyStatisticsAuthorizationProvider : PassthroughAuthorizationProvider
+	{
+		public List<Operation> RequestedOperations { get; } = new();
+
+		public override ValueTask<bool> CheckAccessAsync(
+			ClaimsPrincipal principal, Operation operation, CancellationToken cancellationToken)
+		{
+			RequestedOperations.Add(operation);
+			return ValueTask.FromResult(!operation.Equals(new Operation(Operations.Node.Statistics.Replication)));
+		}
+	}
+
 	private sealed class QueueStatsPublisher(bool failQueueStats = false, bool provideReplicationStats = false) : IPublisher
 	{
+		public int ReplicationRequests { get; private set; }
+
 		public void Publish(Message message)
 		{
 			switch (message)
@@ -257,6 +314,7 @@ public class GrpcOnlySurfaceParityTests
 						}));
 					break;
 				case ReplicationMessage.GetReplicationStats request:
+					ReplicationRequests++;
 					if (!provideReplicationStats)
 					{
 						throw new InvalidOperationException("Replication statistics are unavailable.");
