@@ -365,16 +365,7 @@ internal static class Program
 							context.Request.Headers.UserAgent.ToString());
 						return next(context);
 					});
-					app.Use(async (context, next) =>
-					{
-						if (!endpointPolicy.Allows(context))
-						{
-							context.Response.StatusCode = StatusCodes.Status404NotFound;
-							return;
-						}
-
-						await next(context);
-					});
+					app.UseEndpointPolicy(endpointPolicy);
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					hostedService.Node.Startup.Configure(app);
 					if (oauthEnabled)
