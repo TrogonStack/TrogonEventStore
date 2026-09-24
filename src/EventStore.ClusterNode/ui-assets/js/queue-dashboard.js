@@ -25,6 +25,7 @@
 			networkSamples: new Map(),
 			networkPage: 0,
 			replicationConnections: [],
+			replicationMessage: "",
 			timer: null,
 			inFlight: false
 		};
@@ -130,6 +131,7 @@
 		state.networkConnections = parseNetworkConnections(payload, state);
 		state.networkAvailable = payload.networkAvailable === true;
 		state.replicationConnections = parseReplicationConnections(payload);
+		state.replicationMessage = readString(payload.replicationMessage, "");
 		setStatus(
 			state.root,
 			payload.message ? "Live stats unavailable" : "Live stats",
@@ -162,6 +164,7 @@
 			state.networkConnections = [];
 			state.networkAvailable = false;
 			state.replicationConnections = [];
+			state.replicationMessage = "";
 			setStatus(state.root, "Live stats unavailable", friendlyMessage(error));
 			setNetworkStatus(state.root, friendlyMessage(error), 0);
 			render(state);
@@ -353,7 +356,7 @@
 		renderQueueTable(state);
 		renderDashboardSnapshot(state.root, state.blocks);
 		renderNetworkTable(state);
-		renderReplicationTable(state.root, state.replicationConnections);
+		renderReplicationTable(state.root, state.replicationConnections, state.replicationMessage);
 	}
 
 	function updateMetrics(root, queues) {
@@ -535,17 +538,17 @@
 		updateNetworkPagination(state, pageCount);
 	}
 
-	function renderReplicationTable(root, connections) {
+	function renderReplicationTable(root, connections, message) {
 		var tbody = root.querySelector("[data-replication-table-body]");
 		if (!tbody)
 			return;
 
 		replaceChildren(tbody);
-		if (connections.length === 0) {
+		if (message || connections.length === 0) {
 			var empty = element("tr");
 			var emptyCell = element("td", "px-5 py-4 text-es-muted");
 			emptyCell.colSpan = 6;
-			emptyCell.textContent = "No active gRPC replication connections.";
+			emptyCell.textContent = message || "No active gRPC replication connections.";
 			empty.appendChild(emptyCell);
 			tbody.appendChild(empty);
 			return;
