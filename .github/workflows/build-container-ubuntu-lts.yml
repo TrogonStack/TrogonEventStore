@@ -91,12 +91,20 @@ jobs:
     secrets: inherit
 
   client-compatibility:
-    name: Client Compatibility
+    name: Client Compatibility (${{ matrix.mode }})
     needs:
       - changes
       - build-images
       - test
     if: ${{ needs.changes.outputs.code == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: plaintext
+            tls: 'false'
+          - mode: tls
+            tls: 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -145,12 +153,14 @@ jobs:
       - name: Load server image
         run: mise run --skip-tools github:actions:container -- load-runtime
       - name: Run client compatibility gate
+        env:
+          TROGON_EVENTSTORE_COMPATIBILITY_TLS: ${{ matrix.tls }}
         run: mise run --skip-tools github:actions:client-compatibility -- run
       - name: Publish compatibility evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: client-compatibility
+          name: client-compatibility-${{ matrix.mode }}
           path: .github/compatibility/artifacts
           if-no-files-found: ignore
           retention-days: 7

@@ -43,10 +43,38 @@ run)
 	artifacts="$compatibility_dir/artifacts"
 	server_port=${TROGON_EVENTSTORE_COMPATIBILITY_PORT:-2113}
 	otlp_port=${TROGON_EVENTSTORE_COMPATIBILITY_OTLP_PORT:-4317}
-	server_uri="esdb://admin:changeit@127.0.0.1:$server_port?tls=false"
+	tls=${TROGON_EVENTSTORE_COMPATIBILITY_TLS:-false}
+	cert_dir=
+	compose=
+	cleanup() {
+		if [ -n "$compose" ]; then
+			$compose down --volumes --remove-orphans
+		fi
+		if [ -n "$cert_dir" ] && [ -d "$cert_dir" ]; then
+			rm -r -- "$cert_dir"
+		fi
+	}
+	trap cleanup EXIT
+	trap 'exit 1' HUP INT TERM
+	case "$tls" in
+	true)
+		cert_dir=$(mktemp -d)
+		export TROGON_EVENTSTORE_COMPATIBILITY_CERT_DIR="$cert_dir"
+		sh "$compatibility_dir/generate-tls-certificates.sh" "$cert_dir"
+		server_uri="esdb://admin:changeit@127.0.0.1:$server_port?tls=true&tlsVerifyCert=true&tlsCaFile=$cert_dir/public/ca/ca.crt"
+		compose="docker compose -f $compatibility_dir/docker-compose.yml -f $compatibility_dir/docker-compose-tls.yml"
+		;;
+	false)
+		server_uri="esdb://admin:changeit@127.0.0.1:$server_port?tls=false"
+		compose="docker compose -f $compatibility_dir/docker-compose.yml"
+		;;
+	*)
+		echo "TROGON_EVENTSTORE_COMPATIBILITY_TLS must be true or false" >&2
+		exit 2
+		;;
+	esac
 	otlp_endpoint=http://127.0.0.1:$otlp_port
 	run_id=${TROGON_EVENTSTORE_RUN_ID:-compatibility-$(date +%s)}
-	compose="docker compose -f $compatibility_dir/docker-compose.yml"
 
 	test -f "$dotnet_project"
 	test -f "$rust_manifest"
@@ -61,14 +89,14 @@ run)
 		--test compatibility \
 		--no-run
 
-	cleanup() {
-		$compose down --volumes --remove-orphans
-	}
-	trap cleanup EXIT HUP INT TERM
 	$compose up --detach
 
 	for attempt in $(seq 1 60); do
-		if curl --silent --fail "http://127.0.0.1:$server_port/-/readiness" >/dev/null; then
+		if [ "$tls" = true ]; then
+			if curl --silent --fail --cacert "$cert_dir/public/ca/ca.crt" "https://127.0.0.1:$server_port/-/readiness" >/dev/null; then
+				break
+			fi
+		elif curl --silent --fail "http://127.0.0.1:$server_port/-/readiness" >/dev/null; then
 			break
 		fi
 		if [ "$attempt" -eq 60 ]; then
@@ -157,6 +185,19 @@ run)
 	run_rust write "$rust_to_dotnet" >"$artifacts/rust-write.log" 2>&1
 	run_dotnet read "$rust_to_dotnet" >"$artifacts/dotnet-read.json"
 	assert_result "$artifacts/dotnet-read.json" read rust
+	if [ "$tls" = true ]; then
+		trusted_uri=$server_uri
+		server_uri="esdb://admin:changeit@127.0.0.1:$server_port?tls=true&tlsVerifyCert=true&tlsCaFile=$cert_dir/public/untrusted-ca.crt&defaultDeadline=5000&maxDiscoverAttempts=1"
+		if run_dotnet read "$rust_to_dotnet" >/dev/null 2>&1; then
+			echo "C# client accepted an untrusted server certificate" >&2
+			exit 1
+		fi
+		if run_rust read "$dotnet_to_rust" >/dev/null 2>&1; then
+			echo "Rust client accepted an untrusted server certificate" >&2
+			exit 1
+		fi
+		server_uri=$trusted_uri
+	fi
 
 	run_dotnet batch-write "$dotnet_batch_to_rust" >"$artifacts/dotnet-batch-write.json"
 	run_rust read "$dotnet_batch_to_rust" >"$artifacts/rust-read-batch.log" 2>&1

@@ -1,0 +1,8 @@
+services:
+  server:
+    environment:
+      EVENTSTORE_INSECURE: "false"
+      EVENTSTORE_CERTIFICATE_FILE: /etc/eventstore/certs/node.p12
+      EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH: /etc/eventstore/certs/ca
+    volumes:
+      - ${TROGON_EVENTSTORE_COMPATIBILITY_CERT_DIR:?}/public:/etc/eventstore/certs:ro
