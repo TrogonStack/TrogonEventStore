@@ -201,7 +201,7 @@ namespace EventStore.Core.Services.Transport.Grpc
 								response.WrongExpectedVersion.CurrentNoStream = new Empty();
 								response.WrongExpectedVersion.NoStream2060 = new Empty();
 							}
-							else
+							else if (completed.CurrentVersion >= 0)
 							{
 								response.WrongExpectedVersion.CurrentRevision =
 									StreamRevision.FromInt64(completed.CurrentVersion);
