@@ -3,8 +3,6 @@
 set -o pipefail
 set -o xtrace
 
-update-ca-certificates
-
 core_grpc_security_projects=(
     EventStore.Core.Tests
 )

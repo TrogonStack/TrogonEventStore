@@ -42,7 +42,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-${CONTAINER_RUNTIME} AS test
 WORKDIR /build
 COPY --from=build ./build/published-tests ./published-tests
 COPY --from=build ./build/ci ./ci
-COPY --from=build ./build/src/EventStore.Core.Tests/Services/Transport/Tcp/test_certificates/ca/ca.crt /usr/local/share/ca-certificates/ca_eventstore_test.crt
 COPY ./scripts/test.sh /build/test.sh
 RUN mkdir ./test-results
 RUN chmod +x /build/test.sh
