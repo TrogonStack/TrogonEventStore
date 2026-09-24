@@ -164,8 +164,7 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 
 	private MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		int nodePriority, string replicationHostAdvertiseAs) => new(
-		PathName, index, endpoints.ClusterEndPoint,
-		endpoints.ExternalTcp, endpoints.HttpEndPoint,
+		PathName, index, endpoints.HttpEndPoint, endpoints.ClusterEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds,
 		nodePriority: nodePriority, replicationHostAdvertiseAs: replicationHostAdvertiseAs);
 

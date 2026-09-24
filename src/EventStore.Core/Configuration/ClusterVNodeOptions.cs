@@ -178,10 +178,10 @@ public partial record ClusterVNodeOptions
 		[Description("The maximum size of appends, in bytes. May not exceed 16MB.")]
 		public int MaxAppendSize { get; init; } = 1_024 * 1_024;
 
-		[Description("Disable Authentication, Authorization and TLS on all TCP/HTTP interfaces.")]
+		[Description("Disable authentication, authorization, and TLS on the HTTP/gRPC listeners.")]
 		public bool Insecure { get; init; } = false;
 
-		[Description("Disable TLS on all TCP/HTTP interfaces while keeping authentication and authorization enabled.")]
+		[Description("Disable TLS on the HTTP/gRPC listeners while keeping authentication and authorization enabled.")]
 		public bool DisableTls { get; init; } = false;
 
 		public bool AuthDisabled() => Insecure;
@@ -677,12 +677,6 @@ public partial record ClusterVNodeOptions
 
 		[Description("Whether to allow local connections via a UNIX domain socket.")]
 		public bool EnableUnixSocket { get; init; } = false;
-
-		[Description("The maximum number of pending send bytes allowed before a connection is closed.")]
-		public int ConnectionPendingSendBytesThreshold { get; init; } = 10 * 1_024 * 1_024;
-
-		[Description("The maximum number of pending connection operations allowed before a connection is closed.")]
-		public int ConnectionQueueSizeThreshold { get; init; } = 50_000;
 
 		[Description("Disables the admin ui on the HTTP endpoint.")]
 		public bool DisableAdminUi { get; init; } = false;

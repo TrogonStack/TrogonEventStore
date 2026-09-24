@@ -55,13 +55,13 @@ public class RequestForwardingServiceTests
 			clientCorrelationId,
 			new CallbackEnvelope(message => response = message),
 			TimeSpan.FromMinutes(1),
-			new TcpMessage.NotAuthenticated(clientCorrelationId, "timeout"));
+			new ClientMessage.NotAuthenticated(clientCorrelationId, "timeout"));
 		var service = new RequestForwardingService(
 			new NoopPublisher(), forwardingProxy, TimeSpan.FromSeconds(1));
 
-		service.Handle(new TcpMessage.NotAuthenticated(internalCorrelationId, "not authenticated"));
+		service.Handle(new ClientMessage.NotAuthenticated(internalCorrelationId, "not authenticated"));
 
-		var completion = (TcpMessage.NotAuthenticated)response;
+		var completion = (ClientMessage.NotAuthenticated)response;
 		Assert.Multiple(() =>
 		{
 			Assert.That(completion.CorrelationId, Is.EqualTo(clientCorrelationId));

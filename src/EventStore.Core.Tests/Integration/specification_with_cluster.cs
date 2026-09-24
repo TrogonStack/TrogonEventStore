@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Plugins.Subsystems;
@@ -17,7 +16,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 {
 	protected MiniClusterNode<TLogFormat, TStreamId>[] _nodes;
 	protected Endpoints[] _nodeEndpoints;
-	protected IEventStoreConnection _conn;
 	protected virtual TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(2);
 	protected virtual int NodeCount => 3;
 
@@ -26,13 +24,11 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	protected class Endpoints
 	{
 		public readonly IPEndPoint ClusterEndPoint;
-		public readonly IPEndPoint ExternalTcp;
 		public readonly IPEndPoint HttpEndPoint;
 
 		public IEnumerable<int> Ports()
 		{
 			yield return ClusterEndPoint.Port;
-			yield return ExternalTcp.Port;
 			yield return HttpEndPoint.Port;
 		}
 
@@ -48,16 +44,11 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			cluster.Bind(defaultLoopBack);
 			_sockets.Add(cluster);
 
-			var externalTcp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			externalTcp.Bind(defaultLoopBack);
-			_sockets.Add(externalTcp);
-
 			var httpEndPoint = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			httpEndPoint.Bind(defaultLoopBack);
 			_sockets.Add(httpEndPoint);
 
 			ClusterEndPoint = CopyEndpoint((IPEndPoint)cluster.LocalEndPoint);
-			ExternalTcp = CopyEndpoint((IPEndPoint)externalTcp.LocalEndPoint);
 			HttpEndPoint = CopyEndpoint((IPEndPoint)httpEndPoint.LocalEndPoint);
 		}
 
@@ -144,9 +135,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			onFail: MiniNodeLogging.WriteLogs,
 			msg: $"Waiting for followers timed out! States={string.Join(", ", _nodes.Select(n => n.NodeState))}");
 
-		_conn = CreateConnection();
-		await _conn.ConnectAsync();
-
 		try
 		{
 			await Given().WithTimeout(GivenTimeout);
@@ -158,9 +146,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	protected virtual IEventStoreConnection CreateConnection() =>
-		EventStoreConnection.Create(_nodes[0].ExternalTcpEndPoint);
-
 	protected virtual void BeforeNodesStart()
 	{
 	}
@@ -171,8 +156,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	protected virtual MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		bool wait = true) => new(
-		PathName, index, endpoints.ClusterEndPoint,
-		endpoints.ExternalTcp, endpoints.HttpEndPoint,
+		PathName, index, endpoints.HttpEndPoint, endpoints.ClusterEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
 
 	[TearDown]
@@ -187,7 +171,6 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
-		_conn?.Close();
 		if (_nodes is not null)
 		{
 			await Task.WhenAll(_nodes.Where(node => node is not null).Select(node => node.Shutdown()));

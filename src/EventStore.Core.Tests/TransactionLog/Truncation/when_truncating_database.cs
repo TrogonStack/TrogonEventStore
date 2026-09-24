@@ -20,8 +20,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await miniNode.Start();
 
-		var tcpPort = miniNode.TcpEndPoint.Port;
-		var httpPort = miniNode.HttpEndPoint.Port;
+		var nodePort = miniNode.HttpEndPoint.Port;
 		const int cnt = 50;
 		var countdown = new CountdownEvent(cnt);
 
@@ -43,12 +42,12 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		await miniNode.Shutdown(keepDb: true);
 
 		// --- first restart and truncation
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort);
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, httpPort: nodePort);
 		await miniNode.Start();
 		await miniNode.Shutdown(keepDb: true);
 
 		// --- second restart after truncation
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort);
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, httpPort: nodePort);
 		await miniNode.Start();
 		Assert.AreEqual(-1, miniNode.Db.Config.TruncateCheckpoint.Read());
 		Assert.That(miniNode.Db.Config.WriterCheckpoint.Read(), Is.GreaterThanOrEqualTo(truncatePosition));
@@ -61,7 +60,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		await miniNode.Shutdown(keepDb: true);
 
 		// -- third restart
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort);
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, httpPort: nodePort);
 		Assert.AreEqual(-1, miniNode.Db.Config.TruncateCheckpoint.Read());
 		await miniNode.Start();
 
@@ -78,7 +77,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: chunkSize, cachedChunkSize: cachedSize);
 		await miniNode.Start();
 
-		var httpPort = miniNode.HttpEndPoint.Port;
+		var nodePort = miniNode.HttpEndPoint.Port;
 		const int cnt = 1;
 		var countdown = new CountdownEvent(cnt);
 
@@ -99,16 +98,14 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 
 		await miniNode.Shutdown(keepDb: true);
 
-		var tcpPort = miniNode.TcpEndPoint.Port;
-
 		// --- first restart and truncation
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort, chunkSize: chunkSize,
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, httpPort: nodePort, chunkSize: chunkSize,
 			cachedChunkSize: cachedSize);
 		await miniNode.Start();
 		await miniNode.Shutdown(keepDb: true);
 
 		// --- second restart after truncation
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort, chunkSize: chunkSize,
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, httpPort: nodePort, chunkSize: chunkSize,
 			cachedChunkSize: cachedSize);
 		await miniNode.Start();
 		Assert.AreEqual(-1, miniNode.Db.Config.TruncateCheckpoint.Read());

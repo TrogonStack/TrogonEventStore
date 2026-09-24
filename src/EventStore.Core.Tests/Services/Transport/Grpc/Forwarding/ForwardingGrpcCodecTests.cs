@@ -415,8 +415,6 @@ public class ForwardingGrpcCodecTests
 			Guid.NewGuid(),
 			ClientMessage.NotHandled.Types.NotHandledReason.NotLeader,
 			new ClientMessage.NotHandled.Types.LeaderInfo(
-				new DnsEndPoint("leader-tcp.internal", 1113),
-				true,
 				new DnsEndPoint("leader-http.internal", 2113)));
 
 		var decoded = RoundTripResponse<ClientMessage.NotHandled>(message);
@@ -425,28 +423,6 @@ public class ForwardingGrpcCodecTests
 		{
 			Assert.That(decoded.CorrelationId, Is.EqualTo(message.CorrelationId));
 			Assert.That(decoded.Reason, Is.EqualTo(message.Reason));
-			Assert.That(decoded.LeaderInfo.IsSecure, Is.True);
-			Assert.That(decoded.LeaderInfo.ExternalTcp, Is.EqualTo(message.LeaderInfo.ExternalTcp));
-			Assert.That(decoded.LeaderInfo.Http, Is.EqualTo(message.LeaderInfo.Http));
-		});
-	}
-
-	[Test]
-	public void not_handled_leader_info_without_external_tcp_round_trips_as_null()
-	{
-		var message = new ClientMessage.NotHandled(
-			Guid.NewGuid(),
-			ClientMessage.NotHandled.Types.NotHandledReason.NotLeader,
-			new ClientMessage.NotHandled.Types.LeaderInfo(
-				null,
-				false,
-				new DnsEndPoint("leader-http.internal", 2113)));
-
-		var decoded = RoundTripResponse<ClientMessage.NotHandled>(message);
-
-		Assert.Multiple(() =>
-		{
-			Assert.That(decoded.LeaderInfo.ExternalTcp, Is.Null);
 			Assert.That(decoded.LeaderInfo.Http, Is.EqualTo(message.LeaderInfo.Http));
 		});
 	}
@@ -454,9 +430,9 @@ public class ForwardingGrpcCodecTests
 	[Test]
 	public void not_authenticated_round_trips()
 	{
-		var message = new TcpMessage.NotAuthenticated(Guid.NewGuid(), "not authenticated");
+		var message = new ClientMessage.NotAuthenticated(Guid.NewGuid(), "not authenticated");
 
-		var decoded = RoundTripResponse<TcpMessage.NotAuthenticated>(message);
+		var decoded = RoundTripResponse<ClientMessage.NotAuthenticated>(message);
 
 		Assert.Multiple(() =>
 		{

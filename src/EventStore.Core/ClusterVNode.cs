@@ -55,7 +55,6 @@ using EventStore.Core.Services.Transport.Grpc.Replication;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.Services.Transport.Http.Authentication;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
-using EventStore.Core.Services.Transport.Tcp;
 using EventStore.Core.Services.VNode;
 using EventStore.Core.Settings;
 using EventStore.Core.Synchronization;
@@ -291,49 +290,14 @@ public class ClusterVNode<TStreamId> :
 		archiveOptions.Validate();
 		OptionsFormatter.LogConfig("Archive", archiveOptions);
 
-		var disableInternalTcpTls = options.Application.TlsDisabled();
-		var disableExternalTcpTls = options.Application.TlsDisabled();
-		var nodeTcpOptions = configuration.GetSection("EventStore:TcpPlugin").Get<NodeTcpOptions>() ?? new();
-		var enableExternalTcp = nodeTcpOptions.EnableExternalTcp;
-
 		var httpEndPoint = new IPEndPoint(options.Interface.NodeIp, options.Interface.NodePort);
 		var clusterEndPoint = options.Interface.GetClusterListenEndPoint();
-
-		var intTcp = disableInternalTcpTls
-			? new IPEndPoint(options.Interface.ReplicationIp,
-				options.Interface.ReplicationPort)
-			: null;
-		var intSecIp = !disableInternalTcpTls
-			? new IPEndPoint(options.Interface.ReplicationIp,
-				options.Interface.ReplicationPort)
-			: null;
-
-		var extTcp = disableExternalTcpTls && enableExternalTcp
-			? new IPEndPoint(options.Interface.NodeIp,
-				nodeTcpOptions.NodeTcpPort)
-			: null;
-		var extSecIp = !disableExternalTcpTls && enableExternalTcp
-			? new IPEndPoint(options.Interface.NodeIp,
-				nodeTcpOptions.NodeTcpPort)
-			: null;
-
 		var clusterPortAdvertiseAs = options.Interface.GetClusterPortAdvertiseAs();
-		var intTcpPortAdvertiseAs = disableInternalTcpTls ? clusterPortAdvertiseAs : 0;
-		var intSecTcpPortAdvertiseAs = !disableInternalTcpTls ? clusterPortAdvertiseAs : 0;
-
-		var extTcpPortAdvertiseAs =
-			enableExternalTcp && disableExternalTcpTls && nodeTcpOptions.NodeTcpPortAdvertiseAs.HasValue
-				? nodeTcpOptions.NodeTcpPortAdvertiseAs.Value!
-				: 0;
-		var extSecTcpPortAdvertiseAs =
-			enableExternalTcp && !disableExternalTcpTls && nodeTcpOptions.NodeTcpPortAdvertiseAs.HasValue
-				? nodeTcpOptions.NodeTcpPortAdvertiseAs.Value!
-				: 0;
 
 		Log.Information("Quorum size set to {quorum}.", options.Cluster.QuorumSize);
 
-		NodeInfo = new VNodeInfo(instanceId.Value, debugIndex, intTcp, intSecIp, extTcp, extSecIp,
-			httpEndPoint, options.Cluster.ReadOnlyReplica, clusterEndPoint);
+		NodeInfo = new VNodeInfo(instanceId.Value, debugIndex, httpEndPoint, options.Cluster.ReadOnlyReplica,
+			clusterEndPoint);
 
 		var metricsConfiguration = MetricsConfiguration.Get(configuration);
 		var trackers = new Trackers();
@@ -633,8 +597,6 @@ public class ClusterVNode<TStreamId> :
 			TimeSpan.FromSeconds(options.Application.StatsPeriodSec),
 			NodeInfo.HttpEndPoint,
 			options.Database.StatsStorage,
-			NodeInfo.ExternalTcp,
-			NodeInfo.ExternalSecureTcp,
 			statsHelper);
 
 		_mainBus.Subscribe<SystemMessage.SystemInit>(monitoringQueue);
@@ -648,7 +610,6 @@ public class ClusterVNode<TStreamId> :
 		monitoringInnerBus.Subscribe<SystemMessage.BecomeShutdown>(monitoring);
 		monitoringInnerBus.Subscribe<ClientMessage.WriteEventsCompleted>(monitoring);
 		monitoringInnerBus.Subscribe<MonitoringMessage.GetFreshStats>(monitoring);
-		monitoringInnerBus.Subscribe<MonitoringMessage.GetFreshTcpConnectionStats>(monitoring);
 
 		_threadPoolBacklogMonitor = new ThreadPoolBacklogMonitor(_queueStatsManager, trackers.QueueTrackers);
 		_threadPoolBacklogMonitor.Start();
@@ -916,69 +877,41 @@ public class ClusterVNode<TStreamId> :
 
 		GossipAdvertiseInfo GetGossipAdvertiseInfo()
 		{
-			IPAddress intIpAddress = options.Interface.ReplicationIp;
+			var nodeIpAddress = options.Interface.NodeIp;
+			var hostToAdvertise = options.Interface.NodeHostAdvertiseAs ?? nodeIpAddress.ToString();
+			var replicationIpAddress = options.Interface.ReplicationIp;
+			var replicationHostToAdvertise =
+				options.Interface.ReplicationHostAdvertiseAs ?? replicationIpAddress.ToString();
 
-			IPAddress extIpAddress = options.Interface.NodeIp;
-
-			var clusterHostAdvertiseAs = options.Interface.GetClusterHostAdvertiseAs();
-			var intHostToAdvertise = clusterHostAdvertiseAs ?? intIpAddress.ToString();
-			var extHostToAdvertise = options.Interface.NodeHostAdvertiseAs ?? extIpAddress.ToString();
-
-			if (intIpAddress.Equals(IPAddress.Any) || extIpAddress.Equals(IPAddress.Any))
+			if ((nodeIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null) ||
+				(replicationIpAddress.Equals(IPAddress.Any) && options.Interface.ReplicationHostAdvertiseAs == null))
 			{
 				IPAddress nonLoopbackAddress = IPFinder.GetNonLoopbackAddress();
-				IPAddress addressToAdvertise =
-					options.Cluster.ClusterSize > 1 ? nonLoopbackAddress : IPAddress.Loopback;
-
-				if (intIpAddress.Equals(IPAddress.Any) && clusterHostAdvertiseAs == null)
+				var addressToAdvertise =
+					(options.Cluster.ClusterSize > 1 ? nonLoopbackAddress : IPAddress.Loopback).ToString();
+				if (nodeIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null)
 				{
-					intHostToAdvertise = addressToAdvertise.ToString();
+					hostToAdvertise = addressToAdvertise;
 				}
 
-				if (extIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null)
+				if (replicationIpAddress.Equals(IPAddress.Any) &&
+					options.Interface.ReplicationHostAdvertiseAs == null)
 				{
-					extHostToAdvertise = addressToAdvertise.ToString();
+					replicationHostToAdvertise = addressToAdvertise;
 				}
 			}
 
-			var intTcpEndPoint = NodeInfo.InternalTcp == null
-				? null
-				: new DnsEndPoint(intHostToAdvertise, intTcpPortAdvertiseAs > 0
-					? intTcpPortAdvertiseAs
-					: NodeInfo.InternalTcp.Port);
-
-			var intSecureTcpEndPoint = NodeInfo.InternalSecureTcp == null
-				? null
-				: new DnsEndPoint(intHostToAdvertise, intSecTcpPortAdvertiseAs > 0
-					? intSecTcpPortAdvertiseAs
-					: NodeInfo.InternalSecureTcp.Port);
-
-			var extTcpEndPoint = NodeInfo.ExternalTcp == null
-				? null
-				: new DnsEndPoint(extHostToAdvertise, extTcpPortAdvertiseAs > 0
-					? extTcpPortAdvertiseAs
-					: NodeInfo.ExternalTcp.Port);
-
-			var extSecureTcpEndPoint = NodeInfo.ExternalSecureTcp == null
-				? null
-				: new DnsEndPoint(extHostToAdvertise, extSecTcpPortAdvertiseAs > 0
-					? extSecTcpPortAdvertiseAs
-					: NodeInfo.ExternalSecureTcp.Port);
-
-			var httpEndPoint = new DnsEndPoint(extHostToAdvertise,
+			var httpEndPoint = new DnsEndPoint(hostToAdvertise,
 				options.Interface.NodePortAdvertiseAs > 0
 					? options.Interface.NodePortAdvertiseAs
 					: NodeInfo.HttpEndPoint.GetPort());
-			var advertisedClusterEndPoint = new DnsEndPoint(intHostToAdvertise,
+			var advertisedClusterEndPoint = new DnsEndPoint(replicationHostToAdvertise,
 				clusterPortAdvertiseAs > 0
 					? clusterPortAdvertiseAs
 					: NodeInfo.ClusterEndPoint.GetPort());
 
-			return new GossipAdvertiseInfo(intTcpEndPoint, intSecureTcpEndPoint, extTcpEndPoint,
-				extSecureTcpEndPoint, httpEndPoint, clusterHostAdvertiseAs,
-				options.Interface.NodeHostAdvertiseAs, options.Interface.NodePortAdvertiseAs,
-				options.Interface.AdvertiseHostToClientAs, options.Interface.AdvertiseNodePortToClientAs,
-				nodeTcpOptions?.NodeTcpPortAdvertiseAs ?? 0, advertisedClusterEndPoint);
+			return new GossipAdvertiseInfo(httpEndPoint, options.Interface.AdvertiseHostToClientAs,
+				options.Interface.AdvertiseNodePortToClientAs, advertisedClusterEndPoint);
 		}
 
 		_httpService = new KestrelHttpService(_mainQueue, NodeInfo.HttpEndPoint);
@@ -1021,15 +954,6 @@ public class ClusterVNode<TStreamId> :
 			.WithPlugableComponent(new ArchivePlugableComponent(options.Cluster.Archiver));
 
 		var authorizationGateway = new AuthorizationGateway(_authorizationProvider);
-
-		SubscribeWorkers(bus =>
-		{
-			var tcpSendService = new TcpSendService();
-			// ReSharper disable RedundantTypeArgumentsOfMethod
-			bus.Subscribe<TcpMessage.TcpSend>(tcpSendService);
-			// ReSharper restore RedundantTypeArgumentsOfMethod
-		});
-
 
 		var httpAuthenticationProviders = new List<IHttpAuthenticationProvider>();
 
@@ -1105,7 +1029,7 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<SystemMessage.SystemStart>(forwardingService);
 		_mainBus.Subscribe<SystemMessage.RequestForwardingTimerTick>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.NotHandled>(forwardingService);
-		_mainBus.Subscribe<TcpMessage.NotAuthenticated>(forwardingService);
+		_mainBus.Subscribe<ClientMessage.NotAuthenticated>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.WriteEventsCompleted>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.TransactionStartCompleted>(forwardingService);
 		_mainBus.Subscribe<ClientMessage.TransactionWriteCompleted>(forwardingService);
@@ -1152,7 +1076,6 @@ public class ClusterVNode<TStreamId> :
 			subscriptionQueueSlowMessageThreshold);
 		_mainBus.Subscribe<SystemMessage.SystemStart>(subscrQueue);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(subscrQueue);
-		_mainBus.Subscribe<TcpMessage.ConnectionClosed>(subscrQueue);
 		_mainBus.Subscribe<ClientMessage.SubscribeToStream>(subscrQueue);
 		_mainBus.Subscribe<ClientMessage.FilteredSubscribeToStream>(subscrQueue);
 		_mainBus.Subscribe<ClientMessage.UnsubscribeFromStream>(subscrQueue);
@@ -1167,7 +1090,6 @@ public class ClusterVNode<TStreamId> :
 				virtualStreamReader);
 		subscrBus.Subscribe<SystemMessage.SystemStart>(subscription);
 		subscrBus.Subscribe<SystemMessage.BecomeShuttingDown>(subscription);
-		subscrBus.Subscribe<TcpMessage.ConnectionClosed>(subscription);
 		subscrBus.Subscribe<ClientMessage.SubscribeToStream>(subscription);
 		subscrBus.Subscribe<ClientMessage.FilteredSubscribeToStream>(subscription);
 		subscrBus.Subscribe<ClientMessage.UnsubscribeFromStream>(subscription);
@@ -1202,7 +1124,6 @@ public class ClusterVNode<TStreamId> :
 		perSubscrBus.Subscribe<IODispatcherDelayedMessage>(psubDispatcher);
 		perSubscrBus.Subscribe<ClientMessage.NotHandled>(psubDispatcher);
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(perSubscrQueue);
-		_mainBus.Subscribe<TcpMessage.ConnectionClosed>(perSubscrQueue);
 		_mainBus.Subscribe<ClientMessage.CreatePersistentSubscriptionToStream>(perSubscrQueue);
 		_mainBus.Subscribe<ClientMessage.UpdatePersistentSubscriptionToStream>(perSubscrQueue);
 		_mainBus.Subscribe<ClientMessage.DeletePersistentSubscriptionToStream>(perSubscrQueue);
@@ -1236,7 +1157,6 @@ public class ClusterVNode<TStreamId> :
 		perSubscrBus.Subscribe<SystemMessage.BecomeShuttingDown>(persistentSubscription);
 		perSubscrBus.Subscribe<SystemMessage.BecomeLeader>(persistentSubscription);
 		perSubscrBus.Subscribe<SystemMessage.StateChangeMessage>(persistentSubscription);
-		perSubscrBus.Subscribe<TcpMessage.ConnectionClosed>(persistentSubscription);
 		perSubscrBus.Subscribe<ClientMessage.ConnectToPersistentSubscriptionToStream>(persistentSubscription);
 		perSubscrBus.Subscribe<ClientMessage.ConnectToPersistentSubscriptionToAll>(persistentSubscription);
 		perSubscrBus.Subscribe<ClientMessage.UnsubscribeFromStream>(persistentSubscription);
@@ -1483,14 +1403,9 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<TimerMessage.Schedule>(_timerService);
 
 		var memberInfo = MemberInfo.Initial(NodeInfo.InstanceId, _timeProvider.UtcNow, VNodeState.Unknown, true,
-			GossipAdvertiseInfo.InternalTcp,
-			GossipAdvertiseInfo.InternalSecureTcp,
-			GossipAdvertiseInfo.ExternalTcp,
-			GossipAdvertiseInfo.ExternalSecureTcp,
 			GossipAdvertiseInfo.HttpEndPoint,
 			GossipAdvertiseInfo.AdvertiseHostToClientAs,
 			GossipAdvertiseInfo.AdvertiseHttpPortToClientAs,
-			GossipAdvertiseInfo.AdvertiseTcpPortToClientAs,
 			options.Cluster.NodePriority, options.Cluster.ReadOnlyReplica, VersionInfo.Version,
 			GossipAdvertiseInfo.ClusterEndPoint);
 
@@ -2280,6 +2195,5 @@ public class ClusterVNode<TStreamId> :
 	}
 
 	public override string ToString() =>
-		$"[{NodeInfo.InstanceId:B}, {NodeInfo.InternalTcp}, {NodeInfo.ExternalTcp}, " +
-		$"{NodeInfo.ClusterEndPoint}, {NodeInfo.HttpEndPoint}]";
+		$"[{NodeInfo.InstanceId:B}, {NodeInfo.ClusterEndPoint}, {NodeInfo.HttpEndPoint}]";
 }

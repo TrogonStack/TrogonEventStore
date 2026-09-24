@@ -8,7 +8,6 @@ using EventStore.Core.Bus;
 using EventStore.Core.Services.Monitoring.Stats;
 using EventStore.Core.Services.Monitoring.Utils;
 using EventStore.Core.TransactionLog.Checkpoint;
-using EventStore.Transport.Tcp;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Monitoring
@@ -47,19 +46,6 @@ namespace EventStore.Core.Services.Monitoring
 			stats["proc-diskIo-writtenBytes"] = diskIo.WrittenBytes;
 			stats["proc-diskIo-readOps"] = diskIo.ReadOps;
 			stats["proc-diskIo-writeOps"] = diskIo.WriteOps;
-
-			var tcp = TcpConnectionMonitor.Default.GetTcpStats();
-			stats["proc-tcp-connections"] = tcp.Connections;
-			stats["proc-tcp-receivingSpeed"] = tcp.ReceivingSpeed;
-			stats["proc-tcp-sendingSpeed"] = tcp.SendingSpeed;
-			stats["proc-tcp-inSend"] = tcp.InSend;
-			stats["proc-tcp-measureTime"] = tcp.MeasureTime;
-			stats["proc-tcp-pendingReceived"] = tcp.PendingReceived;
-			stats["proc-tcp-pendingSend"] = tcp.PendingSend;
-			stats["proc-tcp-receivedBytesSinceLastRun"] = tcp.ReceivedBytesSinceLastRun;
-			stats["proc-tcp-receivedBytesTotal"] = tcp.ReceivedBytesTotal;
-			stats["proc-tcp-sentBytesSinceLastRun"] = tcp.SentBytesSinceLastRun;
-			stats["proc-tcp-sentBytesTotal"] = tcp.SentBytesTotal;
 
 			stats["es-checksum"] = _writerCheckpoint.Read();
 			stats["es-checksumNonFlushed"] = _writerCheckpoint.ReadNonFlushed();

@@ -8,7 +8,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using EventStore.Common.Utils;
-using EventStore.Core.Services.Transport.Tcp;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Transport.Tcp;
 using NUnit.Framework;
@@ -89,7 +88,7 @@ public class ssl_connections
 			{ return (true, null); },
 			null,
 			new TcpClientConnector(),
-			TcpConnectionManager.ConnectionTimeout,
+			TimeSpan.FromSeconds(1),
 			conn =>
 			{
 				Log.Information("Sending bytes...");

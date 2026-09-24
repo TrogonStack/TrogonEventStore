@@ -1,11 +1,21 @@
+using System;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.Exceptions;
-using EventStore.Core.Tests.ClientAPI.Helpers;
+using EventStore.Client.Streams;
+using EventStore.Core.Data;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Tests.Integration;
+using Google.Protobuf;
+using Grpc.Core;
+using Grpc.Net.Client;
 using NUnit.Framework;
+using Empty = EventStore.Client.Empty;
+using GrpcExceptions = EventStore.Core.Services.Transport.Grpc.Constants.Exceptions;
+using GrpcMetadata = EventStore.Core.Services.Transport.Grpc.Constants.Metadata;
 
 namespace EventStore.Core.Tests.Replication.ReadOnlyReplica;
 
@@ -13,13 +23,20 @@ namespace EventStore.Core.Tests.Replication.ReadOnlyReplica;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
+	protected override async Task Given()
+	{
+		await _nodes[2].AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(30));
+		AssertEx.IsOrBecomesTrue(() => _nodes[2].NodeState == VNodeState.ReadOnlyReplica,
+			timeout: TimeSpan.FromSeconds(30),
+			onFail: MiniNodeLogging.WriteLogs);
+	}
+
 	protected override MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
 		bool wait = true)
 	{
 		var isReadOnly = index == 2;
 		var node = new MiniClusterNode<TLogFormat, TStreamId>(
-			PathName, index, endpoints.ClusterEndPoint,
-			endpoints.ExternalTcp, endpoints.HttpEndPoint, gossipSeeds,
+			PathName, index, endpoints.HttpEndPoint, endpoints.ClusterEndPoint, gossipSeeds,
 			readOnlyReplica: isReadOnly);
 		if (wait && !isReadOnly)
 		{
@@ -29,35 +46,185 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 		return node;
 	}
 
-	protected override IEventStoreConnection CreateConnection()
+	private static CallOptions GetCallOptions()
 	{
-		var settings = ConnectionSettings.Create()
-			.DisableServerCertificateValidation()
-			.PerformOnAnyNode();
-		return EventStoreConnection.Create(settings, _nodes[2].ExternalTcpEndPoint);
+		var credentials = CallCredentials.FromInterceptor((_, metadata) =>
+		{
+			metadata.Add("authorization",
+				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
+			return Task.CompletedTask;
+		});
+		return new CallOptions(credentials: credentials, deadline: DateTime.UtcNow.AddSeconds(30));
+	}
+
+	private static Streams.StreamsClient CreateClient(
+		MiniClusterNode<TLogFormat, TStreamId> node,
+		out GrpcChannel channel,
+		out HttpClient httpClient)
+	{
+		httpClient = new HttpClient(new SocketsHttpHandler
+		{
+			SslOptions = { RemoteCertificateValidationCallback = delegate { return true; } }
+		});
+		channel = GrpcChannel.ForAddress(new Uri($"https://{node.HttpEndPoint}"),
+			new GrpcChannelOptions { HttpClient = httpClient });
+		return new Streams.StreamsClient(channel);
 	}
 
 	[Test]
-	public async Task append_to_stream_should_fail_with_not_supported_exception()
+	public async Task append_to_stream_is_rejected()
 	{
-		const string stream = "append_to_stream_should_fail_with_not_supported_exception";
-		await AssertEx.ThrowsAsync<OperationNotSupportedException>(
-			() => _conn.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent()));
+		var client = CreateClient(_nodes[2], out var channel, out var httpClient);
+		using (channel)
+		using (httpClient)
+		using (var call = client.Append(GetCallOptions()))
+		{
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				Options = new()
+				{
+					Any = new Empty(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(nameof(append_to_stream_is_rejected)) }
+				}
+			});
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				ProposedMessage = new()
+				{
+					Id = Uuid.NewUuid().ToDto(),
+					Data = ByteString.Empty,
+					CustomMetadata = ByteString.Empty,
+					Metadata =
+					{
+						[GrpcMetadata.Type] = "test",
+						[GrpcMetadata.ContentType] = GrpcMetadata.ContentTypes.ApplicationJson
+					}
+				}
+			});
+			await call.RequestStream.CompleteAsync();
+
+			var exception = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync);
+			Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.NotFound));
+			Assert.That(exception.Trailers.Select(x => (x.Key, x.Value)),
+				Does.Contain((GrpcExceptions.ExceptionKey, GrpcExceptions.NotLeader)));
+		}
 	}
 
 	[Test]
-	public async Task delete_stream_should_fail_with_not_supported_exception()
+	public async Task batch_append_is_rejected()
 	{
-		const string stream = "delete_stream_should_fail_with_not_supported_exception";
-		await AssertEx.ThrowsAsync<OperationNotSupportedException>(() =>
-			_conn.DeleteStreamAsync(stream, ExpectedVersion.Any));
+		var client = CreateClient(_nodes[2], out var channel, out var httpClient);
+		using (channel)
+		using (httpClient)
+		using (var call = client.BatchAppend(GetCallOptions()))
+		{
+			await call.RequestStream.WriteAsync(new BatchAppendReq
+			{
+				CorrelationId = Uuid.NewUuid().ToDto(),
+				Options = new()
+				{
+					Any = new Google.Protobuf.WellKnownTypes.Empty(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(nameof(batch_append_is_rejected)) }
+				},
+				IsFinal = true,
+				ProposedMessages =
+				{
+					new BatchAppendReq.Types.ProposedMessage
+					{
+						Id = Uuid.NewUuid().ToDto(),
+						Metadata =
+						{
+							[GrpcMetadata.Type] = "test",
+							[GrpcMetadata.ContentType] = GrpcMetadata.ContentTypes.ApplicationJson
+						}
+					},
+					new BatchAppendReq.Types.ProposedMessage
+					{
+						Id = Uuid.NewUuid().ToDto(),
+						Metadata =
+						{
+							[GrpcMetadata.Type] = "test",
+							[GrpcMetadata.ContentType] = GrpcMetadata.ContentTypes.ApplicationJson
+						}
+					}
+				}
+			});
+			await call.RequestStream.CompleteAsync();
+
+			var exception = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseStream.MoveNext());
+			Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.NotFound));
+			Assert.That(exception.Trailers.Select(x => (x.Key, x.Value)),
+				Does.Contain((GrpcExceptions.ExceptionKey, GrpcExceptions.NotLeader)));
+		}
 	}
 
 	[Test]
-	public async Task start_transaction_should_fail_with_not_supported_exception()
+	public async Task delete_stream_is_rejected()
 	{
-		const string stream = "start_transaction_should_fail_with_not_supported_exception";
-		await AssertEx.ThrowsAsync<OperationNotSupportedException>(() =>
-			_conn.StartTransactionAsync(stream, ExpectedVersion.Any));
+		const string stream = nameof(delete_stream_is_rejected);
+		var leader = GetLeader();
+		await AppendToStream(leader, stream);
+		var leaderWriterPosition = leader.Db.Config.WriterCheckpoint.Read();
+		AssertEx.IsOrBecomesTrue(
+			() => _nodes[2].Db.Config.WriterCheckpoint.Read() >= leaderWriterPosition,
+			timeout: TimeSpan.FromSeconds(30),
+			onFail: MiniNodeLogging.WriteLogs,
+			msg: "The stream was not replicated to the read-only replica.");
+
+		var client = CreateClient(_nodes[2], out var channel, out var httpClient);
+		using (channel)
+		using (httpClient)
+		using (var call = client.DeleteAsync(new DeleteReq
+		{
+			Options = new()
+			{
+				Any = new Empty(),
+				StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) }
+			}
+		}, GetCallOptions()))
+		{
+			var exception = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync);
+			Assert.That(exception.StatusCode, Is.EqualTo(StatusCode.NotFound));
+			Assert.That(exception.Trailers.Select(x => (x.Key, x.Value)),
+				Does.Contain((GrpcExceptions.ExceptionKey, GrpcExceptions.NotLeader)));
+		}
+	}
+
+	private static async Task AppendToStream(
+		MiniClusterNode<TLogFormat, TStreamId> node,
+		string stream)
+	{
+		var client = CreateClient(node, out var channel, out var httpClient);
+		using (channel)
+		using (httpClient)
+		using (var call = client.Append(GetCallOptions()))
+		{
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				Options = new()
+				{
+					NoStream = new Empty(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(stream) }
+				}
+			});
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				ProposedMessage = new()
+				{
+					Id = Uuid.NewUuid().ToDto(),
+					Data = ByteString.Empty,
+					CustomMetadata = ByteString.Empty,
+					Metadata =
+					{
+						[GrpcMetadata.Type] = "test",
+						[GrpcMetadata.ContentType] = GrpcMetadata.ContentTypes.ApplicationJson
+					}
+				}
+			});
+			await call.RequestStream.CompleteAsync();
+
+			var response = await call.ResponseAsync;
+			Assert.That(response.ResultCase, Is.EqualTo(AppendResp.ResultOneofCase.Success));
+		}
 	}
 }
