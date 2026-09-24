@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using Google.Protobuf.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
@@ -84,4 +85,19 @@ public sealed class EndpointPolicy
 			listenEndPoint.Address.Equals(IPAddress.IPv6Any) ||
 			listenEndPoint.Address.Equals(localAddress);
 	}
+}
+
+public static class EndpointPolicyApplicationBuilderExtensions
+{
+	public static IApplicationBuilder UseEndpointPolicy(this IApplicationBuilder app, EndpointPolicy policy) =>
+		app.Use(async (context, next) =>
+		{
+			if (!policy.Allows(context))
+			{
+				context.Response.StatusCode = StatusCodes.Status404NotFound;
+				return;
+			}
+
+			await next(context);
+		});
 }
