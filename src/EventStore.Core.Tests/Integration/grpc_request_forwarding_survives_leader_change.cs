@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -25,14 +26,14 @@ public class grpc_request_forwarding_survives_leader_change<TLogFormat, TStreamI
 {
 	private const string Stream = "$grpc-forwarding-failover";
 	private const string AuthorizationHeaderValue = "Basic YWRtaW46Y2hhbmdlaXQ=";
-	private const int TestTimeoutMilliseconds = 5 * 60 * 1000;
+	private const int TestTimeoutMilliseconds = 8 * 60 * 1000;
 	private static readonly TimeSpan AuthenticationRetryDelay = TimeSpan.FromMilliseconds(100);
 	private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
-	private static readonly TimeSpan ScenarioTimeout = TimeSpan.FromMinutes(4);
+	private static readonly TimeSpan ScenarioTimeout = TimeSpan.FromMinutes(7);
 
 	[Test]
 	[Timeout(TestTimeoutMilliseconds)]
-	public async Task completes_writes_through_a_surviving_follower_after_a_new_leader_is_elected()
+	public async Task replicates_writes_across_leader_loss_and_reconnection()
 	{
 		var scenario = Stopwatch.StartNew();
 		AssertEx.IsOrBecomesTrue(
@@ -49,6 +50,10 @@ public class grpc_request_forwarding_survives_leader_change<TLogFormat, TStreamI
 			Is.EqualTo(0));
 		Assert.That(await Append(initialFollowers[1].HttpEndPoint, ExpectedStreamRevision.Exact(0), scenario),
 			Is.EqualTo(1));
+		foreach (var node in _nodes)
+		{
+			await AssertRevisions(node.HttpEndPoint, [0, 1], scenario);
+		}
 
 		await initialLeader.Shutdown(keepDb: true);
 		_nodes[initialLeader.DebugIndex] = null;
@@ -65,6 +70,108 @@ public class grpc_request_forwarding_survives_leader_change<TLogFormat, TStreamI
 		Assert.That(initialFollowers, Does.Contain(forwardingFollower));
 		Assert.That(await Append(forwardingFollower.HttpEndPoint, ExpectedStreamRevision.Exact(1), scenario),
 			Is.EqualTo(2));
+		foreach (var node in _nodes.Where(node => node is not null))
+		{
+			await AssertRevisions(node.HttpEndPoint, [0, 1, 2], scenario);
+		}
+
+		var restartedLeaderIndex = initialLeader.DebugIndex;
+		var restartedLeader = CreateNode(
+			restartedLeaderIndex,
+			_nodeEndpoints[restartedLeaderIndex],
+			_nodeEndpoints.Where((_, index) => index != restartedLeaderIndex)
+				.Select(endpoints => (EndPoint)endpoints.ClusterEndPoint)
+				.ToArray());
+		_nodes[restartedLeaderIndex] = restartedLeader;
+		restartedLeader.Start();
+
+		AssertEx.IsOrBecomesTrue(
+			() =>
+				_nodes.Count(node => node.NodeState == VNodeState.Leader) == 1 &&
+				_nodes.Count(node => node.NodeState == VNodeState.Follower) == 2,
+			RemainingScenarioTime(scenario),
+			"The reconnected node did not rejoin the cluster",
+			MiniNodeLogging.WriteLogs);
+
+		foreach (var node in _nodes)
+		{
+			await AssertRevisions(node.HttpEndPoint, [0, 1, 2], scenario);
+		}
+	}
+
+	private static async Task AssertRevisions(IPEndPoint endpoint, ulong[] expected, Stopwatch scenario)
+	{
+		while (true)
+		{
+			try
+			{
+				var actual = await ReadRevisions(endpoint, RemainingScenarioTime(scenario));
+				if (actual.Count >= expected.Length)
+				{
+					Assert.That(actual, Is.EqualTo(expected), $"Replication differed at {endpoint}");
+					return;
+				}
+			}
+			catch (RpcException ex) when (
+				ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded &&
+				scenario.Elapsed < ScenarioTimeout)
+			{
+			}
+
+			await Task.Delay(AuthenticationRetryDelay);
+		}
+	}
+
+	private static async Task<List<ulong>> ReadRevisions(IPEndPoint endpoint, TimeSpan remainingScenarioTime)
+	{
+		using var handler = new SocketsHttpHandler
+		{
+			SslOptions =
+			{
+				RemoteCertificateValidationCallback = delegate { return true; }
+			}
+		};
+		using var httpClient = new HttpClient(handler);
+		using var channel = GrpcChannel.ForAddress(
+			new Uri($"https://{endpoint}"),
+			new GrpcChannelOptions { HttpClient = httpClient });
+		var client = new Streams.StreamsClient(channel);
+		using var call = client.Read(new ReadReq
+		{
+			Options = new ReadReq.Types.Options
+			{
+				Stream = new ReadReq.Types.Options.Types.StreamOptions
+				{
+					StreamIdentifier = new StreamIdentifier
+					{
+						StreamName = ByteString.CopyFromUtf8(Stream)
+					},
+					Start = new Empty()
+				},
+				ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
+				Count = 3,
+				NoFilter = new Empty(),
+				UuidOption = new ReadReq.Types.Options.Types.UUIDOption { Structured = new Empty() }
+			}
+		}, new CallOptions(
+			credentials: CallCredentials.FromInterceptor((_, metadata) =>
+			{
+				metadata.Add("authorization", AuthorizationHeaderValue);
+				return Task.CompletedTask;
+			}),
+			deadline: DateTime.UtcNow.Add(remainingScenarioTime < RequestTimeout
+				? remainingScenarioTime
+				: RequestTimeout)));
+
+		var revisions = new List<ulong>();
+		await foreach (var response in call.ResponseStream.ReadAllAsync())
+		{
+			if (response.Event is { } readEvent)
+			{
+				revisions.Add(readEvent.Event.StreamRevision);
+			}
+		}
+		return revisions;
 	}
 
 	private static async Task<ulong> Append(
