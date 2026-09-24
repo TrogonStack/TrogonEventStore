@@ -30,7 +30,6 @@ openssl x509 -req -sha256 -days 1 \
 openssl pkcs12 -export \
 	-inkey "$cert_root/private/node.key" \
 	-in "$cert_root/private/node.crt" \
-	-certfile "$cert_root/public/ca/ca.crt" \
 	-out "$cert_root/public/node.p12" \
 	-passout pass: >/dev/null 2>&1
 

@@ -58,6 +58,7 @@ run)
 	trap 'exit 1' HUP INT TERM
 	case "$tls" in
 	true)
+		sh "$compatibility_dir/test-generate-tls-certificates.sh"
 		cert_dir=$(mktemp -d)
 		export TROGON_EVENTSTORE_COMPATIBILITY_CERT_DIR="$cert_dir"
 		sh "$compatibility_dir/generate-tls-certificates.sh" "$cert_dir"
