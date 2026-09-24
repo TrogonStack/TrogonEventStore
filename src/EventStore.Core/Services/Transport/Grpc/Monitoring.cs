@@ -4,6 +4,8 @@ using EventStore.Client.Monitoring;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
+using EventStore.Plugins.Authorization;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc
@@ -11,9 +13,14 @@ namespace EventStore.Core.Services.Transport.Grpc
 	internal partial class Monitoring : EventStore.Client.Monitoring.Monitoring.MonitoringBase
 	{
 		private readonly IPublisher _publisher;
+		private readonly IConnectionStatsProvider _connectionStatsProvider;
+		private readonly IAuthorizationProvider _authorizationProvider;
+		private static readonly Operation ReadStatisticsOperation = new(Plugins.Authorization.Operations.Node.Statistics.Read);
+		private static readonly Operation ReadReplicationStatisticsOperation = new(Plugins.Authorization.Operations.Node.Statistics.Replication);
 
-		public override Task Stats(StatsReq request, IServerStreamWriter<StatsResp> responseStream, ServerCallContext context)
+		public override async Task Stats(StatsReq request, IServerStreamWriter<StatsResp> responseStream, ServerCallContext context)
 		{
+			await RequireAccess(ReadStatisticsOperation, context);
 			var useGrouping = request.HasUseGrouping ? request.UseGrouping : false;
 			if (!useGrouping && !string.IsNullOrEmpty(request.StatsPath))
 			{
@@ -22,7 +29,7 @@ namespace EventStore.Core.Services.Transport.Grpc
 						"Dynamic stats selection works only with grouping enabled"));
 			}
 
-			return StreamStats();
+			await StreamStats();
 
 			async Task StreamStats()
 			{
@@ -84,45 +91,37 @@ namespace EventStore.Core.Services.Transport.Grpc
 			}
 		}
 
-		public override Task<TcpStatsResp> TcpStats(TcpStatsReq request, ServerCallContext context)
+		public override async Task<ConnectionStatsResp> ConnectionStats(
+			ConnectionStatsReq request,
+			ServerCallContext context)
 		{
-			var responseSource = new TaskCompletionSource<TcpStatsResp>(TaskCreationOptions.RunContinuationsAsynchronously);
-			var envelope = new CallbackEnvelope(message =>
+			await RequireAccess(ReadStatisticsOperation, context);
+			var response = new ConnectionStatsResp();
+			foreach (var connection in _connectionStatsProvider.Snapshot())
 			{
-				if (message is not MonitoringMessage.GetFreshTcpConnectionStatsCompleted completed)
+				response.Connections.Add(new EventStore.Client.Monitoring.ConnectionStats
 				{
-					responseSource.TrySetException(
-						UnknownMessage<MonitoringMessage.GetFreshTcpConnectionStatsCompleted>(message));
-					return;
-				}
+					RemoteEndpoint = connection.RemoteEndPoint ?? string.Empty,
+					LocalEndpoint = connection.LocalEndPoint ?? string.Empty,
+					ClientConnectionName = connection.ClientName ?? string.Empty,
+					ConnectionId = connection.ConnectionId ?? string.Empty,
+					TotalBytesSent = connection.TotalBytesSent,
+					TotalBytesReceived = connection.TotalBytesReceived,
+					PendingSendBytes = connection.PendingSendBytes,
+					PendingReceivedBytes = connection.PendingReceivedBytes,
+					IsTls = connection.IsTls,
+					Protocol = connection.Protocol ?? string.Empty,
+					Application = connection.Application ?? string.Empty,
+					ConnectedAt = Timestamp.FromDateTimeOffset(connection.ConnectedAt)
+				});
+			}
 
-				var response = new TcpStatsResp();
-				foreach (var connection in completed.ConnectionStats)
-				{
-					response.Connections.Add(new TcpConnectionStats
-					{
-						RemoteEndpoint = connection.RemoteEndPoint ?? string.Empty,
-						LocalEndpoint = connection.LocalEndPoint ?? string.Empty,
-						ClientConnectionName = connection.ClientConnectionName ?? string.Empty,
-						ConnectionId = connection.ConnectionId.ToString("D"),
-						TotalBytesSent = connection.TotalBytesSent,
-						TotalBytesReceived = connection.TotalBytesReceived,
-						PendingSendBytes = connection.PendingSendBytes,
-						PendingReceivedBytes = connection.PendingReceivedBytes,
-						IsExternalConnection = connection.IsExternalConnection,
-						IsSslConnection = connection.IsSslConnection
-					});
-				}
-
-				responseSource.TrySetResult(response);
-			});
-
-			_publisher.Publish(new MonitoringMessage.GetFreshTcpConnectionStats(envelope));
-			return responseSource.Task.WaitAsync(context.CancellationToken);
+			return response;
 		}
 
-		public override Task<ReplicationStatsResp> ReplicationStats(ReplicationStatsReq request, ServerCallContext context)
+		public override async Task<ReplicationStatsResp> ReplicationStats(ReplicationStatsReq request, ServerCallContext context)
 		{
+			await RequireAccess(ReadReplicationStatisticsOperation, context);
 			var responseSource =
 				new TaskCompletionSource<ReplicationStatsResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 			var envelope = new CallbackEnvelope(message =>
@@ -154,12 +153,24 @@ namespace EventStore.Core.Services.Transport.Grpc
 			});
 
 			_publisher.Publish(new ReplicationMessage.GetReplicationStats(envelope));
-			return responseSource.Task.WaitAsync(context.CancellationToken);
+			return await responseSource.Task.WaitAsync(context.CancellationToken);
 		}
 
-		public Monitoring(IPublisher publisher)
+		public Monitoring(IPublisher publisher, IConnectionStatsProvider connectionStatsProvider,
+			IAuthorizationProvider authorizationProvider)
 		{
 			_publisher = publisher;
+			_connectionStatsProvider = connectionStatsProvider ?? EmptyConnectionStatsProvider.Instance;
+			_authorizationProvider = authorizationProvider ?? throw new ArgumentNullException(nameof(authorizationProvider));
+		}
+
+		private async Task RequireAccess(Operation operation, ServerCallContext context)
+		{
+			if (!await _authorizationProvider.CheckAccessAsync(
+				context.GetHttpContext().User, operation, context.CancellationToken))
+			{
+				throw RpcExceptions.AccessDenied();
+			}
 		}
 
 		private static Exception UnknownMessage<T>(Message message) where T : Message =>

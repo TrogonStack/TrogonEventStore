@@ -1554,21 +1554,21 @@
             ]
           },
           {
-            "name": "TcpStatsReq"
+            "name": "ConnectionStatsReq"
           },
           {
-            "name": "TcpStatsResp",
+            "name": "ConnectionStatsResp",
             "fields": [
               {
                 "id": 1,
                 "name": "connections",
-                "type": "TcpConnectionStats",
+                "type": "ConnectionStats",
                 "is_repeated": true
               }
             ]
           },
           {
-            "name": "TcpConnectionStats",
+            "name": "ConnectionStats",
             "fields": [
               {
                 "id": 1,
@@ -1603,22 +1603,32 @@
               {
                 "id": 7,
                 "name": "pending_send_bytes",
-                "type": "int32"
+                "type": "int64"
               },
               {
                 "id": 8,
                 "name": "pending_received_bytes",
-                "type": "int32"
+                "type": "int64"
               },
               {
                 "id": 9,
-                "name": "is_external_connection",
+                "name": "is_tls",
                 "type": "bool"
               },
               {
                 "id": 10,
-                "name": "is_ssl_connection",
-                "type": "bool"
+                "name": "protocol",
+                "type": "string"
+              },
+              {
+                "id": 11,
+                "name": "application",
+                "type": "string"
+              },
+              {
+                "id": 12,
+                "name": "connected_at",
+                "type": "google.protobuf.Timestamp"
               }
             ]
           },
@@ -1693,9 +1703,9 @@
                 "out_streamed": true
               },
               {
-                "name": "TcpStats",
-                "in_type": "TcpStatsReq",
-                "out_type": "TcpStatsResp"
+                "name": "ConnectionStats",
+                "in_type": "ConnectionStatsReq",
+                "out_type": "ConnectionStatsResp"
               },
               {
                 "name": "ReplicationStats",
@@ -1708,6 +1718,9 @@
         "imports": [
           {
             "path": "google/protobuf/struct.proto"
+          },
+          {
+            "path": "google/protobuf/timestamp.proto"
           }
         ],
         "package": {

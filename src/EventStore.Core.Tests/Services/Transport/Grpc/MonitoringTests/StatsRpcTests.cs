@@ -10,6 +10,7 @@ using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Monitoring.Stats;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Grpc.MonitoringTests;
 
@@ -149,7 +150,7 @@ public class StatsRpcTests
 			serviceType!,
 			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 			binder: null,
-			args: [publisher],
+			args: [publisher, null, new AllowMonitoringAuthorizationProvider()],
 			culture: null);
 
 		using var cts = new CancellationTokenSource();
@@ -217,14 +218,21 @@ public class StatsRpcTests
 		}
 	}
 
-	private sealed class TestServerCallContext(CancellationToken cancellationToken) : ServerCallContext
+	private sealed class TestServerCallContext : ServerCallContext
 	{
+		private readonly CancellationToken _cancellationToken;
+
+		public TestServerCallContext(CancellationToken cancellationToken)
+		{
+			_cancellationToken = cancellationToken;
+			UserStateCore["__HttpContext"] = new DefaultHttpContext();
+		}
 		protected override string MethodCore => nameof(EventStore.Client.Monitoring.Monitoring.MonitoringBase.Stats);
 		protected override string HostCore => "localhost";
 		protected override string PeerCore => "ipv4:127.0.0.1:0";
 		protected override DateTime DeadlineCore => DateTime.MaxValue;
 		protected override Metadata RequestHeadersCore { get; } = new();
-		protected override CancellationToken CancellationTokenCore => cancellationToken;
+		protected override CancellationToken CancellationTokenCore => _cancellationToken;
 		protected override Metadata ResponseTrailersCore { get; } = new();
 		protected override Status StatusCore { get; set; }
 		protected override WriteOptions WriteOptionsCore { get; set; }
