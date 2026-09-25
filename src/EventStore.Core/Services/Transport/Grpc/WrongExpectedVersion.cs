@@ -7,7 +7,7 @@ namespace EventStore.Client
 {
 	partial class WrongExpectedVersion
 	{
-		public static WrongExpectedVersion Create(long currentVersion,
+		internal static WrongExpectedVersion Create(CurrentStreamVersion currentVersion,
 			long expectedStreamPosition)
 		{
 			var result = new WrongExpectedVersion
@@ -26,15 +26,15 @@ namespace EventStore.Client
 					_ => ExpectedStreamPositionOptionOneofCase.ExpectedStreamPosition
 				}
 			};
-			if (currentVersion == NoStream)
+			if (currentVersion.IsNoStream)
 			{
 				result.currentStreamRevisionOption_ = new Google.Protobuf.WellKnownTypes.Empty();
 				result.currentStreamRevisionOptionCase_ =
 					CurrentStreamRevisionOptionOneofCase.CurrentNoStream;
 			}
-			else if (currentVersion >= 0)
+			else if (currentVersion.TryGetKnownRevision(out var revision))
 			{
-				result.currentStreamRevisionOption_ = StreamRevision.FromInt64(currentVersion).ToUInt64();
+				result.currentStreamRevisionOption_ = revision.ToUInt64();
 				result.currentStreamRevisionOptionCase_ =
 					CurrentStreamRevisionOptionOneofCase.CurrentStreamRevision;
 			}

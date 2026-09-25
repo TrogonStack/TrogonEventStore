@@ -91,16 +91,20 @@ internal sealed class GrpcStreamEdgeOperations : IDisposable
 		return call.ResponseStream.Current;
 	}
 
-	public async Task<AppendResp> AppendSingle(string streamName)
+	public async Task<AppendResp> AppendSingle(string streamName, ulong? expectedRevision = null)
 	{
 		using var call = _client.Append(CallOptions);
+		var options = new AppendReq.Types.Options
+		{
+			StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(streamName) }
+		};
+		if (expectedRevision.HasValue)
+			options.Revision = expectedRevision.Value;
+		else
+			options.Any = new();
 		await call.RequestStream.WriteAsync(new AppendReq
 		{
-			Options = new()
-			{
-				StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(streamName) },
-				Any = new()
-			}
+			Options = options
 		});
 		await call.RequestStream.WriteAsync(new AppendReq
 		{

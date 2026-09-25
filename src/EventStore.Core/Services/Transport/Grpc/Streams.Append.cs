@@ -196,17 +196,18 @@ namespace EventStore.Core.Services.Transport.Grpc
 									break;
 							}
 
-							if (completed.CurrentVersion == -1)
+							var currentVersion = CurrentStreamVersion.FromInt64(completed.CurrentVersion);
+							if (currentVersion.IsNoStream)
 							{
 								response.WrongExpectedVersion.CurrentNoStream = new Empty();
 								response.WrongExpectedVersion.NoStream2060 = new Empty();
 							}
-							else if (completed.CurrentVersion >= 0)
+							else if (currentVersion.TryGetKnownRevision(out var revision))
 							{
 								response.WrongExpectedVersion.CurrentRevision =
-									StreamRevision.FromInt64(completed.CurrentVersion);
+									revision;
 								response.WrongExpectedVersion.CurrentRevision2060 =
-									StreamRevision.FromInt64(completed.CurrentVersion);
+									revision;
 							}
 
 							appendResponseSource.TrySetResult(response);

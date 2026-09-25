@@ -69,6 +69,28 @@ public class StreamRevisionAboveIntMaxTests<TLogFormat, TStreamId>
 		Assert.That(detail.CurrentStreamRevisionOptionCase,
 			Is.EqualTo(EventStore.Client.WrongExpectedVersion.CurrentStreamRevisionOptionOneofCase.CurrentStreamRevision));
 		Assert.That(detail.CurrentStreamRevision, Is.EqualTo((ulong)(FirstRevision + 5)));
+
+		var singleMismatch = await _grpc.AppendSingle(StreamName, (ulong)(FirstRevision + 15));
+		Assert.That(singleMismatch.ResultCase, Is.EqualTo(AppendResp.ResultOneofCase.WrongExpectedVersion));
+		Assert.That(singleMismatch.WrongExpectedVersion.CurrentRevisionOptionCase,
+			Is.EqualTo(AppendResp.Types.WrongExpectedVersion.CurrentRevisionOptionOneofCase.CurrentRevision));
+		Assert.That(singleMismatch.WrongExpectedVersion.CurrentRevision, Is.EqualTo((ulong)(FirstRevision + 5)));
+	}
+
+	[Test]
+	public async Task incorrect_revision_on_a_missing_stream_reports_no_stream()
+	{
+		var mismatch = await _grpc.Append(StreamName + "-missing", expectedRevision: 0);
+		Assert.That(mismatch.ResultCase, Is.EqualTo(BatchAppendResp.ResultOneofCase.Error));
+		Assert.That(mismatch.Error.Code, Is.EqualTo(Google.Rpc.Code.AlreadyExists));
+		var detail = mismatch.Error.Details.Unpack<EventStore.Client.WrongExpectedVersion>();
+		Assert.That(detail.CurrentStreamRevisionOptionCase,
+			Is.EqualTo(EventStore.Client.WrongExpectedVersion.CurrentStreamRevisionOptionOneofCase.CurrentNoStream));
+
+		var singleMismatch = await _grpc.AppendSingle(StreamName + "-missing", expectedRevision: 0);
+		Assert.That(singleMismatch.ResultCase, Is.EqualTo(AppendResp.ResultOneofCase.WrongExpectedVersion));
+		Assert.That(singleMismatch.WrongExpectedVersion.CurrentRevisionOptionCase,
+			Is.EqualTo(AppendResp.Types.WrongExpectedVersion.CurrentRevisionOptionOneofCase.CurrentNoStream));
 	}
 
 	[Test]

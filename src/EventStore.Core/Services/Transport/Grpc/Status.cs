@@ -1,4 +1,5 @@
 using EventStore.Client;
+using EventStore.Core.Services.Transport.Grpc;
 using Google.Protobuf.WellKnownTypes;
 using Empty = Google.Protobuf.WellKnownTypes.Empty;
 
@@ -7,7 +8,7 @@ namespace Google.Rpc
 {
 	partial class Status
 	{
-		public static Status WrongExpectedVersion(long currentVersion,
+		internal static Status WrongExpectedVersion(CurrentStreamVersion currentVersion,
 			long expectedVersion) => new()
 			{
 				Message = nameof(WrongExpectedVersion),
