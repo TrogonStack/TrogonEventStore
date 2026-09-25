@@ -39,8 +39,7 @@ public class HashCollisionGrpcBoundaryTests : SpecificationWithDirectoryPerTestF
 	public async Task does_not_return_a_colliding_stream_after_the_read_limit_is_reached()
 	{
 		AssertSuccess(await _grpc.Append(FirstStream, noStream: true), 0);
-		for (var revision = 0; revision < 100; revision++)
-			AssertSuccess(await _grpc.Append(SecondStream), (ulong)revision);
+		AssertSuccess(await _grpc.Append(SecondStream, count: 100), 99);
 
 		await _node.Shutdown(keepDb: true);
 		_grpc.Dispose();

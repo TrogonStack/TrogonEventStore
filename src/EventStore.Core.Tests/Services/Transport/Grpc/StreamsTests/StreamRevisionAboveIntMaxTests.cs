@@ -65,6 +65,10 @@ public class StreamRevisionAboveIntMaxTests<TLogFormat, TStreamId>
 		var mismatch = await _grpc.Append(StreamName, expectedRevision: (ulong)(FirstRevision + 15));
 		Assert.That(mismatch.ResultCase, Is.EqualTo(BatchAppendResp.ResultOneofCase.Error));
 		Assert.That(mismatch.Error.Code, Is.EqualTo(Google.Rpc.Code.AlreadyExists));
+		var detail = mismatch.Error.Details.Unpack<EventStore.Client.WrongExpectedVersion>();
+		Assert.That(detail.CurrentStreamRevisionOptionCase,
+			Is.EqualTo(EventStore.Client.WrongExpectedVersion.CurrentStreamRevisionOptionOneofCase.CurrentStreamRevision));
+		Assert.That(detail.CurrentStreamRevision, Is.EqualTo((ulong)(FirstRevision + 5)));
 	}
 
 	[Test]
