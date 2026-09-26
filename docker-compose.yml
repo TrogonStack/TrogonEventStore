@@ -17,6 +17,7 @@ services:
       - shared.env
     environment:
       - EVENTSTORE_GOSSIP_SEED=172.30.240.12:1112,172.30.240.13:1112
+      - EVENTSTORE_NODE_HOST_ADVERTISE_AS=172.30.240.11
       - EVENTSTORE_REPLICATION_IP=172.30.240.11
       - EVENTSTORE_CERTIFICATE_FILE=/etc/eventstore/certs/node/node.crt
       - EVENTSTORE_CERTIFICATE_PRIVATE_KEY_FILE=/etc/eventstore/certs/node/node.key
@@ -44,6 +45,7 @@ services:
       - shared.env
     environment:
       - EVENTSTORE_GOSSIP_SEED=172.30.240.11:1112,172.30.240.13:1112
+      - EVENTSTORE_NODE_HOST_ADVERTISE_AS=172.30.240.12
       - EVENTSTORE_REPLICATION_IP=172.30.240.12
       - EVENTSTORE_CERTIFICATE_FILE=/etc/eventstore/certs/node/node.crt
       - EVENTSTORE_CERTIFICATE_PRIVATE_KEY_FILE=/etc/eventstore/certs/node/node.key
@@ -71,6 +73,7 @@ services:
       - shared.env
     environment:
       - EVENTSTORE_GOSSIP_SEED=172.30.240.11:1112,172.30.240.12:1112
+      - EVENTSTORE_NODE_HOST_ADVERTISE_AS=172.30.240.13
       - EVENTSTORE_REPLICATION_IP=172.30.240.13
       - EVENTSTORE_CERTIFICATE_FILE=/etc/eventstore/certs/node/node.crt
       - EVENTSTORE_CERTIFICATE_PRIVATE_KEY_FILE=/etc/eventstore/certs/node/node.key
