@@ -70,7 +70,8 @@ When you tell TrogonEventStore to use DNS for its gossip, the server will resolv
 
 To use DNS discovery, set the `ClusterDns` option to a DNS name that resolves to
 the cluster nodes. When the server starts, it attempts a gRPC call over
-`https://<cluster-dns>:<gossip-port>` (`http` if the cluster is insecure).
+`https://<cluster-dns>:<gossip-port>` (`http` whenever TLS is disabled;
+`DisableTls=true` does not disable authentication or authorization).
 
 When using a certificate signed by a publicly trusted CA, you'd normally use the wildcard certificate. Ensure that the cluster DNS name fits the wildcard, otherwise the request will fail on SSL check.
 
