@@ -1,6 +1,29 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.1.0](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.2...v0.1.0) (2026-09-26)
+
+
+### Features
+
+* **cluster:** preserve independent replication identity ([#506](https://github.com/TrogonStack/TrogonEventStore/issues/506)) ([62a862f](https://github.com/TrogonStack/TrogonEventStore/commit/62a862f28b741303e22a44a68453533655819acf))
+* **configuration:** clarify gRPC replication advertisement ([#505](https://github.com/TrogonStack/TrogonEventStore/issues/505)) ([2931754](https://github.com/TrogonStack/TrogonEventStore/commit/293175431ebf0d7cd619b6601bc1076ecc8fc6c5))
+* **monitoring:** preserve connection visibility over gRPC ([#497](https://github.com/TrogonStack/TrogonEventStore/issues/497)) ([56eb784](https://github.com/TrogonStack/TrogonEventStore/commit/56eb7849e0c7603fbee39d706dec94cbfd5a7171))
+* **test-client:** preserve supported operations over gRPC ([#487](https://github.com/TrogonStack/TrogonEventStore/issues/487)) ([85e489d](https://github.com/TrogonStack/TrogonEventStore/commit/85e489da3c3b8ec567b2504bfc5ff8c3787890de))
+
+
+### Bug Fixes
+
+* **cluster:** preserve internal transport isolation ([#495](https://github.com/TrogonStack/TrogonEventStore/issues/495)) ([3143c08](https://github.com/TrogonStack/TrogonEventStore/commit/3143c083fbad583ffec0f692f3524bf1434379cd))
+* **grpc:** preserve expected-version failures with unknown revisions ([#514](https://github.com/TrogonStack/TrogonEventStore/issues/514)) ([6748b60](https://github.com/TrogonStack/TrogonEventStore/commit/6748b607835ee7f20c0becb34158a4443be64eb3))
+* **grpc:** preserve forwarded authentication failures ([#510](https://github.com/TrogonStack/TrogonEventStore/issues/510)) ([0d1b2be](https://github.com/TrogonStack/TrogonEventStore/commit/0d1b2be4cf3c3a44bb6011c81d64f73e668ba2f2))
+* **grpc:** preserve subscription cleanup on disconnect ([#509](https://github.com/TrogonStack/TrogonEventStore/issues/509)) ([d30db04](https://github.com/TrogonStack/TrogonEventStore/commit/d30db04985c7db75d1daafc66fde5cd064b247ca))
+* **projections:** preserve behavior over gRPC ([#491](https://github.com/TrogonStack/TrogonEventStore/issues/491)) ([92a613b](https://github.com/TrogonStack/TrogonEventStore/commit/92a613b3eeda0d4d80e8a9a2e571a6829e8dce4a))
+* **security:** preserve authorization behavior over gRPC ([#489](https://github.com/TrogonStack/TrogonEventStore/issues/489)) ([0ef196b](https://github.com/TrogonStack/TrogonEventStore/commit/0ef196bab2990fe027c4dcddaf097fb8b6baedb7))
+* **security:** protect node capacity from password authentication floods ([#483](https://github.com/TrogonStack/TrogonEventStore/issues/483)) ([2df6d31](https://github.com/TrogonStack/TrogonEventStore/commit/2df6d3112b7e7ec287ea7b6f882406e2de04cd38))
+* **subscriptions:** preserve behavior over gRPC ([#488](https://github.com/TrogonStack/TrogonEventStore/issues/488)) ([7b0fbe3](https://github.com/TrogonStack/TrogonEventStore/commit/7b0fbe3e65bbb8d53a13ddfa29c80cc0015f4ff4))
+* **ui:** keep published assets stable across upgrades ([#485](https://github.com/TrogonStack/TrogonEventStore/issues/485)) ([53e5942](https://github.com/TrogonStack/TrogonEventStore/commit/53e5942c3981f5e654961a52178806c5eb644207))
+
 ## [0.0.2](https://github.com/TrogonStack/TrogonEventStore/compare/v0.0.1...v0.0.2) (2026-09-02)
 
 
