@@ -8,8 +8,13 @@ fingerprints_before=$(mktemp)
 fingerprints_after=$(mktemp)
 compose_started=0
 cleanup() {
+	status=$?
 	rm -f "$fingerprints_before" "$fingerprints_after"
 	if [ "$compose_started" -eq 1 ]; then
+		if [ "$status" -ne 0 ]; then
+			docker compose ps --all
+			docker compose logs --no-color --tail=200
+		fi
 		docker compose down
 	fi
 }

@@ -69,7 +69,7 @@ WORKDIR /opt/eventstore
 
 RUN groupadd -g ${GID} "eventstore" && \
     useradd \
-    --no-create-home \
+    --create-home \
     --uid ${UID} \
     --gid "eventstore" \
     "eventstore"
