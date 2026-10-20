@@ -8,7 +8,7 @@
     "eslint": "^10.9.1",
     "eslint-config-vuepress": "^7.1.0",
     "eslint-config-vuepress-typescript": "^4.10.1",
-    "markdown-it": "^15.0.1",
+    "markdown-it": "^15.0.2",
     "tsconfig-vuepress": "^7.0.0",
     "typescript": "^7.0.2"
   },
