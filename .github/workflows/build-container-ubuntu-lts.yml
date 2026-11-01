@@ -114,7 +114,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install task runner
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: 2026.8.2
           install: false
@@ -147,7 +147,7 @@ jobs:
           path: .github/compatibility/clients/rust
           persist-credentials: false
       - name: Download server image
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: eventstore-image-noble-linux-x64
       - name: Load server image
@@ -157,7 +157,7 @@ jobs:
           TROGON_EVENTSTORE_COMPATIBILITY_TLS: ${{ matrix.tls }}
         run: mise run --skip-tools github:actions:client-compatibility -- run
       - name: Publish compatibility evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: client-compatibility-${{ matrix.mode }}
@@ -198,7 +198,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install task runner
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: 2026.8.2
           install: false
